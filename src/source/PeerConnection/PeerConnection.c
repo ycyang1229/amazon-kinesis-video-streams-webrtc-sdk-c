@@ -129,9 +129,11 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
                 CHK_STATUS(allocateSrtp(pKvsPeerConnection));
             }
 
+#ifdef ENABLE_DATA_CHANNEL
             if (pKvsPeerConnection->pSctpSession == NULL) {
                 CHK_STATUS(allocateSctp(pKvsPeerConnection));
             }
+#endif
         }
 
     } else if ((buff[0] > 127 && buff[0] < 192) && (pKvsPeerConnection->pSrtpSession != NULL)) {
@@ -584,6 +586,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     pKvsPeerConnection->MTU = pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit == 0
         ? DEFAULT_MTU_SIZE
         : pConfiguration->kvsRtcConfiguration.maximumTransmissionUnit;
+    pKvsPeerConnection->sctpIsEnabled = FALSE;
 
     iceAgentCallbacks.customData = (UINT64) pKvsPeerConnection;
     iceAgentCallbacks.inboundPacketFn = onInboundPacket;
@@ -855,9 +858,11 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     }
 
     for (i = 0; i < pSessionDescription->mediaCount; i++) {
+#ifdef ENABLE_DATA_CHANNEL
         if (STRNCMP(pSessionDescription->mediaDescriptions[i].mediaName, "application", SIZEOF("application") - 1) == 0) {
             pKvsPeerConnection->sctpIsEnabled = TRUE;
         }
+#endif
 
         for (j = 0; j < pSessionDescription->mediaDescriptions[i].mediaAttributesCount; j++) {
             if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "ice-ufrag") == 0) {
@@ -930,7 +935,9 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
     pSessionDescriptionInit->type = SDP_TYPE_OFFER;
     pKvsPeerConnection->isOffer = TRUE;
 
+#ifdef ENABLE_DATA_CHANNEL
     pKvsPeerConnection->sctpIsEnabled = TRUE;
+#endif
     CHK_STATUS(setPayloadTypesForOffer(pKvsPeerConnection->pCodecTable));
 
     CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
@@ -1170,7 +1177,9 @@ STATUS initKvsWebRtc(VOID)
 
     KVS_CRYPTO_INIT();
 
+#ifdef ENABLE_DATA_CHANNEL
     CHK_STATUS(initSctpSession());
+#endif
 
     ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, TRUE);
 
@@ -1186,7 +1195,9 @@ STATUS deinitKvsWebRtc(VOID)
     STATUS retStatus = STATUS_SUCCESS;
     CHK(ATOMIC_LOAD_BOOL(&gKvsWebRtcInitialized), retStatus);
 
+#ifdef ENABLE_DATA_CHANNEL
     deinitSctpSession();
+#endif
 
     srtp_shutdown();
 
