@@ -244,7 +244,7 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
 
     CHK(pTransceiver != NULL, STATUS_NULL_ARG);
 
-    pPacket = pTransceiver->pJitterBuffer->pktBuffer[startIndex];
+    hashTableGet(pTransceiver->pJitterBuffer->pPkgBufferHashTable, startIndex, (PUINT64) &pPacket);
     CHK(pPacket != NULL, STATUS_NULL_ARG);
 
     if (frameSize > pTransceiver->peerFrameBufferSize) {
