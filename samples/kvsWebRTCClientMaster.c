@@ -109,7 +109,9 @@ CleanUp:
     }
 
     printf("[KVS Master] Cleaning up....\n");
-
+    if (logStartUpLatency(pSampleConfiguration) != STATUS_SUCCESS) {
+        printf("[KVS Master] Failed to log start up latency data\n");
+    }
     if (pSampleConfiguration != NULL) {
         // Kick of the termination sequence
         ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, TRUE);

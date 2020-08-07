@@ -512,7 +512,8 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     CHK_STATUS(transceiverOnBandwidthEstimation(pSampleStreamingSession->pAudioRtcRtpTransceiver, (UINT64) pSampleStreamingSession,
                                                 sampleBandwidthEstimationHandler));
-
+    pSampleStreamingSession->pVideoRtcRtpTransceiver->firstFrame = TRUE;
+    pSampleStreamingSession->pAudioRtcRtpTransceiver->firstFrame = TRUE;
 CleanUp:
 
     if (STATUS_FAILED(retStatus) && pSampleStreamingSession != NULL) {
@@ -524,6 +525,31 @@ CleanUp:
         *ppSampleStreamingSession = pSampleStreamingSession;
     }
 
+    return retStatus;
+}
+
+STATUS logStartUpLatency(PSampleConfiguration pSampleConfiguration)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 i;
+    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
+    for (i = 0; i < pSampleConfiguration->streamingSessionCount; i++) {
+        pSampleConfiguration->sampleStreamingSessionList[i]->videoStartUpLatency =
+            (pSampleConfiguration->sampleStreamingSessionList[i]->pVideoRtcRtpTransceiver->firstFrameRtpPacketTimestamp -
+             pSampleConfiguration->sampleStreamingSessionList[i]->firstSdpMsgReceiveTime) /
+            HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+        pSampleConfiguration->sampleStreamingSessionList[i]->audioStartUpLatency =
+            (pSampleConfiguration->sampleStreamingSessionList[i]->pAudioRtcRtpTransceiver->firstFrameRtpPacketTimestamp -
+             pSampleConfiguration->sampleStreamingSessionList[i]->firstSdpMsgReceiveTime) /
+            HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+        pSampleConfiguration->sampleStreamingSessionList[i]->finalStartUpLatency =
+            (pSampleConfiguration->sampleStreamingSessionList[i]->audioStartUpLatency <
+             pSampleConfiguration->sampleStreamingSessionList[i]->videoStartUpLatency)
+            ? pSampleConfiguration->sampleStreamingSessionList[i]->audioStartUpLatency
+            : pSampleConfiguration->sampleStreamingSessionList[i]->videoStartUpLatency;
+        DLOGD("Start up latency for session %d: %" PRIu64 "ms\n", i, pSampleConfiguration->sampleStreamingSessionList[i]->finalStartUpLatency);
+    }
+CleanUp:
     return retStatus;
 }
 
