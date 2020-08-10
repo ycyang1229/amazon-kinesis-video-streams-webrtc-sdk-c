@@ -7,11 +7,34 @@
 STATUS getIceCandidatePairStats(PRtcPeerConnection pRtcPeerConnection, PRtcIceCandidatePairStats pRtcIceCandidatePairStats)
 {
     STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+    PIceAgent pIceAgent = ((PKvsPeerConnection) pRtcPeerConnection)->pIceAgent;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
-    UNUSED_PARAM(pKvsPeerConnection);
     CHK((pRtcPeerConnection != NULL || pRtcIceCandidatePairStats != NULL), STATUS_NULL_ARG);
-    CHK(FALSE, STATUS_NOT_IMPLEMENTED);
+    MUTEX_LOCK(pIceAgent->lock);
+    locked = TRUE;
+    PRtcIceCandidatePairDiagnostics pRtcIceCandidatePairDiagnostics = &pIceAgent->pDataSendingIceCandidatePair->rtcIceCandidatePairDiagnostics;
+    STRCPY(pRtcIceCandidatePairStats->localCandidateId, pRtcIceCandidatePairDiagnostics->localCandidateId);
+    STRCPY(pRtcIceCandidatePairStats->remoteCandidateId, pRtcIceCandidatePairDiagnostics->remoteCandidateId);
+    pRtcIceCandidatePairStats->state = pRtcIceCandidatePairDiagnostics->state;
+    pRtcIceCandidatePairStats->packetsDiscardedOnSend = pRtcIceCandidatePairDiagnostics->packetsDiscardedOnSend;
+    pRtcIceCandidatePairStats->lastPacketSentTimestamp = pRtcIceCandidatePairDiagnostics->lastPacketSentTimestamp;
+    pRtcIceCandidatePairStats->bytesSent = pRtcIceCandidatePairDiagnostics->bytesSent;
+    pRtcIceCandidatePairStats->packetsSent = pRtcIceCandidatePairDiagnostics->packetsSent;
+    pRtcIceCandidatePairStats->packetsReceived = pRtcIceCandidatePairDiagnostics->packetsReceived;
+    pRtcIceCandidatePairStats->bytesReceived = pRtcIceCandidatePairDiagnostics->bytesReceived;
+    pRtcIceCandidatePairStats->lastPacketReceivedTimestamp = pRtcIceCandidatePairDiagnostics->lastPacketReceivedTimestamp;
+    pRtcIceCandidatePairStats->totalRoundTripTime = pRtcIceCandidatePairDiagnostics->totalRoundTripTime;
+    pRtcIceCandidatePairStats->currentRoundTripTime = pRtcIceCandidatePairDiagnostics->currentRoundTripTime;
+    pRtcIceCandidatePairStats->requestsReceived = pRtcIceCandidatePairDiagnostics->requestsReceived;
+    pRtcIceCandidatePairStats->requestsSent = pRtcIceCandidatePairDiagnostics->requestsSent;
+    pRtcIceCandidatePairStats->responsesReceived = pRtcIceCandidatePairDiagnostics->responsesReceived;
+    pRtcIceCandidatePairStats->lastRequestTimestamp = pRtcIceCandidatePairDiagnostics->lastRequestTimestamp;
+    pRtcIceCandidatePairStats->lastResponseTimestamp = pRtcIceCandidatePairDiagnostics->lastResponseTimestamp;
 CleanUp:
+    if (locked) {
+        MUTEX_UNLOCK(pIceAgent->lock);
+    }
     return retStatus;
 }
 
