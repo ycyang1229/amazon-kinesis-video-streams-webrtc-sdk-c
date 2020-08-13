@@ -86,7 +86,10 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
         CHK(pKvsDataChannel != NULL, STATUS_INTERNAL_ERROR);
         sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, currentDataChannelId, pKvsDataChannel->dataChannel.name,
                              STRLEN(pKvsDataChannel->dataChannel.name), &pKvsDataChannel->rtcDataChannelInit);
-
+        pKvsDataChannel->rtcDataChannelDiagnostics.state = RTC_DATA_CHANNEL_STATE_OPEN;
+        if (STATUS_FAILED(hashTableUpsert(pKvsPeerConnection->pDataChannels, currentDataChannelId, (UINT64) pKvsDataChannel))) {
+            DLOGW("Failed to update entry in hash table with recent changes to data channel");
+        }
         if (pKvsDataChannel->onOpen != NULL) {
             pKvsDataChannel->onOpen(pKvsDataChannel->onOpenCustomData, &pKvsDataChannel->dataChannel);
         }
@@ -450,7 +453,11 @@ VOID onSctpSessionDataChannelMessage(UINT64 customData, UINT32 channelId, BOOL i
 
     CHK_STATUS(hashTableGet(pKvsPeerConnection->pDataChannels, channelId, (PUINT64) &pKvsDataChannel));
     CHK(pKvsDataChannel != NULL && pKvsDataChannel->onMessage != NULL, STATUS_INTERNAL_ERROR);
-
+    pKvsDataChannel->rtcDataChannelDiagnostics.messagesReceived++;
+    pKvsDataChannel->rtcDataChannelDiagnostics.bytesReceived += pMessageLen;
+    if (STATUS_FAILED(hashTableUpsert(pKvsPeerConnection->pDataChannels, channelId, (UINT64) pKvsDataChannel))) {
+        DLOGW("Failed to update entry in hash table with recent changes to data channel");
+    }
     pKvsDataChannel->onMessage(pKvsDataChannel->onMessageCustomData, &pKvsDataChannel->dataChannel, isBinary, pMessage, pMessageLen);
 
 CleanUp:
@@ -471,11 +478,15 @@ VOID onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pNa
     CHK(pKvsDataChannel != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
     STRNCPY(pKvsDataChannel->dataChannel.name, (PCHAR) pName, pNameLen);
+    pKvsDataChannel->dataChannel.id = channelId;
     pKvsDataChannel->pRtcPeerConnection = (PRtcPeerConnection) pKvsPeerConnection;
     pKvsDataChannel->channelId = channelId;
 
+    // Set the data channel parameters when data channel is created by peer
+    pKvsDataChannel->rtcDataChannelDiagnostics.dataChannelIdentifier = channelId;
+    pKvsDataChannel->rtcDataChannelDiagnostics.state = RTC_DATA_CHANNEL_STATE_OPEN;
+    STRNCPY(pKvsDataChannel->rtcDataChannelDiagnostics.label, (PCHAR) pName, pNameLen);
     CHK_STATUS(hashTablePut(pKvsPeerConnection->pDataChannels, channelId, (UINT64) pKvsDataChannel));
-
     pKvsPeerConnection->onDataChannel(pKvsPeerConnection->onDataChannelCustomData, &(pKvsDataChannel->dataChannel));
 
 CleanUp:
