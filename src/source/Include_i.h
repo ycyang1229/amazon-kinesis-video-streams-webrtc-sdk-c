@@ -59,14 +59,18 @@ extern "C" {
 #if !defined __WINDOWS_BUILD__
 #include <signal.h>
 #include <sys/types.h>
+#ifdef KVCWEBRTC_HAVE_IFADDRS_H
 #include <ifaddrs.h>
+#endif
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#ifdef KVCWEBRTC_HAVE_NETINET_TCP_H
 #include <netinet/tcp.h>
+#endif
 #endif
 
 // Max uFrag and uPwd length as documented in https://tools.ietf.org/html/rfc5245#section-15.4
@@ -120,6 +124,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 ////////////////////////////////////////////////////
 // Project internal includes
 ////////////////////////////////////////////////////
+#if (BUILD_CLIENT)
 #include "Crypto/IOBuffer.h"
 #include "Crypto/Crypto.h"
 #include "Crypto/Dtls.h"
@@ -151,6 +156,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Rtp/Codecs/RtpH264Payloader.h"
 #include "Rtp/Codecs/RtpOpusPayloader.h"
 #include "Rtp/Codecs/RtpG711Payloader.h"
+#endif
 #include "Signaling/FileCache.h"
 #include "Signaling/Signaling.h"
 #include "Signaling/ChannelInfo.h"

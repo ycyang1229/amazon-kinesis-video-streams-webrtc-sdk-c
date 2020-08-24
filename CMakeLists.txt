@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake;${CMAKE_MODULE_PATH}")
 include(Utilities)
+include(CheckIncludeFiles)
+
 project(KinesisVideoWebRTCClient LANGUAGES C)
 
 # User Flags
@@ -26,6 +28,10 @@ option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF
 option(KVS_PLAT_FREERTOS "Build for FreeRTOS" ON)
 option(BUILD_CLIENT "Build with UndefinedBehaviorSanitizer." OFF)
 option(BUILD_SIGNALING_CLIENT "Build with UndefinedBehaviorSanitizer." ON)
+
+CHECK_INCLUDE_FILES(ifaddrs.h       KVCWEBRTC_HAVE_IFADDRS_H)
+CHECK_INCLUDE_FILES(netinet/tcp.h   KVCWEBRTC_HAVE_NETINET_TCP_H)
+
 
 set(CMAKE_MACOSX_RPATH TRUE)
 get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
@@ -294,7 +300,7 @@ target_link_libraries(
 endif()
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
-
+target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wno-format-truncation)
 target_link_libraries(
   kvsWebrtcSignalingClient
   PRIVATE kvspicUtils
