@@ -14,9 +14,9 @@ extern "C" {
 ////////////////////////////////////////////////////
 // Public headers
 ////////////////////////////////////////////////////
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
-#pragma clang diagnostic pop
+//#pragma clang diagnostic push
+//#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+//#pragma clang diagnostic pop
 
 #define NULLABLE_SET_EMPTY(a)                                                                                                                        \
     do {                                                                                                                                             \

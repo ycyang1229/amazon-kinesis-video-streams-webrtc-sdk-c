@@ -5,14 +5,14 @@ project(KinesisVideoWebRTCClient LANGUAGES C)
 
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
-option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)
-option(USE_OPENSSL "Use openssl as crypto library" ON)
-option(USE_MBEDTLS "Use mbedtls as crypto library" OFF)
-option(BUILD_STATIC_LIBS "Build all libraries statically. (This includes third-party libraries.)" OFF)
+option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" OFF)
+option(USE_OPENSSL "Use openssl as crypto library" OFF)
+option(USE_MBEDTLS "Use mbedtls as crypto library" ON)
+option(BUILD_STATIC_LIBS "Build all libraries statically. (This includes third-party libraries.)" ON)
 option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" OFF)
 option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platform" OFF)
 option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
-option(BUILD_SAMPLE "Build available samples" ON)
+option(BUILD_SAMPLE "Build available samples" OFF)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -22,6 +22,10 @@ option(ADDRESS_SANITIZER "Build with AddressSanitizer." OFF)
 option(MEMORY_SANITIZER "Build with MemorySanitizer." OFF)
 option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
+
+option(KVS_PLAT_FREERTOS "Build for FreeRTOS" ON)
+option(BUILD_CLIENT "Build with UndefinedBehaviorSanitizer." OFF)
+option(BUILD_SIGNALING_CLIENT "Build with UndefinedBehaviorSanitizer." ON)
 
 set(CMAKE_MACOSX_RPATH TRUE)
 get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
@@ -118,34 +122,61 @@ if (USE_OPENSSL)
   find_package(OpenSSL REQUIRED)
   set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
 else()
-  find_package(MbedTLS REQUIRED)
-  set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${MBEDTLS_INCLUDE_DIRS})
+  if(NOT KVS_PLAT_FREERTOS)
+    find_package(MbedTLS REQUIRED)
+    set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${MBEDTLS_INCLUDE_DIRS})
+  endif()
 endif()
 
+##
+if (KVS_MBEDTLS_LIBRARIES)
+set(MBEDTLS_LIBRARIES ${KVS_MBEDTLS_LIBRARIES})
+endif()
+if (KVS_MBEDTLS_INCLUDE_DIRS)
+set(MBEDTLS_INCLUDE_DIRS ${KVS_MBEDTLS_INCLUDE_DIRS})
+endif()
+
+if (DEFINED MBEDTLS_INCLUDE_DIRS)
+include_directories(${MBEDTLS_INCLUDE_DIRS})
+endif()
+
+if(BUILD_CLIENT)
 if (OPEN_SRC_INSTALL_PREFIX)
   find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
 else()
   find_library(SRTP_LIBRARIES srtp2 REQUIRED )
 endif()
+endif()
 
 if (WIN32)
   SET(LIBWEBSOCKETS_LIBRARIES "websockets.lib")
 else()
-  pkg_check_modules(LIBWEBSOCKETS REQUIRED libwebsockets)
+  if(NOT KVS_PLAT_FREERTOS)
+    pkg_check_modules(LIBWEBSOCKETS REQUIRED libwebsockets)
+  else()
+    if(KVS_LIBWEBSOCKETS_INCLUDE_DIRS)
+      set(LIBWEBSOCKETS_INCLUDE_DIRS ${KVS_LIBWEBSOCKETS_INCLUDE_DIRS})
+    endif()
+  endif()
 endif()
 
+
+if(BUILD_CLIENT)
 # usrsctp dont support pkgconfig yet
 find_library(
   Usrsctp
   NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
   PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib)
+endif()
 
 set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS} 
-                          ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS})
+                          ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS} ${LIBKVSPIC_INCLUDE_DIRS} ${LIBKVSCOMMONLWS_INCLUDE_DIRS})
+
 
 link_directories(${LIBSRTP_LIBRARY_DIRS})
 link_directories(${LIBWEBSOCKETS_LIBRARY_DIRS})
 link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
+
 
 pkg_check_modules(GST gstreamer-1.0)
 if(GST_FOUND)
@@ -246,6 +277,7 @@ include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/ice)
 
+if(BUILD_CLIENT)
 add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES})
 
 target_link_libraries(
@@ -259,6 +291,7 @@ target_link_libraries(
           ${Usrsctp}
           ${MBEDTLS_LIBRARIES}
           ${EXTRA_DEPS})
+endif()
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
 
@@ -283,10 +316,19 @@ if(COMPILER_WARNINGS)
   target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
 endif()
 
-install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient
+if(BUILD_CLIENT)
+install(TARGETS kvsWebrtcClient
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
+endif()
+
+install(TARGETS kvsWebrtcSignalingClient
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
+
+
 
 install(DIRECTORY ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include/
   DESTINATION include

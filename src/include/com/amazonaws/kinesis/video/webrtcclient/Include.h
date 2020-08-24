@@ -13,14 +13,14 @@ extern "C" {
 ////////////////////////////////////////////////////
 // Public headers
 ////////////////////////////////////////////////////
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+//#pragma clang diagnostic push
+//#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 #include <com/amazonaws/kinesis/video/client/Include.h>
 #include <com/amazonaws/kinesis/video/common/Include.h>
 #include <com/amazonaws/kinesis/video/webrtcclient/NullableDefs.h>
 #include <com/amazonaws/kinesis/video/webrtcclient/Stats.h>
 
-#pragma clang diagnostic pop
+//#pragma clang diagnostic pop
 
 /*===========================================================================================*/
 /*=================SESSION DESCRIPTION INIT RELATED STATUS ERROR CODES=== ===================*/
