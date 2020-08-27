@@ -47,7 +47,7 @@ race:generateTimestampStr
 #    Write of size 8 at 0x7f37b21ef4a0 by main thread (mutexes: write M202797274701519560):
 #      #0 gmtime /tmp/final/llvm.src/projects/compiler-rt/lib/tsan/../sanitizer_common/sanitizer_common_interceptors.inc:1308:3 (webrtc_client_test+0x4ff13f)
 #      #1 generateSignatureDateTime /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/libkvsCommonLws/build/src/libkvsCommonLws-download/src/source/Common/AwsV4Signer.c:692:95 (libkvsWebrtcSignalingClient.so+0x2fd1f)
-#      #2 describeChannelLws /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/LwsApiCalls.c:624:5 (libkvsWebrtcSignalingClient.so+0x14ebe)
+#      #2 describeSignalingChannel /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/LwsApiCalls.c:624:5 (libkvsWebrtcSignalingClient.so+0x14ebe)
 #      #3 describeChannel /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/Signaling.c:877:29 (libkvsWebrtcSignalingClient.so+0x21670)
 #      #4 executeDescribeSignalingState /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:344:17 (libkvsWebrtcSignalingClient.so+0x23aca)
 #      #5 stepStateMachine /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/libkvsCommonLws/build/src/libkvsCommonLws-download/dependency/libkvspic/kvspic-src/src/state/src/State.c:182:9 (libkvsWebrtcClient.so+0x7878a)
@@ -208,10 +208,10 @@ race:turnConnectionStepState
 #    Previous write of size 8 at 0x7d080001dc80 by main thread (mutexes: write M544):
 #      #0 realloc <null> (webrtc_client_test+0x0000004d47b7)
 #      #1 _realloc /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/libwebsockets/build/src/project_libwebsockets/lib/core/alloc.c (libwebsockets.so.15+0x00000000a9ed)
-#      #2 deleteChannelLws /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/LwsApiCalls.c:1140 (libkvsWebrtcSignalingClient.so+0x000000013cad)
+#      #2 deleteSignalingChannel /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/LwsApiCalls.c:1140 (libkvsWebrtcSignalingClient.so+0x000000013cad)
 #      #3 com::amazonaws::kinesis::video::webrtcclient::SignalingApiFunctionalityTest_basicCreateConnectFree_Test::TestBody() /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/tst/SignalingApiFunctionalityTest.cpp:120 (webrtc_client_test+0x0000005a7896)
 #      #4 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test+0x000000672819)
-race:deleteChannelLws
+race:deleteSignalingChannel
 
 #  WARNING: ThreadSanitizer: data race (pid=17850)
 #    Write of size 8 at 0x7d0800001320 by thread T13 (mutexes: write M553, write M567):
@@ -329,7 +329,7 @@ race:refreshIceConfigurationCallback
 #     #1 defaultLockMutex /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/utils/src/Mutex.c:202 (libkvsWebrtcClient.so+0x000000060c08)
 #     #2 timerQueueAddTimer /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/utils/src/TimerQueue.c:65 (libkvsWebrtcClient.so+0x00000006296b)
 #     #3 validateIceConfiguration /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/Signaling.c:439 (libkvsWebrtcSignalingClient.so+0x00000001cef4)
-#     #4 getIceConfigLws /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/LwsApiCalls.c:1106 (libkvsWebrtcSignalingClient.so+0x0000000139bf)
+#     #4 getIceServerConfig /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/LwsApiCalls.c:1106 (libkvsWebrtcSignalingClient.so+0x0000000139bf)
 #     #5 executeGetIceConfigSignalingState /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:440 (libkvsWebrtcSignalingClient.so+0x000000017d3a)
 #     #6 stepStateMachine /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/state/src/State.c:182 (libkvsWebrtcClient.so+0x00000006ee8d)
 #     #7 stepSignalingStateMachine /usr/src/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:55 (libkvsWebrtcSignalingClient.so+0x000000018e8c)
@@ -510,7 +510,7 @@ deadlock:getIceConfig
 #   Previous write of size 8 at 0x7b0800024080 by main thread (mutexes: write M939135813776577120, write M939698763730002320):
 #     #0 realloc /tmp/final/llvm.src/projects/compiler-rt/lib/tsan/rtl/tsan_interceptors.cc:694:5 (webrtc_client_test+0x4dfe47)
 #     #1 _realloc <null> (libwebsockets.so.15+0xa7dd)
-#     #2 getIceConfigLws /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/LwsApiCalls.c:1000:5 (libkvsWebrtcSignalingClient.so+0x16af0)
+#     #2 getIceServerConfig /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/LwsApiCalls.c:1000:5 (libkvsWebrtcSignalingClient.so+0x16af0)
 #     #3 getIceConfig /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/Signaling.c:1006:21 (libkvsWebrtcSignalingClient.so+0x203e4)
 #     #4 executeGetIceConfigSignalingState /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/src/source/Signaling/StateMachine.c:536:17 (libkvsWebrtcSignalingClient.so+0x2204a)
 #     #5 stepStateMachine /home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/amazon-kinesis-video-streams-pic/src/state/src/State.c:182:9 (libkvsWebrtcClient.so+0x757e5)
@@ -545,7 +545,7 @@ deadlock:getIceConfig
 #     #10 void testing::internal::HandleSehExceptionsInMethodIfSupported<testing::Test, void>(testing::Test*, void (testing::Test::*)(), char const*) <null> (webrtc_client_test+0x6ec65d)
 #
 # SUMMARY: ThreadSanitizer: data race (/home/travis/build/awslabs/amazon-kinesis-video-streams-webrtc-sdk-c/open-source/local/lib/libwebsockets.so.15+0xa80d) in _realloc
-race:getIceConfigLws
+race:getIceServerConfig
 
 #  Mutex M17034 acquired here while holding mutex M17028 in main thread:
 #    #0 pthread_mutex_lock /tmp/final/llvm.src/projects/compiler-rt/lib/tsan/../sanitizer_common/sanitizer_common_interceptors.inc:4071:3 (webrtc_client_test+0x50bd4e)

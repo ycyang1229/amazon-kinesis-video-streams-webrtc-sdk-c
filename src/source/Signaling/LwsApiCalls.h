@@ -25,6 +25,9 @@ extern "C" {
 #define PROTOCOL_INDEX_WSS   1
 
 // API postfix definitions
+/**
+ * https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_CreateSignalingChannel.html
+*/
 #define CREATE_SIGNALING_CHANNEL_API_POSTFIX       "/createSignalingChannel"
 #define DESCRIBE_SIGNALING_CHANNEL_API_POSTFIX     "/describeSignalingChannel"
 #define GET_SIGNALING_CHANNEL_ENDPOINT_API_POSTFIX "/getSignalingChannelEndpoint"
@@ -201,12 +204,12 @@ PVOID reconnectHandler(PVOID);
 INT32 lwsHttpCallbackRoutine(struct lws*, enum lws_callback_reasons, PVOID, PVOID, size_t);
 INT32 lwsWssCallbackRoutine(struct lws*, enum lws_callback_reasons, PVOID, PVOID, size_t);
 
-STATUS describeChannelLws(PSignalingClient, UINT64);
-STATUS createChannelLws(PSignalingClient, UINT64);
-STATUS getChannelEndpointLws(PSignalingClient, UINT64);
-STATUS getIceConfigLws(PSignalingClient, UINT64);
+STATUS describeSignalingChannel(PSignalingClient, UINT64);
+STATUS createSignalingChannel(PSignalingClient, UINT64);
+STATUS getSignalingChannelEndpoint(PSignalingClient, UINT64);
+STATUS getIceServerConfig(PSignalingClient, UINT64);
 STATUS connectSignalingChannelLws(PSignalingClient, UINT64);
-STATUS deleteChannelLws(PSignalingClient, UINT64);
+STATUS deleteSignalingChannel(PSignalingClient, UINT64);
 
 STATUS createLwsCallInfo(PSignalingClient, PRequestInfo, UINT32, PLwsCallInfo*);
 STATUS freeLwsCallInfo(PLwsCallInfo*);

@@ -51,6 +51,9 @@ extern "C" {
 #define SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
 
 // API call latency calculation
+/**
+ * #YC_TBD, do not need the mechanism of mutex. 
+*/
 #define SIGNALING_API_LATENCY_CALCULATION(pClient, time, isCpApi)                                                                                    \
     MUTEX_LOCK((pClient)->diagnosticsLock);                                                                                                          \
     if (isCpApi) {                                                                                                                                   \
@@ -92,6 +95,9 @@ typedef struct {
     UINT64 hookCustomData;
 
     // API pre and post ingestion points
+    /**
+     * #YC_TBD, can be saved if you do not need the hook functions.
+    */
     SignalingApiCallHookFunc describePreHookFn;
     SignalingApiCallHookFunc describePostHookFn;
     SignalingApiCallHookFunc createPreHookFn;
@@ -274,6 +280,7 @@ typedef struct {
     SignalingDiagnostics diagnostics;
 
     // Tracking when was the Last time the APIs were called
+    /** this records the time of calling the describeSignalingChannel() successfully. */
     UINT64 describeTime;
     UINT64 createTime;
     UINT64 getEndpointTime;

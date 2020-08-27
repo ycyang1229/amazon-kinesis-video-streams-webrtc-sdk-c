@@ -558,7 +558,16 @@ CleanUp:
 //////////////////////////////////////////////////////////////////////////
 // API calls
 //////////////////////////////////////////////////////////////////////////
-STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
+/**
+ * #HTTPS.
+ * https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_DescribeSignalingChannel.html
+ * 
+ * @brief Returns the most current information about the signaling channel. 
+ * You must specify either the name or the Amazon Resource Name (ARN) of the channel that you want to describe.
+ * 
+ * 
+*/
+STATUS describeSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -590,10 +599,19 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     SNPRINTF(paramsJson, MAX_JSON_PARAMETER_STRING_LEN, DESCRIBE_CHANNEL_PARAM_JSON_TEMPLATE, pSignalingClient->pChannelInfo->pChannelName);
 
     // Create the request info with the body
-    CHK_STATUS(createRequestInfo(url, paramsJson, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
-                                 SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
-                                 SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
-                                 DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
+    /** #YC_TBD, this should be better. */
+    CHK_STATUS(createRequestInfo(url, paramsJson, 
+                                 pSignalingClient->pChannelInfo->pRegion, 
+                                 pSignalingClient->pChannelInfo->pCertPath, 
+                                 NULL, NULL,
+                                 SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, 
+                                 pSignalingClient->pChannelInfo->pUserAgent,
+                                 SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, 
+                                 SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
+                                 DEFAULT_LOW_SPEED_LIMIT, 
+                                 DEFAULT_LOW_SPEED_TIME_LIMIT, 
+                                 pSignalingClient->pAwsCredentials, 
+                                 &pRequestInfo));
 
     CHK_STATUS(createLwsCallInfo(pSignalingClient, pRequestInfo, PROTOCOL_INDEX_HTTPS, &pLwsCallInfo));
 
@@ -688,8 +706,11 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
-STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
+/**
+ * #HTTPS.
+ * https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_CreateSignalingChannel.html
+*/
+STATUS createSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -790,8 +811,11 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
-STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
+/**
+ * #HTTPS.
+ * https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_GetSignalingChannelEndpoint.html
+*/
+STATUS getSignalingChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -920,8 +944,11 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
-STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
+/**
+ * #HTTPS.
+ * https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_AWSAcuitySignalingService_GetIceServerConfig.html
+*/
+STATUS getIceServerConfig(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -1046,8 +1073,11 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
-STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
+/**
+ * #HTTPS.
+ * https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_DeleteSignalingChannel.html
+*/
+STATUS deleteSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -1161,7 +1191,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * #WSS
+*/
 STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();

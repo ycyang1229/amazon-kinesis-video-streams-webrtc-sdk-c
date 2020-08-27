@@ -1112,7 +1112,9 @@ typedef struct {
 
     PCHAR pRegion; //!< AWS Region in which the channel is to be opened. Can be empty for default
                    //!< Maximum length is defined by MAX_REGION_NAME_LEN+1
-
+    /**
+     * #YC_TBD, it looks like webrtc do not need this.
+    */
     PCHAR pControlPlaneUrl; //!< Optional fully qualified control plane URL
                             //!< Maximum length is defined by MAX_ARN_LEN+1
 
@@ -1232,6 +1234,9 @@ typedef struct {
 
 /**
  * @brief Signaling channel description returned from the service
+ * 
+ * https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_ChannelInfo.html
+ * 
  */
 typedef struct {
     UINT32 version;                                 //!< Version of the SignalingChannelDescription struct
