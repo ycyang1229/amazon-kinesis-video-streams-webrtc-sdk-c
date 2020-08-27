@@ -16,28 +16,21 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     PStateMachineState pStateMachineState;
     BOOL cacheFound = FALSE;
     SignalingFileCacheEntry fileCacheEntry;
-    DLOGD("0");
     CHK(pClientInfo != NULL && pChannelInfo != NULL && pCallbacks != NULL && pCredentialProvider != NULL && ppSignalingClient != NULL,
         STATUS_NULL_ARG);
     CHK(pChannelInfo->version <= CHANNEL_INFO_CURRENT_VERSION, STATUS_SIGNALING_INVALID_CHANNEL_INFO_VERSION);
 
     // Allocate enough storage
     uint32_t num = (uint32_t)sizeof(SignalingClient);
-    DLOGD("0-1:%d",  num);
     CHK(NULL != (pSignalingClient = (PSignalingClient) MEMCALLOC(1, SIZEOF(SignalingClient))), STATUS_NOT_ENOUGH_MEMORY);
 
     // Initialize the listener and restarter thread trackers
-    DLOGD("1");
     CHK_STATUS(initializeThreadTracker(&pSignalingClient->listenerTracker));
     CHK_STATUS(initializeThreadTracker(&pSignalingClient->reconnecterTracker));
-    DLOGD("2");
     // Validate and store the input
     CHK_STATUS(createValidateChannelInfo(pChannelInfo, &pSignalingClient->pChannelInfo));
-    DLOGD("3");
     CHK_STATUS(validateSignalingCallbacks(pSignalingClient, pCallbacks));
-    DLOGD("4");
     CHK_STATUS(validateSignalingClientInfo(pSignalingClient, pClientInfo));
-    DLOGD("5");
 
     // Set invalid call times
     pSignalingClient->describeTime = INVALID_TIMESTAMP_VALUE;
