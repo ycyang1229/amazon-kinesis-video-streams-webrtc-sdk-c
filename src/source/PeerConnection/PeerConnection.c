@@ -482,7 +482,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 }
-
+/** #DTLS */
 VOID onDtlsOutboundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
 {
     PKvsPeerConnection pKvsPeerConnection = NULL;
@@ -493,7 +493,7 @@ VOID onDtlsOutboundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
     pKvsPeerConnection = (PKvsPeerConnection) customData;
     iceAgentSendPacket(pKvsPeerConnection->pIceAgent, pBuffer, bufferLen);
 }
-
+/** #DTLS. */
 VOID onDtlsStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE newDtlsState)
 {
     PKvsPeerConnection pKvsPeerConnection = NULL;
@@ -619,10 +619,14 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIceUfrag, LOCAL_ICE_UFRAG_LEN));
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIcePwd, LOCAL_ICE_PWD_LEN));
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localCNAME, LOCAL_CNAME_LEN));
-
+    /** #DTLS.*/
     CHK_STATUS(createDtlsSession(
-        &dtlsSessionCallbacks, pKvsPeerConnection->timerQueueHandle, pConfiguration->kvsRtcConfiguration.generatedCertificateBits,
-        pConfiguration->kvsRtcConfiguration.generateRSACertificate, pConfiguration->certificates, &pKvsPeerConnection->pDtlsSession));
+        &dtlsSessionCallbacks, 
+        pKvsPeerConnection->timerQueueHandle, 
+        pConfiguration->kvsRtcConfiguration.generatedCertificateBits,
+        pConfiguration->kvsRtcConfiguration.generateRSACertificate, 
+        pConfiguration->certificates, 
+        &pKvsPeerConnection->pDtlsSession));
     CHK_STATUS(dtlsSessionOnOutBoundData(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsOutboundPacket));
     CHK_STATUS(dtlsSessionOnStateChange(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsStateChange));
 

@@ -1,6 +1,11 @@
 #define LOG_CLASS "DTLS_mbedtls"
 #include "../Include_i.h"
 
+/** 
+ * #encryption. 
+ * #YC_TBD.
+ * https://tools.ietf.org/html/rfc5764#section-4.1.2
+ * */
 mbedtls_ssl_srtp_profile DTLS_SRTP_SUPPORTED_PROFILES[] = {
     MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_80,
     MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_32,
@@ -16,6 +21,7 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
     UINT32 i, certCount;
 
     CHK(ppDtlsSession != NULL && pDtlsSessionCallbacks != NULL, STATUS_NULL_ARG);
+    /** #certificate. */
     CHK_STATUS(dtlsValidateRtcCertificates(pRtcCertificates, &certCount));
 
     pDtlsSession = (PDtlsSession) MEMCALLOC(SIZEOF(DtlsSession), 1);
