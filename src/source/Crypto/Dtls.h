@@ -52,16 +52,22 @@ typedef struct {
     UINT64 outBoundPacketFnCustomData;
     DtlsSessionOutboundPacketFunc outboundPacketFn;
     UINT64 stateChangeFnCustomData;
+    /**
+     * the callback of the state of dtls session.
+     * */
     DtlsSessionOnStateChange stateChangeFn;
 } DtlsSessionCallbacks, *PDtlsSessionCallbacks;
 
 // DtlsKeyingMaterial is information extracted via https://tools.ietf.org/html/rfc5705
 // also includes the use_srtp value from Handshake
 typedef struct {
-    BYTE clientWriteKey[MAX_SRTP_MASTER_KEY_LEN + MAX_SRTP_SALT_KEY_LEN];
+    BYTE clientWriteKey[MAX_SRTP_MASTER_KEY_LEN + MAX_SRTP_SALT_KEY_LEN];///< #YC_TBD, need to check the spec.
     BYTE serverWriteKey[MAX_SRTP_MASTER_KEY_LEN + MAX_SRTP_SALT_KEY_LEN];
     UINT8 key_length;
-
+    /**
+     * MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_80,
+     * MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_32,
+    */
     KVS_SRTP_PROFILE srtpProfile;
 } DtlsKeyingMaterial, *PDtlsKeyingMaterial;
 
@@ -96,7 +102,7 @@ typedef struct {
 
 typedef struct __DtlsSession DtlsSession, *PDtlsSession;
 struct __DtlsSession {
-    volatile ATOMIC_BOOL isStarted;
+    volatile ATOMIC_BOOL isStarted;///< the dtls session is started or not. not indicating the dtls session is ready.
     volatile ATOMIC_BOOL shutdown;
     UINT32 certificateCount;
     DtlsSessionCallbacks dtlsSessionCallbacks;
@@ -104,7 +110,7 @@ struct __DtlsSession {
     UINT32 timerId;
     UINT64 dtlsSessionStartTime;
     RTC_DTLS_TRANSPORT_STATE state;
-    MUTEX sslLock;
+    MUTEX sslLock;///< the muxtex of the dtls session. 
 
 #ifdef KVS_USE_OPENSSL
     volatile ATOMIC_BOOL sslInitFinished;
@@ -169,6 +175,9 @@ STATUS dtlsSessionOnStateChange(PDtlsSession, UINT64, DtlsSessionOnStateChange);
 
 /******** Internal Functions **********/
 STATUS dtlsValidateRtcCertificates(PRtcCertificate, PUINT32);
+/**
+ * the callback of the state of dtls session.
+*/
 STATUS dtlsSessionChangeState(PDtlsSession, RTC_DTLS_TRANSPORT_STATE);
 
 #ifdef KVS_USE_OPENSSL

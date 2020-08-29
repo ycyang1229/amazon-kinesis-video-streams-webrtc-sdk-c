@@ -27,7 +27,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * setup the header of rtp packet. #YC_TBD. must be improved.
+*/
 STATUS setRtpPacket(UINT8 version, BOOL padding, BOOL extension, UINT8 csrcCount, BOOL marker, UINT8 payloadType, UINT16 sequenceNumber,
                     UINT32 timestamp, UINT32 ssrc, PUINT32 csrcArray, UINT16 extensionProfile, UINT32 extensionLength, PBYTE extensionPayload,
                     PBYTE payload, UINT32 payloadLength, PRtpPacket pRtpPacket)
@@ -35,7 +37,7 @@ STATUS setRtpPacket(UINT8 version, BOOL padding, BOOL extension, UINT8 csrcCount
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(pRtpPacket != NULL && (extension == FALSE || extensionPayload != NULL), STATUS_NULL_ARG);
+    CHK(pRtpPacket != NULL && (extension == FALSE || extensionPayload != NULL), STATUS_RTP_NULL_ARG);
 
     pRtpPacket->header.version = version;
     pRtpPacket->header.padding = padding;
@@ -69,7 +71,7 @@ STATUS freeRtpPacket(PRtpPacket* ppRtpPacket)
 
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(ppRtpPacket != NULL, STATUS_NULL_ARG);
+    CHK(ppRtpPacket != NULL, STATUS_RTP_NULL_ARG);
 
     if (*ppRtpPacket != NULL) {
         SAFE_MEMFREE((*ppRtpPacket)->pRawPacket);
@@ -83,7 +85,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * do condition check and call the setRtpPacketFromBytes()
+*/
 STATUS createRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket* ppRtpPacket)
 {
     ENTERS();
@@ -154,7 +158,10 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * the endianness of packet header.
+ * copy all the data of raw packet into rtppacket, and do the enidanness.
+*/
 STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pRtpPacket)
 {
     ENTERS();
@@ -174,7 +181,7 @@ STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pR
     PBYTE extensionPayload = NULL;
     UINT32 currOffset = 0;
 
-    CHK(pRtpPacket != NULL && rawPacket != NULL, STATUS_NULL_ARG);
+    CHK(pRtpPacket != NULL && rawPacket != NULL, STATUS_RTP_NULL_ARG);
     CHK(packetLength >= MIN_HEADER_LENGTH, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
 
     version = (rawPacket[0] >> VERSION_SHIFT) & VERSION_MASK;
@@ -183,6 +190,7 @@ STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pR
     csrcCount = rawPacket[0] & CSRC_COUNT_MASK;
     marker = ((rawPacket[1] >> MARKER_SHIFT) & MARKER_MASK) > 0;
     payloadType = rawPacket[1] & PAYLOAD_TYPE_MASK;
+
     sequenceNumber = getInt16(*(PUINT16)(rawPacket + SEQ_NUMBER_OFFSET));
     timestamp = getInt32(*(PUINT32)(rawPacket + TIMESTAMP_OFFSET));
     ssrc = getInt32(*(PUINT32)(rawPacket + SSRC_OFFSET));
@@ -210,14 +218,16 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * do condition check and call the setBytesFromRtpPacket()
+*/
 STATUS createBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, PUINT32 pPacketLength)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 packetLength = 0;
 
-    CHK(pRtpPacket != NULL && pPacketLength != NULL, STATUS_NULL_ARG);
+    CHK(pRtpPacket != NULL && pPacketLength != NULL, STATUS_RTP_NULL_ARG);
 
     packetLength = RTP_GET_RAW_PACKET_SIZE(pRtpPacket);
 
@@ -225,7 +235,7 @@ STATUS createBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, PUINT32
     CHK(pRawPacket != NULL, retStatus);
 
     // Otherwise, check if the specified size is enough
-    CHK(*pPacketLength >= packetLength, STATUS_NOT_ENOUGH_MEMORY);
+    CHK(*pPacketLength >= packetLength, STATUS_RTP_NOT_ENOUGH_MEMORY);
 
     CHK_STATUS(setBytesFromRtpPacket(pRtpPacket, pRawPacket, packetLength));
 
@@ -238,7 +248,10 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * the endianness of packet header.
+ * copy all the data of rtppacket into raw packet, and do the enidanness.
+*/
 STATUS setBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, UINT32 packetLength)
 {
     ENTERS();
@@ -248,7 +261,7 @@ STATUS setBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, UINT32 pac
     PBYTE pCurPtr = pRawPacket;
     UINT8 i;
 
-    CHK(pRtpPacket != NULL && pRawPacket != NULL, STATUS_NULL_ARG);
+    CHK(pRtpPacket != NULL && pRawPacket != NULL, STATUS_RTP_NULL_ARG);
 
     packetLengthNeeded = RTP_GET_RAW_PACKET_SIZE(pRtpPacket);
     CHK(packetLength >= packetLengthNeeded, STATUS_BUFFER_TOO_SMALL);
@@ -318,8 +331,13 @@ CleanUp:
     return retStatus;
 }
 
-STATUS constructRtpPackets(PPayloadArray pPayloadArray, UINT8 payloadType, UINT16 startSequenceNumber, UINT32 timestamp, UINT32 ssrc,
-                           PRtpPacket pPackets, UINT32 packetCount)
+STATUS constructRtpPackets(PPayloadArray pPayloadArray, 
+                           UINT8 payloadType, 
+                           UINT16 startSequenceNumber, 
+                           UINT32 timestamp, 
+                           UINT32 ssrc,
+                           PRtpPacket pPackets, 
+                           UINT32 packetCount)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -329,13 +347,28 @@ STATUS constructRtpPackets(PPayloadArray pPayloadArray, UINT8 payloadType, UINT1
     UINT32 i = 0;
 
     CHK(pPayloadArray != NULL && pPayloadArray->payloadLength > 0, retStatus);
-    CHK(pPackets != NULL, STATUS_NULL_ARG);
+    CHK(pPackets != NULL, STATUS_RTP_BUFFER_TOO_SMALL);
     CHK(pPayloadArray->payloadSubLenSize <= packetCount, STATUS_BUFFER_TOO_SMALL);
 
     curPtrInPayload = pPayloadArray->payloadBuffer;
     for (i = 0, curPtrInPayloadSubLen = pPayloadArray->payloadSubLength; i < pPayloadArray->payloadSubLenSize; i++, curPtrInPayloadSubLen++) {
-        CHK_STATUS(setRtpPacket(2, FALSE, FALSE, 0, i == pPayloadArray->payloadSubLenSize - 1, payloadType, sequenceNumber, timestamp, ssrc, NULL, 0,
-                                0, NULL, curPtrInPayload, *curPtrInPayloadSubLen, pPackets + i));
+
+        CHK_STATUS(setRtpPacket(2, 
+                                FALSE, 
+                                FALSE, 
+                                0, 
+                                i == pPayloadArray->payloadSubLenSize - 1, 
+                                payloadType, 
+                                sequenceNumber, 
+                                timestamp, 
+                                ssrc, 
+                                NULL, 
+                                0,
+                                0, 
+                                NULL, 
+                                curPtrInPayload, 
+                                *curPtrInPayloadSubLen, 
+                                pPackets + i));
 
         sequenceNumber = GET_UINT16_SEQ_NUM(sequenceNumber + 1);
 

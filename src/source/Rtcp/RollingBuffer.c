@@ -83,6 +83,7 @@ STATUS rollingBufferAppendData(PRollingBuffer pRollingBuffer, UINT64 data, PUINT
         pRollingBuffer->headIndex = pRollingBuffer->tailIndex + 1;
     } else {
         if (pRollingBuffer->headIndex == pRollingBuffer->tailIndex + pRollingBuffer->capacity) {
+            /** #YC_TBD, need to review. */
             if (pRollingBuffer->freeDataFn != NULL) {
                 CHK_STATUS(
                     pRollingBuffer->freeDataFn(pRollingBuffer->dataBuffer + ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->tailIndex)));

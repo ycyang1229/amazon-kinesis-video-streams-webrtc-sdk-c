@@ -3,9 +3,12 @@
 #include "../Include_i.h"
 
 static volatile ATOMIC_BOOL gKvsWebRtcInitialized = (SIZE_T) FALSE;
-
+/**
+ * the initialization of srtp, after dtls session is done and receiving the srtp packets.
+*/
 STATUS allocateSrtp(PKvsPeerConnection pKvsPeerConnection)
 {
+    /** #memory. */
     DtlsKeyingMaterial dtlsKeyingMaterial;
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
@@ -51,7 +54,9 @@ STATUS allocateSctpSortDataChannelsDataCallback(UINT64 customData, PHashEntry pH
 CleanUp:
     return retStatus;
 }
-
+/**
+ * the initialization of sctp, after dtls session is done and receiving the srtp packets.
+*/
 STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -117,6 +122,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
                   +----------------+
     */
     if (buff[0] > 19 && buff[0] < 64) {
+        /** #dtls. */
         dtlsSessionProcessPacket(pKvsPeerConnection->pDtlsSession, buff, &signedBuffLen);
 
         if (signedBuffLen > 0) {
@@ -135,6 +141,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
         }
 
     } else if ((buff[0] > 127 && buff[0] < 192) && (pKvsPeerConnection->pSrtpSession != NULL)) {
+        /** rtcp. */
         if (buff[1] >= 192 && buff[1] <= 223) {
             if (STATUS_FAILED(retStatus = decryptSrtcpPacket(pKvsPeerConnection->pSrtpSession, buff, &signedBuffLen))) {
                 DLOGW("decryptSrtcpPacket failed with 0x%08x", retStatus);
@@ -142,7 +149,10 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
             }
 
             CHK_STATUS(onRtcpPacket(pKvsPeerConnection, buff, signedBuffLen));
-        } else {
+        } 
+        /** rtp. */
+        else 
+        {
             CHK_STATUS(sendPacketToRtpReceiver(pKvsPeerConnection, buff, signedBuffLen));
         }
     }
@@ -168,14 +178,15 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
 
     CHK(pKvsPeerConnection != NULL && pBuffer != NULL, STATUS_NULL_ARG);
     CHK(bufferLen >= MIN_HEADER_LENGTH, STATUS_INVALID_ARG);
-
+    /** get the ssrc from the header. */
     ssrc = getInt32(*(PUINT32)(pBuffer + SSRC_OFFSET));
-
+    /** get the head of transceievers. */
     CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
     while (pCurNode != NULL) {
+        /** get the data part of the current transceiever. */
         CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
         pTransceiver = (PKvsRtpTransceiver) item;
-
+        /** check the ssrc is correct or not. */
         if (pTransceiver->jitterBufferSsrc == ssrc) {
             packetsReceived++;
             if (STATUS_FAILED(retStatus = decryptSrtpPacket(pKvsPeerConnection->pSrtpSession, pBuffer, (PINT32) &bufferLen))) {
@@ -379,6 +390,9 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
     }
 
     if (startDtlsSession) {
+        /** Start DTLS handshake. Not thread safe. 
+         * if ice agent is ready, we can start dtls session.
+        */
         CHK_STATUS(dtlsSessionStart(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->dtlsIsServer));
     }
 
@@ -600,6 +614,9 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = NULL;
     IceAgentCallbacks iceAgentCallbacks;
+    /**
+     * the callback of the dtls sessions.
+    */
     DtlsSessionCallbacks dtlsSessionCallbacks;
     UINT32 logLevel = LOG_LEVEL_DEBUG;
     PCHAR logLevelStr = NULL;
@@ -838,7 +855,7 @@ STATUS peerConnectionGetLocalDescription(PRtcPeerConnection pRtcPeerConnection, 
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pRtcPeerConnection;
 
     CHK(pRtcPeerConnection != NULL && pRtcSessionDescriptionInit != NULL, STATUS_NULL_ARG);
-
+    /** #memory. */
     CHK(NULL != (pSessionDescription = (PSessionDescription) MEMCALLOC(1, SIZEOF(SessionDescription))), STATUS_NOT_ENOUGH_MEMORY);
 
     if (pKvsPeerConnection->isOffer) {

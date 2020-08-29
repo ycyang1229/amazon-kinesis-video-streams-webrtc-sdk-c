@@ -2,6 +2,9 @@
 #include "../Include_i.h"
 #include "jsmn.h"
 
+#define VIDEO_SUPPPORT_TYPE(codec) (codec == RTC_CODEC_VP8 || codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE)
+#define AUDIO_SUPPORT_TYPE(codec) (codec == RTC_CODEC_MULAW || codec == RTC_CODEC_ALAW || codec == RTC_CODEC_OPUS)
+
 STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescriptionInit, PCHAR sessionDescriptionJSON,
                                        PUINT32 sessionDescriptionJSONLen)
 {
@@ -10,7 +13,7 @@ STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescri
     PCHAR curr, tail, next;
     UINT32 lineLen, inputSize = 0, amountWritten;
 
-    CHK(pSessionDescriptionInit != NULL && sessionDescriptionJSONLen != NULL, STATUS_NULL_ARG);
+    CHK(pSessionDescriptionInit != NULL && sessionDescriptionJSONLen != NULL, STATUS_SDP_NULL_ARG);
 
     inputSize = *sessionDescriptionJSONLen;
     *sessionDescriptionJSONLen = 0;
@@ -62,7 +65,7 @@ STATUS deserializeSessionDescriptionInit(PCHAR sessionDescriptionJSON, UINT32 se
     INT32 j, tokenCount, lineLen;
     PCHAR curr, next, tail;
 
-    CHK(pSessionDescriptionInit != NULL && sessionDescriptionJSON != NULL, STATUS_NULL_ARG);
+    CHK(pSessionDescriptionInit != NULL && sessionDescriptionJSON != NULL, STATUS_SDP_NULL_ARG);
     MEMSET(pSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
 
     jsmn_init(&parser);
@@ -637,17 +640,18 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessio
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    /** #memory. */
     CHAR bundleValue[MAX_SDP_ATTRIBUTE_VALUE_LENGTH], wmsValue[MAX_SDP_ATTRIBUTE_VALUE_LENGTH];
     PCHAR curr = NULL;
     UINT32 i, sizeRemaining;
 
-    CHK(pKvsPeerConnection != NULL && pLocalSessionDescription != NULL && pRemoteSessionDescription != NULL, STATUS_NULL_ARG);
+    CHK(pKvsPeerConnection != NULL && pLocalSessionDescription != NULL && pRemoteSessionDescription != NULL, STATUS_SDP_NULL_ARG);
 
     CHK_STATUS(populateSessionDescriptionMedia(pKvsPeerConnection, pRemoteSessionDescription, pLocalSessionDescription));
 
     MEMSET(bundleValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
     MEMSET(wmsValue, 0, MAX_SDP_ATTRIBUTE_VALUE_LENGTH);
-
+    /** #YC_TBD. need to be improved. */
     STRCPY(pLocalSessionDescription->sdpOrigin.userName, "-");
     pLocalSessionDescription->sdpOrigin.sessionId = RAND();
     pLocalSessionDescription->sdpOrigin.sessionVersion = 2;
@@ -694,7 +698,7 @@ STATUS copyTransceiverWithCodec(PKvsPeerConnection pKvsPeerConnection, RTC_CODEC
     PKvsRtpTransceiver pTargetKvsRtpTransceiver = NULL, pKvsRtpTransceiver;
     UINT64 data;
 
-    CHK(pKvsPeerConnection != NULL && pDidFindCodec != NULL, STATUS_NULL_ARG);
+    CHK(pKvsPeerConnection != NULL && pDidFindCodec != NULL, STATUS_SDP_NULL_ARG);
 
     *pDidFindCodec = FALSE;
 
@@ -809,7 +813,7 @@ STATUS deserializeRtcIceCandidateInit(PCHAR pJson, UINT32 jsonLen, PRtcIceCandid
     INT8 i;
     INT32 tokenCount;
 
-    CHK(pRtcIceCandidateInit != NULL && pJson != NULL, STATUS_NULL_ARG);
+    CHK(pRtcIceCandidateInit != NULL && pJson != NULL, STATUS_SDP_NULL_ARG);
     MEMSET(pRtcIceCandidateInit->candidate, 0x00, MAX_ICE_CANDIDATE_INIT_CANDIDATE_LEN + 1);
 
     jsmn_init(&parser);
@@ -831,7 +835,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * retrieve the information of receiver from the remote desciption.
+*/
 STATUS setReceiversSsrc(PSessionDescription pRemoteSessionDescription, PDoubleList pTransceievers)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -843,17 +849,25 @@ STATUS setReceiversSsrc(PSessionDescription pRemoteSessionDescription, PDoubleLi
     PKvsRtpTransceiver pKvsRtpTransceiver;
     RTC_CODEC codec;
     PCHAR end = NULL;
-
+    /**
+     * #YC_TBD, need to review. #enhancement.
+     * https://tools.ietf.org/html/rfc4583#section-9
+     * https://tools.ietf.org/html/rfc6871#section-4
+     * 
+    */
     for (currentMedia = 0; currentMedia < pRemoteSessionDescription->mediaCount; currentMedia++) {
         pMediaDescription = &(pRemoteSessionDescription->mediaDescriptions[currentMedia]);
+
         isVideoMediaSection = (STRNCMP(pMediaDescription->mediaName, MEDIA_SECTION_VIDEO_VALUE, ARRAY_SIZE(MEDIA_SECTION_VIDEO_VALUE) - 1) == 0);
         isAudioMediaSection = (STRNCMP(pMediaDescription->mediaName, MEDIA_SECTION_AUDIO_VALUE, ARRAY_SIZE(MEDIA_SECTION_AUDIO_VALUE) - 1) == 0);
         foundSsrc = FALSE;
         ssrc = 0;
 
         if (isVideoMediaSection || isAudioMediaSection) {
+            /** retrieve the ssrc. */
             for (currentAttribute = 0; currentAttribute < pMediaDescription->mediaAttributesCount && !foundSsrc; currentAttribute++) {
-                if (STRNCMP(pMediaDescription->sdpAttributes[currentAttribute].attributeName, SSRC_KEY,
+                if (STRNCMP(pMediaDescription->sdpAttributes[currentAttribute].attributeName, 
+                            SSRC_KEY,
                             STRLEN(pMediaDescription->sdpAttributes[currentAttribute].attributeName)) == 0) {
                     if ((end = STRCHR(pMediaDescription->sdpAttributes[currentAttribute].attributeValue, ' ')) != NULL) {
                         CHK_STATUS(STRTOUI32(pMediaDescription->sdpAttributes[currentAttribute].attributeValue, end, 10, &ssrc));
@@ -868,8 +882,8 @@ STATUS setReceiversSsrc(PSessionDescription pRemoteSessionDescription, PDoubleLi
                     CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
                     pKvsRtpTransceiver = (PKvsRtpTransceiver) data;
                     codec = pKvsRtpTransceiver->sender.track.codec;
-                    isVideoCodec = (codec == RTC_CODEC_VP8 || codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE);
-                    isAudioCodec = (codec == RTC_CODEC_MULAW || codec == RTC_CODEC_ALAW || codec == RTC_CODEC_OPUS);
+                    isVideoCodec = VIDEO_SUPPPORT_TYPE(codec);
+                    isAudioCodec = AUDIO_SUPPORT_TYPE(codec);
 
                     if (pKvsRtpTransceiver->jitterBufferSsrc == 0 &&
                         ((isVideoCodec && isVideoMediaSection) || (isAudioCodec && isAudioMediaSection))) {
@@ -881,6 +895,7 @@ STATUS setReceiversSsrc(PSessionDescription pRemoteSessionDescription, PDoubleLi
                                 ARRAY_SIZE(pKvsRtpTransceiver->inboundStats.received.rtpStream.kind));
 
                         pCurNode = NULL;
+                        //break;///< #YC_TBD, need to modify.
                     } else {
                         pCurNode = pCurNode->pNext;
                     }

@@ -10,13 +10,13 @@ PeerConnection internal include file
 extern "C" {
 #endif
 
-#define LOCAL_ICE_UFRAG_LEN 4
-#define LOCAL_ICE_PWD_LEN   24
+#define LOCAL_ICE_UFRAG_LEN 4   ///< at least 24bits of randomness. be at least 4 characters long
+#define LOCAL_ICE_PWD_LEN   24  ///< at least 128bits of randomness. be at least 22 characters long
 #define LOCAL_CNAME_LEN     16
 
 // https://tools.ietf.org/html/rfc5245#section-15.4
-#define MAX_ICE_UFRAG_LEN 256
-#define MAX_ICE_PWD_LEN   256
+#define MAX_ICE_UFRAG_LEN 256   ///< The upper limit allows for buffer sizing in implementations.
+#define MAX_ICE_PWD_LEN   256   ///< The upper limit allows for buffer sizing in implementations.
 
 #define PEER_FRAME_BUFFER_SIZE_INCREMENT_FACTOR 1.5
 
@@ -47,7 +47,7 @@ typedef struct {
     RtcPeerConnection peerConnection;
     PIceAgent pIceAgent;
     PDtlsSession pDtlsSession;
-    BOOL dtlsIsServer;
+    BOOL dtlsIsServer;///< indicate the roles of dtls session. server or client.
 
     MUTEX pSrtpSessionLock;
     PSrtpSession pSrtpSession;
@@ -57,20 +57,28 @@ typedef struct {
     SessionDescription remoteSessionDescription;
     PDoubleList pTransceievers;
     BOOL sctpIsEnabled;
-
+    /**
+     * https://tools.ietf.org/html/rfc5245#section-15.4
+    */
     CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
     CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
-
+    /** 
+     * since this is from remote, we have to keep it as the maximum. 
+     * The spec left this open, so the better way is we keep it open too.
+     * #YC_TBD, need to be fixed. 
+     * */
     CHAR remoteIceUfrag[MAX_ICE_UFRAG_LEN + 1];
     CHAR remoteIcePwd[MAX_ICE_PWD_LEN + 1];
-
+    /**
+     * this is used for the the sdp session.
+    */
     CHAR localCNAME[LOCAL_CNAME_LEN + 1];
 
     CHAR remoteCertificateFingerprint[CERTIFICATE_FINGERPRINT_LENGTH + 1];
 
     MUTEX peerConnectionObjLock;
 
-    BOOL isOffer;
+    BOOL isOffer;///< do you create the offer by yourself. it means you are a client or not.
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
 

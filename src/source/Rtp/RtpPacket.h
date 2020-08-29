@@ -10,6 +10,35 @@ RTP Packet include file
 extern "C" {
 #endif
 
+
+/**
+ *  The format of an SRTP packet is illustrated in the following figure.
+ *  https://tools.ietf.org/html/rfc3711#section-3.1
+ *  
+ *          0                   1                   2                   3
+ *        0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+<+
+ *       |V=2|P|X|  CC   |M|     PT      |       sequence number         | |
+ *       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
+ *       |                           timestamp                           | |
+ *       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
+ *       |           synchronization source (SSRC) identifier            | |
+ *       +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ |
+ *       |            contributing source (CSRC) identifiers             | |
+ *       |                               ....                            | |
+ *       +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
+ *       |                   RTP extension (OPTIONAL)                    | |
+ *     +>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
+ *     | |                          payload  ...                         | |
+ *     | |                               +-------------------------------+ |
+ *     | |                               | RTP padding   | RTP pad count | |
+ *     +>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+<+
+ *     | ~                     SRTP MKI (OPTIONAL)                       ~ |
+ *     | +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
+ *     | :                 authentication tag (RECOMMENDED)              : |
+ *     | +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
+ *     |                                                                   |
+*/
 #define MIN_HEADER_LENGTH 12
 #define VERSION_SHIFT     6
 #define VERSION_MASK      0x3
@@ -28,7 +57,9 @@ extern "C" {
 #define CSRC_LENGTH       4
 
 #define RTP_HEADER_LEN(pRtpPacket)                                                                                                                   \
-    (12 + (pRtpPacket)->header.csrcCount * CSRC_LENGTH + ((pRtpPacket)->header.extension ? 4 + (pRtpPacket)->header.extensionLength : 0))
+    (12 + \
+    (pRtpPacket)->header.csrcCount * CSRC_LENGTH + \
+    ((pRtpPacket)->header.extension ? 4 + (pRtpPacket)->header.extensionLength : 0))
 
 #define RTP_GET_RAW_PACKET_SIZE(pRtpPacket) (RTP_HEADER_LEN(pRtpPacket) + ((pRtpPacket)->payloadLength))
 
@@ -50,7 +81,10 @@ typedef STATUS (*DepayRtpPayloadFunc)(PBYTE, UINT32, PBYTE, PUINT32, PBOOL);
  * |                             ....                              |
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
-
+/**
+ * #YC_TBD. this must be improved.
+ * 
+*/
 struct __RtpPacketHeader {
     UINT8 version;
     BOOL padding;

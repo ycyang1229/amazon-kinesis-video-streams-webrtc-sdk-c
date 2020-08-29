@@ -50,7 +50,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * the callback of the state of dtls session.
+*/
 STATUS dtlsSessionChangeState(PDtlsSession pDtlsSession, RTC_DTLS_TRANSPORT_STATE newState)
 {
     ENTERS();

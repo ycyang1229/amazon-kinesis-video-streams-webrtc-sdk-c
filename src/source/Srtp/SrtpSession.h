@@ -12,6 +12,10 @@ extern "C" {
 #endif
 
 typedef struct __SrtpSession SrtpSession;
+/**
+ * this context stores the sessions of transmission and reception which are controlled by libsrtp.
+ * basically webrtc does not change anything inside it.
+*/
 struct __SrtpSession {
     // holds the srtp context for transmit  operations
     srtp_t srtp_transmit_session;

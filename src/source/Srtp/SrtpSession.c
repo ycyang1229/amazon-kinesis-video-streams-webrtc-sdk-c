@@ -1,6 +1,14 @@
 #define LOG_CLASS "SRTP"
 #include "../Include_i.h"
 
+/**
+ * the initialization of srtp. 
+ * 
+ * @param receiveKey
+ * @param transmitKey
+ * @param profile
+ * @param ppSrtpSession
+*/
 STATUS initSrtpSession(PBYTE receiveKey, PBYTE transmitKey, KVS_SRTP_PROFILE profile, PSrtpSession* ppSrtpSession)
 {
     ENTERS();
@@ -14,12 +22,12 @@ STATUS initSrtpSession(PBYTE receiveKey, PBYTE transmitKey, KVS_SRTP_PROFILE pro
     void (*srtcp_policy_setter)(srtp_crypto_policy_t*) = NULL;
 
     CHK(receiveKey != NULL && transmitKey != NULL && ppSrtpSession != NULL, STATUS_NULL_ARG);
-
+    /** #memory. */
     pSrtpSession = (PSrtpSession) MEMCALLOC(1, SIZEOF(SrtpSession));
 
     MEMSET(&transmitPolicy, 0x00, SIZEOF(srtp_policy_t));
     MEMSET(&receivePolicy, 0x00, SIZEOF(srtp_policy_t));
-
+    /** policy mapping. */
     switch (profile) {
         case KVS_SRTP_PROFILE_AES128_CM_HMAC_SHA1_32:
             srtp_policy_setter = srtp_crypto_policy_set_aes_cm_128_hmac_sha1_32;
@@ -39,7 +47,10 @@ STATUS initSrtpSession(PBYTE receiveKey, PBYTE transmitKey, KVS_SRTP_PROFILE pro
     receivePolicy.key = receiveKey;
     receivePolicy.ssrc.type = ssrc_any_inbound;
     receivePolicy.next = NULL;
-
+    /** 
+     * The function call srtp_create(session, policy) allocates and
+     * initializes an SRTP session context, applying the given policy.
+    */
     CHK_ERR((errStatus = srtp_create(&(pSrtpSession->srtp_receive_session), &receivePolicy)) == srtp_err_status_ok,
             STATUS_SRTP_RECEIVE_SESSION_CREATION_FAILED, "Create srtp session for the receiver failed with error code %u", errStatus);
 
@@ -92,21 +103,26 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * the decryption of srtp packets.
+*/
 STATUS decryptSrtpPacket(PSrtpSession pSrtpSession, PVOID encryptedMessage, PINT32 len)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     srtp_err_status_t errStatus;
-
-    CHK_ERR((errStatus = srtp_unprotect(pSrtpSession->srtp_receive_session, encryptedMessage, len)) == srtp_err_status_ok, STATUS_SRTP_DECRYPT_FAILED,
+    /** #YC_TBD, need to check the error message of libsrtp.*/
+    CHK_ERR((errStatus = srtp_unprotect(pSrtpSession->srtp_receive_session, encryptedMessage, len)) == srtp_err_status_ok, 
+            STATUS_SRTP_DECRYPT_SRTP_FAILED,
             "Decrypting rtp packet failed with error code %u on srtp session %" PRIu64, errStatus, pSrtpSession->srtp_receive_session);
 
 CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * the decryption of srtcp packets.
+*/
 STATUS decryptSrtcpPacket(PSrtpSession pSrtpSession, PVOID encryptedMessage, PINT32 len)
 {
     ENTERS();
@@ -114,14 +130,16 @@ STATUS decryptSrtcpPacket(PSrtpSession pSrtpSession, PVOID encryptedMessage, PIN
     srtp_err_status_t errStatus;
 
     CHK_ERR((errStatus = srtp_unprotect_rtcp(pSrtpSession->srtp_receive_session, encryptedMessage, len)) == srtp_err_status_ok,
-            STATUS_SRTP_DECRYPT_FAILED, "Decrypting rtcp packet failed with error code %u on srtp session %" PRIu64, errStatus,
-            pSrtpSession->srtp_receive_session);
+            STATUS_SRTP_DECRYPT_SRTCP_FAILED, 
+            "Decrypting rtcp packet failed with error code %u on srtp session %" PRIu64, errStatus, pSrtpSession->srtp_receive_session);
 
 CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * the encryption of srtp packets.
+*/
 STATUS encryptRtpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len)
 {
     ENTERS();
@@ -130,14 +148,16 @@ STATUS encryptRtpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len)
 
     status = srtp_protect(pSrtpSession->srtp_transmit_session, message, len);
 
-    CHK_ERR(status == srtp_err_status_ok, STATUS_SRTP_ENCRYPT_FAILED, "srtp_protect returned %lu on srtp session %" PRIu64, status,
+    CHK_ERR(status == srtp_err_status_ok, STATUS_SRTP_ENCRYPT_SRTP_FAILED, "srtp_protect returned %lu on srtp session %" PRIu64, status,
             pSrtpSession->srtp_transmit_session);
 
 CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * the encryption of srtcp packets.
+*/
 STATUS encryptRtcpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len)
 {
     ENTERS();
@@ -146,7 +166,7 @@ STATUS encryptRtcpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len)
 
     status = srtp_protect_rtcp(pSrtpSession->srtp_transmit_session, message, len);
 
-    CHK_ERR(status == srtp_err_status_ok, STATUS_SRTP_ENCRYPT_FAILED, "srtp_protect_rtcp returned %lu on srtp session %" PRIu64, status,
+    CHK_ERR(status == srtp_err_status_ok, STATUS_SRTP_ENCRYPT_SRTCP_FAILED, "srtp_protect_rtcp returned %lu on srtp session %" PRIu64, status,
             pSrtpSession->srtp_transmit_session);
 
 CleanUp:

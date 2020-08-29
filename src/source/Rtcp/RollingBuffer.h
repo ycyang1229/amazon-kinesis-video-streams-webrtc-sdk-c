@@ -11,7 +11,7 @@ extern "C" {
 #endif
 
 typedef STATUS (*FreeDataFunc)(PUINT64);
-
+/** this is a ring buffer. */
 typedef struct {
     // Lock guarding the rolling buffer
     MUTEX lock;

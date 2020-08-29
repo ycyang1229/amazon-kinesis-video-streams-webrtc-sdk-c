@@ -373,8 +373,8 @@ STATUS signalingGetIceConfigInfo(PSignalingClient pSignalingClient, UINT32 index
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(pSignalingClient != NULL && ppIceConfigInfo != NULL, STATUS_NULL_ARG);
-    CHK(index < pSignalingClient->iceConfigCount, STATUS_INVALID_ARG);
+    CHK(pSignalingClient != NULL && ppIceConfigInfo != NULL, STATUS_SIGNALING_NULL_ARG);
+    CHK(index < pSignalingClient->iceConfigCount, STATUS_SIGNALING_INVALID_ICE_CONFIG_COUNT);
 
     // Validate the state in sync ICE config mode only
     if (!pSignalingClient->pChannelInfo->asyncIceServerConfig) {

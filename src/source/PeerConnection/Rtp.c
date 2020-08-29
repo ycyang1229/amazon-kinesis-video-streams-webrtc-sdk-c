@@ -4,8 +4,13 @@
 
 typedef STATUS (*RtpPayloadFunc)(UINT32, PBYTE, UINT32, PBYTE, PUINT32, PUINT32, PUINT32);
 
-STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, PKvsPeerConnection pKvsPeerConnection, UINT32 ssrc, UINT32 rtxSsrc,
-                               PRtcMediaStreamTrack pRtcMediaStreamTrack, PJitterBuffer pJitterBuffer, RTC_CODEC rtcCodec,
+STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, 
+                               PKvsPeerConnection pKvsPeerConnection, 
+                               UINT32 ssrc, 
+                               UINT32 rtxSsrc,
+                               PRtcMediaStreamTrack pRtcMediaStreamTrack, 
+                               PJitterBuffer pJitterBuffer, 
+                               RTC_CODEC rtcCodec,
                                PKvsRtpTransceiver* ppKvsRtpTransceiver)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -192,6 +197,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     PBYTE rawPacket = NULL;
     PPayloadArray pPayloadArray = NULL;
     RtpPayloadFunc rtpPayloadFunc = NULL;
+    /** #YC_TBD. */
     UINT64 randomRtpTimeoffset = 0; // TODO: spec requires random rtp time offset
     UINT64 rtpTimestamp = 0;
     UINT64 now = GETTIME();
@@ -209,11 +215,13 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     CHK(pKvsRtpTransceiver != NULL, STATUS_NULL_ARG);
     pKvsPeerConnection = pKvsRtpTransceiver->pKvsPeerConnection;
     pPayloadArray = &(pKvsRtpTransceiver->sender.payloadArray);
+
     if (MEDIA_STREAM_TRACK_KIND_VIDEO == pKvsRtpTransceiver->sender.track.kind) {
         frames++;
         if (0 != (pFrame->flags & FRAME_FLAG_KEY_FRAME)) {
             keyframes++;
         }
+
         if (pKvsRtpTransceiver->sender.lastKnownFrameCountTime == 0) {
             pKvsRtpTransceiver->sender.lastKnownFrameCountTime = now;
             pKvsRtpTransceiver->sender.lastKnownFrameCount = pKvsRtpTransceiver->outboundStats.framesEncoded + frames;
@@ -227,7 +235,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
     locked = TRUE;
     CHK(pKvsPeerConnection->pSrtpSession != NULL, STATUS_SUCCESS); // Discard packets till SRTP is ready
-
+    /** setup the handler of payload. */
     switch (pKvsRtpTransceiver->sender.track.codec) {
         case RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE:
             rtpPayloadFunc = createPayloadForH264;
@@ -256,24 +264,43 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 
     rtpTimestamp += randomRtpTimeoffset;
 
-    CHK_STATUS(rtpPayloadFunc(pKvsPeerConnection->MTU, (PBYTE) pFrame->frameData, pFrame->size, NULL, &(pPayloadArray->payloadLength), NULL,
+    CHK_STATUS(rtpPayloadFunc(pKvsPeerConnection->MTU, 
+                              (PBYTE) pFrame->frameData, 
+                              pFrame->size, 
+                              NULL, 
+                              &(pPayloadArray->payloadLength), 
+                              NULL,
                               &(pPayloadArray->payloadSubLenSize)));
+
     if (pPayloadArray->payloadLength > pPayloadArray->maxPayloadLength) {
         SAFE_MEMFREE(pPayloadArray->payloadBuffer);
         pPayloadArray->payloadBuffer = (PBYTE) MEMALLOC(pPayloadArray->payloadLength);
         pPayloadArray->maxPayloadLength = pPayloadArray->payloadLength;
     }
+
     if (pPayloadArray->payloadSubLenSize > pPayloadArray->maxPayloadSubLenSize) {
         SAFE_MEMFREE(pPayloadArray->payloadSubLength);
         pPayloadArray->payloadSubLength = (PUINT32) MEMALLOC(pPayloadArray->payloadSubLenSize * SIZEOF(UINT32));
         pPayloadArray->maxPayloadSubLenSize = pPayloadArray->payloadSubLenSize;
     }
-    CHK_STATUS(rtpPayloadFunc(pKvsPeerConnection->MTU, (PBYTE) pFrame->frameData, pFrame->size, pPayloadArray->payloadBuffer,
-                              &(pPayloadArray->payloadLength), pPayloadArray->payloadSubLength, &(pPayloadArray->payloadSubLenSize)));
+
+    CHK_STATUS(rtpPayloadFunc(pKvsPeerConnection->MTU, 
+                              (PBYTE) pFrame->frameData, 
+                              pFrame->size, 
+                              pPayloadArray->payloadBuffer,
+                              &(pPayloadArray->payloadLength), 
+                              pPayloadArray->payloadSubLength, 
+                              &(pPayloadArray->payloadSubLenSize)));
     pPacketList = (PRtpPacket) MEMALLOC(pPayloadArray->payloadSubLenSize * SIZEOF(RtpPacket));
 
-    CHK_STATUS(constructRtpPackets(pPayloadArray, pKvsRtpTransceiver->sender.payloadType, pKvsRtpTransceiver->sender.sequenceNumber, rtpTimestamp,
-                                   pKvsRtpTransceiver->sender.ssrc, pPacketList, pPayloadArray->payloadSubLenSize));
+    CHK_STATUS(constructRtpPackets(pPayloadArray, 
+                                   pKvsRtpTransceiver->sender.payloadType, 
+                                   pKvsRtpTransceiver->sender.sequenceNumber, 
+                                   rtpTimestamp,
+                                   pKvsRtpTransceiver->sender.ssrc, 
+                                   pPacketList, 
+                                   pPayloadArray->payloadSubLenSize));
+
     pKvsRtpTransceiver->sender.sequenceNumber = GET_UINT16_SEQ_NUM(pKvsRtpTransceiver->sender.sequenceNumber + pPayloadArray->payloadSubLenSize);
 
     bufferAfterEncrypt = (pKvsRtpTransceiver->sender.payloadType == pKvsRtpTransceiver->sender.rtxPayloadType);
@@ -281,11 +308,12 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
         pRtpPacket = pPacketList + i;
 
         // Get the required size first
+        /** the total length of this packet including header and payload. */
         CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, NULL, &packetLen));
 
         // Account for SRTP authentication tag
         allocSize = packetLen + SRTP_AUTH_TAG_OVERHEAD;
-        CHK(NULL != (rawPacket = (PBYTE) MEMALLOC(allocSize)), STATUS_NOT_ENOUGH_MEMORY);
+        CHK(NULL != (rawPacket = (PBYTE) MEMALLOC(allocSize)), STATUS_RTP_NOT_ENOUGH_MEMORY);
         CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, rawPacket, &packetLen));
 
         if (!bufferAfterEncrypt) {

@@ -9,8 +9,10 @@ extern "C" {
 
 typedef struct __IOBuffer IOBuffer, *PIOBuffer;
 struct __IOBuffer {
-    UINT32 off, len, cap;
-    PBYTE raw;
+    UINT32 off;
+    UINT32 len;
+    UINT32 cap;///< the default size of this io buffer.
+    PBYTE raw;///< the pointer of this io buffer.
 };
 
 STATUS createIOBuffer(UINT32, PIOBuffer*);

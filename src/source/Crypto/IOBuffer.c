@@ -1,11 +1,17 @@
 #define LOG_CLASS "IOBuffer"
 #include "../Include_i.h"
 
+/**
+ * #memory.
+ * the packet buffer for tls and dtls. #dtls.
+*/
 STATUS createIOBuffer(UINT32 initialCap, PIOBuffer* ppBuffer)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PIOBuffer pBuffer = NULL;
-
+    /**
+     * #memory.
+    */
     pBuffer = (PIOBuffer) MEMCALLOC(SIZEOF(IOBuffer), 1);
     CHK(pBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY);
 

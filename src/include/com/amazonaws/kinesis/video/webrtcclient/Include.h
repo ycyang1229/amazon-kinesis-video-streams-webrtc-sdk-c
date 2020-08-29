@@ -67,6 +67,7 @@ extern "C" {
 #define STATUS_SDP_URI_ERROR                    STATUS_SDP_BASE + 0x0000000D
 #define STATUS_SDP_VERSION_ERROR                STATUS_SDP_BASE + 0x0000000E
 #define STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED       STATUS_SDP_BASE + 0x0000000F
+#define STATUS_SDP_NULL_ARG                     STATUS_SDP_BASE + 0x00000010
 /*!@} */
 
 /*===========================================================================================*/
@@ -197,11 +198,13 @@ extern "C" {
  *  @{
  */
 #define STATUS_SRTP_BASE                             STATUS_ICE_BASE + 0x01000000
-#define STATUS_SRTP_DECRYPT_FAILED                   STATUS_SRTP_BASE + 0x00000001
-#define STATUS_SRTP_ENCRYPT_FAILED                   STATUS_SRTP_BASE + 0x00000002
-#define STATUS_SRTP_TRANSMIT_SESSION_CREATION_FAILED STATUS_SRTP_BASE + 0x00000003
-#define STATUS_SRTP_RECEIVE_SESSION_CREATION_FAILED  STATUS_SRTP_BASE + 0x00000004
-#define STATUS_SRTP_INIT_FAILED                      STATUS_SRTP_BASE + 0x00000005
+#define STATUS_SRTP_DECRYPT_SRTP_FAILED              STATUS_SRTP_BASE + 0x00000001
+#define STATUS_SRTP_DECRYPT_SRTCP_FAILED             STATUS_SRTP_BASE + 0x00000002
+#define STATUS_SRTP_ENCRYPT_SRTP_FAILED                   STATUS_SRTP_BASE + 0x00000003
+#define STATUS_SRTP_ENCRYPT_SRTCP_FAILED                   STATUS_SRTP_BASE + 0x00000003
+#define STATUS_SRTP_TRANSMIT_SESSION_CREATION_FAILED STATUS_SRTP_BASE + 0x00000004
+#define STATUS_SRTP_RECEIVE_SESSION_CREATION_FAILED  STATUS_SRTP_BASE + 0x00000005
+#define STATUS_SRTP_INIT_FAILED                      STATUS_SRTP_BASE + 0x00000006
 /*!@} */
 
 /*===========================================================================================*/
@@ -216,6 +219,9 @@ extern "C" {
 #define STATUS_RTP_INPUT_MTU_TOO_SMALL    STATUS_RTP_BASE + 0x00000002
 #define STATUS_RTP_INVALID_NALU           STATUS_RTP_BASE + 0x00000003
 #define STATUS_RTP_INVALID_EXTENSION_LEN  STATUS_RTP_BASE + 0x00000004
+#define STATUS_RTP_NULL_ARG               STATUS_RTP_BASE + 0x00000005
+#define STATUS_RTP_BUFFER_TOO_SMALL       STATUS_RTP_BASE + 0x00000006
+#define STATUS_RTP_NOT_ENOUGH_MEMORY      STATUS_RTP_BASE + 0x00000007
 /*!@} */
 
 /*===========================================================================================*/
@@ -276,6 +282,8 @@ extern "C" {
 #define STATUS_SIGNALING_RECONNECT_FAILED                          STATUS_SIGNALING_BASE + 0x00000030
 #define STATUS_SIGNALING_DELETE_CALL_FAILED                        STATUS_SIGNALING_BASE + 0x00000031
 #define STATUS_SIGNALING_INVALID_METRICS_VERSION                   STATUS_SIGNALING_BASE + 0x00000032
+#define STATUS_SIGNALING_INVALID_ICE_CONFIG_COUNT                  STATUS_SIGNALING_BASE + 0x00000033
+#define STATUS_SIGNALING_NULL_ARG                                  STATUS_SIGNALING_BASE + 0x00000034
 
 /*!@} */
 /*===========================================================================================*/
@@ -320,6 +328,7 @@ extern "C" {
 #define STATUS_RTCP_INPUT_PARTIAL_PACKET         STATUS_RTCP_BASE + 0x00000006
 #define STATUS_RTCP_INPUT_REMB_TOO_SMALL         STATUS_RTCP_BASE + 0x00000007
 #define STATUS_RTCP_INPUT_REMB_INVALID           STATUS_RTCP_BASE + 0x00000008
+#define STATUS_RTCP_NULL_ARG                     STATUS_RTCP_BASE + 0x00000009
 /*!@} */
 
 /*===========================================================================================*/
@@ -748,6 +757,7 @@ typedef enum {
 
 /**
  * @brief The enum specifies the codec types for audio and video tracks
+ * #YC_TBD, need to review related spec. if no spec defines this, need to enhance this.
  */
 typedef enum {
     RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE = 1, //!< H264 video codec
@@ -874,6 +884,7 @@ typedef struct {
  * @brief Represents a single track in a MediaStream
  *
  * Reference: https://www.w3.org/TR/mediacapture-streams/#mediastreamtrack
+ * #memory.
  */
 typedef struct {
     RTC_CODEC codec;                            //!< non-standard, codec that the track is using

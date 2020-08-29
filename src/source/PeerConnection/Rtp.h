@@ -48,7 +48,7 @@ typedef struct {
     RtcRtpSender sender;
 
     PKvsPeerConnection pKvsPeerConnection;
-
+    /** the invalid vaule is 0. need to confirm the spec defines this or not. #YC_TBD. */
     UINT32 jitterBufferSsrc;
     PJitterBuffer pJitterBuffer;
 

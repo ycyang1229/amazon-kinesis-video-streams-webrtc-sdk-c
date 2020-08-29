@@ -11,8 +11,12 @@ mbedtls_ssl_srtp_profile DTLS_SRTP_SUPPORTED_PROFILES[] = {
     MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_32,
 };
 
-STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, INT32 certificateBits,
-                         BOOL generateRSACertificate, PRtcCertificate pRtcCertificates, PDtlsSession* ppDtlsSession)
+STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, 
+                         TIMER_QUEUE_HANDLE timerQueueHandle, 
+                         INT32 certificateBits,
+                         BOOL generateRSACertificate, 
+                         PRtcCertificate pRtcCertificates, 
+                         PDtlsSession* ppDtlsSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -33,7 +37,9 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
     mbedtls_ssl_config_init(&pDtlsSession->sslCtxConfig);
     mbedtls_ssl_init(&pDtlsSession->sslCtx);
     CHK(mbedtls_ctr_drbg_seed(&pDtlsSession->ctrDrbg, mbedtls_entropy_func, &pDtlsSession->entropy, NULL, 0) == 0, STATUS_CREATE_SSL_FAILED);
-
+    /** #memory. 
+     * acquire the buffer for the dtls session.
+    */
     CHK_STATUS(createIOBuffer(DEFAULT_MTU_SIZE, &pDtlsSession->pReadBuffer));
     pDtlsSession->timerQueueHandle = timerQueueHandle;
     pDtlsSession->timerId = UINT32_MAX;
@@ -314,6 +320,9 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ * the handler of packets from dtls sessions.
+*/
 STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 pDataLen)
 {
     ENTERS();
@@ -433,11 +442,14 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/** verify the the fingerprint(checksum) of the sha256 certificate of remote peer. 
+ *  used by srtp.
+*/
 STATUS dtlsSessionVerifyRemoteCertificateFingerprint(PDtlsSession pDtlsSession, PCHAR pExpectedFingerprint)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    /** #memory*/
     CHAR actualFingerprint[CERTIFICATE_FINGERPRINT_LENGTH];
     mbedtls_x509_crt* pRemoteCertificate = NULL;
     BOOL locked = FALSE;
@@ -446,10 +458,10 @@ STATUS dtlsSessionVerifyRemoteCertificateFingerprint(PDtlsSession pDtlsSession, 
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
-
+    /** Return the peer certificate from the current connection. */
     CHK((pRemoteCertificate = (mbedtls_x509_crt*) mbedtls_ssl_get_peer_cert(&pDtlsSession->sslCtx)) != NULL, STATUS_INTERNAL_ERROR);
     CHK_STATUS(dtlsCertificateFingerprint(pRemoteCertificate, actualFingerprint));
-
+    /** compare the expected fingpring and calculated fingerprint. */
     CHK(STRCMP(pExpectedFingerprint, actualFingerprint) == 0, STATUS_SSL_REMOTE_CERTIFICATE_VERIFICATION_FAILED);
 
 CleanUp:
@@ -460,7 +472,10 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * acquire the information of dtls key and dtls-srtp profile.
+ * used by srtp. 
+*/
 STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession pDtlsSession, PDtlsKeyingMaterial pDtlsKeyingMaterial)
 {
     ENTERS();
@@ -468,6 +483,7 @@ STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession pDtlsSession, PDtlsKeyingM
     UINT32 offset = 0;
     BOOL locked = FALSE;
     PTlsKeys pKeys;
+    /** #memory. */
     BYTE keyingMaterialBuffer[MAX_SRTP_MASTER_KEY_LEN * 2 + MAX_SRTP_SALT_KEY_LEN * 2];
     mbedtls_ssl_srtp_profile negotiatedSRTPProfile;
 
@@ -476,10 +492,15 @@ STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession pDtlsSession, PDtlsKeyingM
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     locked = TRUE;
-
-    CHK(mbedtls_ssl_tls_prf(pKeys->tlsProfile, pKeys->masterSecret, ARRAY_SIZE(pKeys->masterSecret), KEYING_EXTRACTOR_LABEL, pKeys->randBytes,
-                            ARRAY_SIZE(pKeys->randBytes), keyingMaterialBuffer, ARRAY_SIZE(keyingMaterialBuffer)) == 0,
-        STATUS_INTERNAL_ERROR);
+    /** TLS-PRF function for key derivation. */
+    CHK(mbedtls_ssl_tls_prf(pKeys->tlsProfile, 
+                            pKeys->masterSecret, 
+                            ARRAY_SIZE(pKeys->masterSecret), 
+                            KEYING_EXTRACTOR_LABEL, 
+                            pKeys->randBytes,
+                            ARRAY_SIZE(pKeys->randBytes), 
+                            keyingMaterialBuffer, 
+                            ARRAY_SIZE(keyingMaterialBuffer)) == 0, STATUS_INTERNAL_ERROR);
 
     pDtlsKeyingMaterial->key_length = MAX_SRTP_MASTER_KEY_LEN + MAX_SRTP_SALT_KEY_LEN;
 
@@ -493,7 +514,10 @@ STATUS dtlsSessionPopulateKeyingMaterial(PDtlsSession pDtlsSession, PDtlsKeyingM
     offset += MAX_SRTP_SALT_KEY_LEN;
 
     MEMCPY(pDtlsKeyingMaterial->serverWriteKey + MAX_SRTP_MASTER_KEY_LEN, &keyingMaterialBuffer[offset], MAX_SRTP_SALT_KEY_LEN);
-
+    /** 
+     * Get the negotiated DTLS-SRTP Protection Profile.
+     * This function should be called after the handshake is completed.
+     * */
     negotiatedSRTPProfile = mbedtls_ssl_get_dtls_srtp_protection_profile(&pDtlsSession->sslCtx);
     switch (negotiatedSRTPProfile) {
         case MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_80:
@@ -696,21 +720,25 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * #ssl, md-sha256.
+ * get the checksum of sha256 certificate and return it for the verification.
+*/
 STATUS dtlsCertificateFingerprint(mbedtls_x509_crt* pCert, PCHAR pBuff)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
+    /** #memory. */
     BYTE fingerprint[MBEDTLS_MD_MAX_SIZE];
     INT32 sslRet, i, size;
     // const is not pure C, but mbedtls_md_info_from_type requires the param to be const
     const mbedtls_md_info_t* pMdInfo;
 
     CHK(pBuff != NULL, STATUS_NULL_ARG);
-
+    /** This function returns the message-digest information associated with the given digest type.*/
     pMdInfo = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
     CHK(pMdInfo != NULL, STATUS_INTERNAL_ERROR);
-
+    /** This function calculates the SHA-224 or SHA-256 checksum of a buffer.*/
     sslRet = mbedtls_sha256_ret(pCert->raw.p, pCert->raw.len, fingerprint, 0);
     CHK(sslRet == 0, STATUS_INTERNAL_ERROR);
 
