@@ -496,7 +496,10 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 }
-/** #DTLS */
+/** 
+ * #DTLS 
+ * the callback of dtls outbound.
+*/
 VOID onDtlsOutboundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
 {
     PKvsPeerConnection pKvsPeerConnection = NULL;

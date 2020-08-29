@@ -1,11 +1,14 @@
 #define LOG_CLASS "DTLS"
 #include "../Include_i.h"
 
+/** 
+ * setup the callback of dtls outbound.
+*/
 STATUS dtlsSessionOnOutBoundData(PDtlsSession pDtlsSession, UINT64 customData, DtlsSessionOutboundPacketFunc callbackFn)
 {
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(pDtlsSession != NULL && callbackFn != NULL, STATUS_NULL_ARG);
+    CHK(pDtlsSession != NULL && callbackFn != NULL, STATUS_DTLS_NULL_ARG);
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     pDtlsSession->dtlsSessionCallbacks.outboundPacketFn = callbackFn;
@@ -15,12 +18,14 @@ STATUS dtlsSessionOnOutBoundData(PDtlsSession pDtlsSession, UINT64 customData, D
 CleanUp:
     return STATUS_SUCCESS;
 }
-
+/** 
+ * setup the callback of dtls state change.
+*/
 STATUS dtlsSessionOnStateChange(PDtlsSession pDtlsSession, UINT64 customData, DtlsSessionOnStateChange callbackFn)
 {
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(pDtlsSession != NULL && callbackFn != NULL, STATUS_NULL_ARG);
+    CHK(pDtlsSession != NULL && callbackFn != NULL, STATUS_DTLS_NULL_ARG);
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     pDtlsSession->dtlsSessionCallbacks.stateChangeFn = callbackFn;
@@ -37,7 +42,7 @@ STATUS dtlsValidateRtcCertificates(PRtcCertificate pRtcCertificates, PUINT32 pCo
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i;
 
-    CHK(pRtcCertificates != NULL && pCount != NULL, retStatus);
+    CHK(pRtcCertificates != NULL && pCount != NULL, retStatus);///< weirdo, #YC_TBD.
 
     for (i = 0, *pCount = 0; pRtcCertificates[i].pCertificate != NULL && i < MAX_RTCCONFIGURATION_CERTIFICATES; i++) {
         CHK(pRtcCertificates[i].privateKeySize == 0 || pRtcCertificates[i].pPrivateKey != NULL, STATUS_SSL_INVALID_CERTIFICATE_BITS);
@@ -58,7 +63,7 @@ STATUS dtlsSessionChangeState(PDtlsSession pDtlsSession, RTC_DTLS_TRANSPORT_STAT
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+    CHK(pDtlsSession != NULL, STATUS_DTLS_NULL_ARG);
     CHK(pDtlsSession->state != newState, retStatus);
 
     if (pDtlsSession->state == CONNECTING && newState == CONNECTED) {
