@@ -270,12 +270,13 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEU
     STATUS retStatus = STATUS_SUCCESS;
     PDtlsSession pDtlsSession = NULL;
     UINT32 i, certCount;
+    /** #memory. #YC_TBD. */
     DtlsSessionCertificateInfo certInfos[MAX_RTCCONFIGURATION_CERTIFICATES];
     MEMSET(certInfos, 0x00, SIZEOF(certInfos));
 
     CHK(ppDtlsSession != NULL, STATUS_NULL_ARG);
     CHK_STATUS(dtlsValidateRtcCertificates(pRtcCertificates, &certCount));
-
+    /** #memory. */
     pDtlsSession = MEMCALLOC(SIZEOF(DtlsSession), 1);
     CHK(pDtlsSession != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
@@ -429,7 +430,12 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief the incoming data handler of dtls session.
+ * @param pDtlsSession
+ * @param pData
+ * @param pDataLen
+*/
 STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 pDataLen)
 {
     ENTERS();

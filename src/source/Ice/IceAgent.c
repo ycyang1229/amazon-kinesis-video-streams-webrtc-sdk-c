@@ -411,8 +411,14 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
         CHK_STATUS(findCandidateWithIp(pIpAddress, pIceAgent->localCandidates, &pDuplicatedIceCandidate));
 
         if (pDuplicatedIceCandidate == NULL &&
-            STATUS_SUCCEEDED(createSocketConnection(pIpAddress->family, KVS_SOCKET_PROTOCOL_UDP, pIpAddress, NULL, (UINT64) pIceAgent,
-                                                    incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize, &pSocketConnection))) {
+            STATUS_SUCCEEDED(createSocketConnection(pIpAddress->family,
+                                                    KVS_SOCKET_PROTOCOL_UDP,
+                                                    pIpAddress,
+                                                    NULL,
+                                                    (UINT64) pIceAgent,
+                                                    incomingDataHandler,
+                                                    pIceAgent->kvsRtcConfiguration.sendBufSize, 
+                                                    &pSocketConnection))) {
             pTmpIceCandidate = MEMCALLOC(1, SIZEOF(IceCandidate));
             generateJSONSafeString(pTmpIceCandidate->id, ARRAY_SIZE(pTmpIceCandidate->id));
             pTmpIceCandidate->isRemote = FALSE;
@@ -1562,8 +1568,13 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
                     // open up a new socket at host candidate's ip address for server reflex candidate.
                     // the new port will be stored in pNewCandidate->ipAddress.port. And the Ip address will later be updated
                     // with the correct ip address once the STUN response is received.
-                    CHK_STATUS(createSocketConnection(pCandidate->ipAddress.family, KVS_SOCKET_PROTOCOL_UDP, &pNewCandidate->ipAddress, NULL,
-                                                      (UINT64) pIceAgent, incomingDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize,
+                    CHK_STATUS(createSocketConnection(pCandidate->ipAddress.family,
+                                                      KVS_SOCKET_PROTOCOL_UDP,
+                                                      &pNewCandidate->ipAddress,
+                                                      NULL,
+                                                      (UINT64) pIceAgent,
+                                                      incomingDataHandler,
+                                                      pIceAgent->kvsRtcConfiguration.sendBufSize,
                                                       &pNewCandidate->pSocketConnection));
                     ATOMIC_STORE_BOOL(&pNewCandidate->pSocketConnection->receiveData, TRUE);
                     // connectionListener will free the pSocketConnection at the end.
@@ -1662,8 +1673,13 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
     // open up a new socket without binding to any host address. The candidate Ip address will later be updated
     // with the correct relay ip address once the Allocation success response is received. Relay candidate's socket is managed
     // by TurnConnection struct.
-    CHK_STATUS(createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4, protocol, NULL, &pIceAgent->iceServers[iceServerIndex].ipAddress,
-                                      (UINT64) pNewCandidate, incomingRelayedDataHandler, pIceAgent->kvsRtcConfiguration.sendBufSize,
+    CHK_STATUS(createSocketConnection(KVS_IP_FAMILY_TYPE_IPV4,
+                                      protocol,
+                                      NULL,
+                                      &pIceAgent->iceServers[iceServerIndex].ipAddress,
+                                      (UINT64) pNewCandidate,
+                                      incomingRelayedDataHandler,
+                                      pIceAgent->kvsRtcConfiguration.sendBufSize,
                                       &pNewCandidate->pSocketConnection));
     // connectionListener will free the pSocketConnection at the end.
     CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener, pNewCandidate->pSocketConnection));

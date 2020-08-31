@@ -467,7 +467,7 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     PCHAR path = MEMALLOC(MAX_URI_CHAR_LEN + 1);
 
     CHK(pCallInfo != NULL && pCallInfo->callInfo.pRequestInfo != NULL && pCallInfo->pSignalingClient != NULL, STATUS_NULL_ARG);
-
+    /** check the url is included https or wss to enable the secure connection. */
     CHK_STATUS(requestRequiresSecureConnection(pCallInfo->callInfo.pRequestInfo->url, &secureConnection));
     DLOGV("Perform %s synchronous call for URL: %s", secureConnection ? "secure" : EMPTY_STRING, pCallInfo->callInfo.pRequestInfo->url);
 

@@ -899,6 +899,18 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
 
                 /* We dont support DTLS and TCP, so only options are TCP/TLS and UDP. */
                 /* TODO: add plain TCP once it becomes available. */
+                /**
+                 * #YC_TBD. 
+                 * check the rfc later.
+                 * https://tools.ietf.org/html/rfc5766#section-2.1
+                 *           +----------------------------+---------------------+
+                 *           | TURN client to TURN server | TURN server to peer |
+                 *           +----------------------------+---------------------+
+                 *           |             UDP            |         UDP         |
+                 *           |             TCP            |         UDP         |
+                 *           |        TLS over TCP        |         UDP         |
+                 *           +----------------------------+---------------------+
+                */
                 if (pTurnConnection->protocol == KVS_SOCKET_PROTOCOL_TCP && pTurnConnection->pControlChannel->pTlsSession == NULL) {
                     CHK_STATUS(socketConnectionInitSecureConnection(pTurnConnection->pControlChannel, FALSE));
                 }

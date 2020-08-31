@@ -26,9 +26,9 @@ extern "C" {
 /*
  * DTLS transmission interval timer (in 100ns)
  */
-#define DTLS_TRANSMISSION_INTERVAL (200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define DTLS_TRANSMISSION_INTERVAL (200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)///< 200ms
 
-#define DTLS_SESSION_TIMER_START_DELAY (100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define DTLS_SESSION_TIMER_START_DELAY (100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)///< 100ms
 
 #define SECONDS_IN_A_DAY (24 * 60 * 60LL)
 
@@ -87,7 +87,8 @@ typedef struct {
 
 typedef struct {
     UINT64 updatedTime;
-    UINT32 intermediateDelay, finalDelay;
+    UINT32 intermediateDelay;
+    UINT32 finalDelay;
 } DtlsSessionTimer, *PDtlsSessionTimer;
 
 typedef struct {
@@ -108,7 +109,7 @@ struct __DtlsSession {
     DtlsSessionCallbacks dtlsSessionCallbacks;
     TIMER_QUEUE_HANDLE timerQueueHandle;
     UINT32 timerId;
-    UINT64 dtlsSessionStartTime;
+    UINT64 dtlsSessionStartTime;///< the start time of dtls session.
     RTC_DTLS_TRANSPORT_STATE state;
     MUTEX sslLock;///< the muxtex of the dtls session. 
 

@@ -4,6 +4,13 @@
 #define LOG_CLASS "TLS_mbedtls"
 #include "../Include_i.h"
 
+
+/**
+ * @brief the initialization of tls session.
+ * 
+ * @param 
+ * 
+*/
 STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession* ppTlsSession)
 {
     ENTERS();
@@ -11,7 +18,9 @@ STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession* ppTlsSessi
     PTlsSession pTlsSession = NULL;
 
     CHK(ppTlsSession != NULL && pCallbacks != NULL && pCallbacks->outboundPacketFn != NULL, STATUS_NULL_ARG);
-
+    /**
+     * #memory.
+    */
     pTlsSession = (PTlsSession) MEMCALLOC(1, SIZEOF(TlsSession));
     CHK(pTlsSession != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
@@ -26,6 +35,8 @@ STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession* ppTlsSessi
     mbedtls_ssl_config_init(&pTlsSession->sslCtxConfig);
     mbedtls_ssl_init(&pTlsSession->sslCtx);
     CHK(mbedtls_ctr_drbg_seed(&pTlsSession->ctrDrbg, mbedtls_entropy_func, &pTlsSession->entropy, NULL, 0) == 0, STATUS_CREATE_SSL_FAILED);
+    /** #YC_TBD, need to be fxied. */
+    LODG("need to take care of the path of certificates.", KVS_CA_CERT_PATH);
     CHK(mbedtls_x509_crt_parse_file(&pTlsSession->cacert, KVS_CA_CERT_PATH) == 0, STATUS_INVALID_CA_CERT_PATH);
 
 CleanUp:
@@ -133,7 +144,12 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief the incoming data handler of tls session.
+ * 
+ * @param
+ * @param
+*/
 STATUS tlsSessionProcessPacket(PTlsSession pTlsSession, PBYTE pData, UINT32 bufferLen, PUINT32 pDataLen)
 {
     ENTERS();
@@ -189,7 +205,12 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief the out-going data handler of tls session.
+ * 
+ * @param
+ * @param
+*/
 STATUS tlsSessionPutApplicationData(PTlsSession pTlsSession, PBYTE pData, UINT32 dataLen)
 {
     ENTERS();
@@ -205,8 +226,10 @@ STATUS tlsSessionPutApplicationData(PTlsSession pTlsSession, PBYTE pData, UINT32
         if (sslRet > 0) {
             writtenBytes += sslRet;
         } else if (sslRet == MBEDTLS_ERR_SSL_WANT_READ || sslRet == MBEDTLS_ERR_SSL_WANT_WRITE) {
+            /** the buffer is not available now, and have to wait for a while. */
             iterate = FALSE;
         } else {
+            /** this case needs to be handled, but it is possible that we have the network issues.*/
             LOG_MBEDTLS_ERROR("mbedtls_ssl_write", sslRet);
             writtenBytes = 0;
             retStatus = STATUS_INTERNAL_ERROR;
@@ -218,7 +241,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief shut down the tls session.
+*/
 STATUS tlsSessionShutdown(PTlsSession pTlsSession)
 {
     STATUS retStatus = STATUS_SUCCESS;

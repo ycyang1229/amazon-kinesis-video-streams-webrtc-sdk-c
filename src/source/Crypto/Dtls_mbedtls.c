@@ -25,7 +25,9 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks,
     UINT32 i, certCount;
 
     CHK(ppDtlsSession != NULL && pDtlsSessionCallbacks != NULL, STATUS_NULL_ARG);
-    /** #certificate. */
+    /** #certificate. 
+     * retrieve the number of certificate. if there is no certificates, we will generate the certificate and key.
+    */
     CHK_STATUS(dtlsValidateRtcCertificates(pRtcCertificates, &certCount));
 
     pDtlsSession = (PDtlsSession) MEMCALLOC(SIZEOF(DtlsSession), 1);
@@ -48,21 +50,27 @@ STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks,
     if (certificateBits == 0) {
         certificateBits = GENERATED_CERTIFICATE_BITS;
     }
-
+    /** there is no default certificate and key. */
     if (certCount == 0) {
-        CHK_STATUS(createCertificateAndKey(certificateBits, generateRSACertificate, &pDtlsSession->certificates[0].cert,
-                                           &pDtlsSession->certificates[0].privateKey));
+        CHK_STATUS(createCertificateAndKey(certificateBits, 
+                                            generateRSACertificate, 
+                                            &pDtlsSession->certificates[0].cert,
+                                            &pDtlsSession->certificates[0].privateKey));
         pDtlsSession->certificateCount = 1;
     } else {
         for (i = 0; i < certCount; i++) {
             CHK_STATUS(copyCertificateAndKey((mbedtls_x509_crt*) pRtcCertificates[i].pCertificate,
-                                             (mbedtls_pk_context*) pRtcCertificates[i].pPrivateKey, &pDtlsSession->certificates[i]));
+                                             (mbedtls_pk_context*) pRtcCertificates[i].pPrivateKey, 
+                                             &pDtlsSession->certificates[i]));
             // in case of a failure in between, we'll only free up to current position
             pDtlsSession->certificateCount++;
         }
     }
 
     // Generate and store the certificate fingerprints
+    /**
+     * check the correctness of certificates.
+    */
     for (i = 0; i < pDtlsSession->certificateCount; i++) {
         pCertInfo = pDtlsSession->certificates + i;
         CHK_STATUS(dtlsCertificateFingerprint(&pCertInfo->cert, pCertInfo->fingerprint));
@@ -124,7 +132,7 @@ INT32 dtlsSessionSendCallback(PVOID customData, const unsigned char* pBuf, ULONG
     PDtlsSession pDtlsSession = (PDtlsSession) customData;
 
     CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
-
+    /** the callback set by dtls wrapper layer. */
     pDtlsSession->dtlsSessionCallbacks.outboundPacketFn(pDtlsSession->dtlsSessionCallbacks.outBoundPacketFnCustomData, (PBYTE) pBuf, len);
 
 CleanUp:
@@ -189,7 +197,12 @@ INT32 dtlsSessionGetTimerCallback(PVOID customData)
         return 0;
     }
 }
-
+/**
+ * @brief the callback on the software timer.
+ * 
+ * @param
+ * @param
+*/
 STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerID);
@@ -208,6 +221,7 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     handshakeStatus = mbedtls_ssl_handshake(&pDtlsSession->sslCtx);
     switch (handshakeStatus) {
         case 0:
+        /** success. */
             CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CONNECTED));
             CHK(FALSE, STATUS_TIMER_QUEUE_STOP_SCHEDULING);
             break;
@@ -233,9 +247,15 @@ CleanUp:
     return retStatus;
 }
 
-INT32 dtlsSessionKeyDerivationCallback(PVOID customData, const unsigned char* pMasterSecret, const unsigned char* pKeyBlock, ULONG maclen,
-                                       ULONG keylen, ULONG ivlen, const unsigned char clientRandom[MAX_DTLS_RANDOM_BYTES_LEN],
-                                       const unsigned char serverRandom[MAX_DTLS_RANDOM_BYTES_LEN], mbedtls_tls_prf_types tlsProfile)
+INT32 dtlsSessionKeyDerivationCallback(PVOID customData,
+                                       const unsigned char* pMasterSecret,
+                                       const unsigned char* pKeyBlock,
+                                       ULONG maclen,
+                                       ULONG keylen,
+                                       ULONG ivlen,
+                                       const unsigned char clientRandom[MAX_DTLS_RANDOM_BYTES_LEN],
+                                       const unsigned char serverRandom[MAX_DTLS_RANDOM_BYTES_LEN],
+                                       mbedtls_tls_prf_types tlsProfile)
 {
     UNUSED_PARAM(pKeyBlock);
     UNUSED_PARAM(maclen);
@@ -249,7 +269,9 @@ INT32 dtlsSessionKeyDerivationCallback(PVOID customData, const unsigned char* pM
     pKeys->tlsProfile = tlsProfile;
     return 0;
 }
-
+/**
+ * @brief if ice agent is ready, we will start dtls session. And change the state of ice agent from ready to connected.
+*/
 STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
 {
     ENTERS();
@@ -271,8 +293,9 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
 
     // Initialize ssl config
     CHK(mbedtls_ssl_config_defaults(&pDtlsSession->sslCtxConfig, isServer ? MBEDTLS_SSL_IS_SERVER : MBEDTLS_SSL_IS_CLIENT,
-                                    MBEDTLS_SSL_TRANSPORT_DATAGRAM, MBEDTLS_SSL_PRESET_DEFAULT) == 0,
-        STATUS_CREATE_SSL_FAILED);
+                                    MBEDTLS_SSL_TRANSPORT_DATAGRAM, 
+                                    MBEDTLS_SSL_PRESET_DEFAULT) == 0, STATUS_CREATE_SSL_FAILED);
+
     // no need to verify since the certificate will be verified through SDP later
     mbedtls_ssl_conf_authmode(&pDtlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_OPTIONAL);
     mbedtls_ssl_conf_rng(&pDtlsSession->sslCtxConfig, mbedtls_ctr_drbg_random, &pDtlsSession->ctrDrbg);
@@ -283,19 +306,25 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     }
     mbedtls_ssl_conf_dtls_cookies(&pDtlsSession->sslCtxConfig, NULL, NULL, NULL);
     CHK(mbedtls_ssl_conf_dtls_srtp_protection_profiles(&pDtlsSession->sslCtxConfig, DTLS_SRTP_SUPPORTED_PROFILES,
-                                                       ARRAY_SIZE(DTLS_SRTP_SUPPORTED_PROFILES)) == 0,
-        STATUS_CREATE_SSL_FAILED);
+                                                       ARRAY_SIZE(DTLS_SRTP_SUPPORTED_PROFILES)) == 0, STATUS_CREATE_SSL_FAILED);
+    /** Configure extended key export callback. (Default: none.)*/
     mbedtls_ssl_conf_export_keys_ext_cb(&pDtlsSession->sslCtxConfig, dtlsSessionKeyDerivationCallback, pDtlsSession);
 
     CHK(mbedtls_ssl_setup(&pDtlsSession->sslCtx, &pDtlsSession->sslCtxConfig) == 0, STATUS_SSL_CTX_CREATION_FAILED);
     mbedtls_ssl_set_mtu(&pDtlsSession->sslCtx, DEFAULT_MTU_SIZE);
+    /** Set the underlying BIO callbacks for write, read and read-with-timeout.*/
     mbedtls_ssl_set_bio(&pDtlsSession->sslCtx, pDtlsSession, dtlsSessionSendCallback, dtlsSessionReceiveCallback, NULL);
+    /** Set the timer callbacks (Mandatory for DTLS.) */
     mbedtls_ssl_set_timer_cb(&pDtlsSession->sslCtx, &pDtlsSession->transmissionTimer, dtlsSessionSetTimerCallback, dtlsSessionGetTimerCallback);
 
     // Start non-blocking handshaking
     pDtlsSession->dtlsSessionStartTime = GETTIME();
-    CHK_STATUS(timerQueueAddTimer(pDtlsSession->timerQueueHandle, DTLS_SESSION_TIMER_START_DELAY, DTLS_TRANSMISSION_INTERVAL,
-                                  dtlsTransmissionTimerCallback, (UINT64) pDtlsSession, &pDtlsSession->timerId));
+    CHK_STATUS(timerQueueAddTimer(pDtlsSession->timerQueueHandle,
+                                  DTLS_SESSION_TIMER_START_DELAY,
+                                  DTLS_TRANSMISSION_INTERVAL,
+                                  dtlsTransmissionTimerCallback,
+                                  (UINT64) pDtlsSession,
+                                  &pDtlsSession->timerId));
 
 CleanUp:
     if (locked) {
@@ -305,7 +334,12 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief check the dtls session is connected or not.
+ * 
+ * @param
+ * @param
+*/
 STATUS dtlsSessionIsInitFinished(PDtlsSession pDtlsSession, PBOOL pIsFinished)
 {
     ENTERS();
@@ -319,9 +353,11 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
 /**
- * the handler of packets from dtls sessions.
+ * @brief the incoming packet handler of dtls session.
+ * @param pDtlsSession
+ * @param pData
+ * @param pDataLen
 */
 STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 pDataLen)
 {
@@ -333,6 +369,7 @@ STATUS dtlsSessionProcessPacket(PDtlsSession pDtlsSession, PBYTE pData, PINT32 p
     BOOL iterate = TRUE;
 
     CHK(pDtlsSession != NULL && pData != NULL && pData != NULL, STATUS_NULL_ARG);
+    /** check the state of dtls session. */
     CHK(ATOMIC_LOAD_BOOL(&pDtlsSession->isStarted), STATUS_SSL_PACKET_BEFORE_DTLS_READY);
     CHK(!ATOMIC_LOAD_BOOL(&pDtlsSession->shutdown), retStatus);
 
@@ -380,7 +417,12 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief the out-going packet handler of dtls session.
+ * @param pDtlsSession
+ * @param pData
+ * @param pDataLen
+*/
 STATUS dtlsSessionPutApplicationData(PDtlsSession pDtlsSession, PBYTE pData, INT32 dataLen)
 {
     ENTERS();
@@ -538,7 +580,10 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief shut down the dtls session.
+ * @param 
+*/
 STATUS dtlsSessionShutdown(PDtlsSession pDtlsSession)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -621,7 +666,8 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL initialized = FALSE;
-    CHAR certBuf[GENERATED_CERTIFICATE_MAX_SIZE];
+    //CHAR certBuf[GENERATED_CERTIFICATE_MAX_SIZE];
+    PCHAR certBuf = MEMALLOC(GENERATED_CERTIFICATE_MAX_SIZE);
     CHAR notBeforeBuf[MBEDTLS_X509_RFC5280_UTC_TIME_LEN + 1], notAfterBuf[MBEDTLS_X509_RFC5280_UTC_TIME_LEN + 1];
     UINT64 now, notAfter;
     UINT32 written;
@@ -629,11 +675,13 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     mbedtls_entropy_context entropy;
     mbedtls_ctr_drbg_context ctrDrbg;
     mbedtls_mpi serial;
+    //
     mbedtls_x509write_cert writeCert;
 
-    CHK(pCert != NULL && pKey != NULL, STATUS_NULL_ARG);
+    CHK(pCert != NULL && pKey != NULL, STATUS_DTLS_NULL_ARG);
 
     // initialize to sane values
+    /** #mbedtls.*/
     mbedtls_entropy_init(&entropy);
     mbedtls_ctr_drbg_init(&ctrDrbg);
     mbedtls_mpi_init(&serial);
@@ -675,8 +723,8 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     mbedtls_x509write_crt_set_issuer_key(&writeCert, pKey);
     mbedtls_x509write_crt_set_md_alg(&writeCert, MBEDTLS_MD_SHA1);
 
-    MEMSET(certBuf, 0, SIZEOF(certBuf));
-    len = mbedtls_x509write_crt_der(&writeCert, (PVOID) certBuf, SIZEOF(certBuf), mbedtls_ctr_drbg_random, &ctrDrbg);
+    MEMSET(certBuf, 0, GENERATED_CERTIFICATE_MAX_SIZE);
+    len = mbedtls_x509write_crt_der(&writeCert, (PVOID) certBuf, GENERATED_CERTIFICATE_MAX_SIZE, mbedtls_ctr_drbg_random, &ctrDrbg);
     CHK(len >= 0, STATUS_CERTIFICATE_GENERATION_FAILED);
 
     // mbedtls_x509write_crt_der starts writing from behind, so we need to use the return len
@@ -687,7 +735,7 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     //         -----------------------------------------
     //         ^               ^
     //       certBuf   certBuf + (SIZEOF(certBuf) - len)
-    CHK(mbedtls_x509_crt_parse_der(pCert, (PVOID)(certBuf + (SIZEOF(certBuf) - len)), len) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+    CHK(mbedtls_x509_crt_parse_der(pCert, (PVOID)(certBuf + GENERATED_CERTIFICATE_MAX_SIZE - len)), len) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
 
 CleanUp:
     if (initialized) {

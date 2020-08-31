@@ -4,8 +4,13 @@
 #define LOG_CLASS "SocketConnection"
 #include "../Include_i.h"
 
-STATUS createSocketConnection(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol, PKvsIpAddress pBindAddr, PKvsIpAddress pPeerIpAddr,
-                              UINT64 customData, ConnectionDataAvailableFunc dataAvailableFn, UINT32 sendBufSize,
+STATUS createSocketConnection(KVS_IP_FAMILY_TYPE familyType, 
+                              KVS_SOCKET_PROTOCOL protocol, 
+                              PKvsIpAddress pBindAddr, 
+                              PKvsIpAddress pPeerIpAddr,
+                              UINT64 customData, 
+                              ConnectionDataAvailableFunc dataAvailableFn, 
+                              UINT32 sendBufSize,
                               PSocketConnection* ppSocketConnection)
 {
     ENTERS();
@@ -14,13 +19,13 @@ STATUS createSocketConnection(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL
 
     CHK(ppSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(protocol == KVS_SOCKET_PROTOCOL_UDP || pPeerIpAddr != NULL, STATUS_INVALID_ARG);
-
+    /** #memory. */
     pSocketConnection = (PSocketConnection) MEMCALLOC(1, SIZEOF(SocketConnection));
     CHK(pSocketConnection != NULL, STATUS_NOT_ENOUGH_MEMORY);
-
+    /** #mutex. */
     pSocketConnection->lock = MUTEX_CREATE(FALSE);
     CHK(pSocketConnection->lock != INVALID_MUTEX_VALUE, STATUS_INVALID_OPERATION);
-
+    /** #socket. */
     CHK_STATUS(createSocket(familyType, protocol, sendBufSize, &pSocketConnection->localSocket));
     if (pBindAddr) {
         CHK_STATUS(socketBind(pBindAddr, pSocketConnection->localSocket));
@@ -139,7 +144,7 @@ STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection,
     callbacks.outBoundPacketFnCustomData = callbacks.stateChangeFnCustomData = (UINT64) pSocketConnection;
     callbacks.outboundPacketFn = socketConnectionTlsSessionOutBoundPacket;
     callbacks.stateChangeFn = socketConnectionTlsSessionOnStateChange;
-
+    /** #TLS. */
     CHK_STATUS(createTlsSession(&callbacks, &pSocketConnection->pTlsSession));
     CHK_STATUS(tlsSessionStart(pSocketConnection->pTlsSession, isServer));
     pSocketConnection->secureConnection = TRUE;
@@ -171,8 +176,11 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
     locked = TRUE;
 
     /* Should have a valid buffer */
-    CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
+    CHK(pBuf != NULL && bufLen > 0, STATUS_SOCKET_INVALID_ARG);
     if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP && pSocketConnection->secureConnection) {
+        /**
+         * tls over tcp.
+        */
         CHK_STATUS(tlsSessionPutApplicationData(pSocketConnection->pTlsSession, pBuf, bufLen));
     } else if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP) {
         CHK_STATUS(retStatus = socketSendDataWithRetry(pSocketConnection, pBuf, bufLen, NULL, NULL));
@@ -256,15 +264,17 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
     INT32 retVal;
     struct sockaddr* peerSockAddr = NULL;
     socklen_t addrLen;
+    /** #IPV4. */
     struct sockaddr_in ipv4PeerAddr;
+    /** #IPV6. */
     struct sockaddr_in6 ipv6PeerAddr;
 
     CHECK(pSocketConnection != NULL);
-
+    /** #UDP. */
     if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
         return TRUE;
     }
-
+    /** #IPV4. */
     if (pSocketConnection->peerIpAddr.family == KVS_IP_FAMILY_TYPE_IPV4) {
         addrLen = SIZEOF(struct sockaddr_in);
         MEMSET(&ipv4PeerAddr, 0x00, SIZEOF(ipv4PeerAddr));
@@ -272,7 +282,10 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
         ipv4PeerAddr.sin_port = pSocketConnection->peerIpAddr.port;
         MEMCPY(&ipv4PeerAddr.sin_addr, pSocketConnection->peerIpAddr.address, IPV4_ADDRESS_LENGTH);
         peerSockAddr = (struct sockaddr*) &ipv4PeerAddr;
-    } else {
+    } 
+    else 
+    {
+        /** #IPV6. */
         addrLen = SIZEOF(struct sockaddr_in6);
         MEMSET(&ipv6PeerAddr, 0x00, SIZEOF(ipv6PeerAddr));
         ipv6PeerAddr.sin6_family = AF_INET6;
@@ -309,6 +322,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     CHK(buf != NULL && bufLen > 0, STATUS_INVALID_ARG);
 
     if (pDestIp != NULL) {
+        /** #IPV4 */
         if (IS_IPV4_ADDR(pDestIp)) {
             addrLen = SIZEOF(ipv4Addr);
             MEMSET(&ipv4Addr, 0x00, SIZEOF(ipv4Addr));
@@ -317,7 +331,10 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
             MEMCPY(&ipv4Addr.sin_addr, pDestIp->address, IPV4_ADDRESS_LENGTH);
             destAddr = (struct sockaddr*) &ipv4Addr;
 
-        } else {
+        } 
+        /** #IPV6 */
+        else 
+        {
             addrLen = SIZEOF(ipv6Addr);
             MEMSET(&ipv6Addr, 0x00, SIZEOF(ipv6Addr));
             ipv6Addr.sin6_family = AF_INET6;
@@ -328,6 +345,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     }
 
     while (socketWriteAttempt < MAX_SOCKET_WRITE_RETRY && bytesWritten < bufLen) {
+        /** #sokcet. #YC_TBD. */
         result = sendto(pSocketConnection->localSocket, buf, bufLen, NO_SIGNAL, destAddr, addrLen);
         if (result < 0) {
             errorNum = errno;
@@ -336,6 +354,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
                 FD_SET(pSocketConnection->localSocket, &wfds);
                 tv.tv_sec = 0;
                 tv.tv_usec = SOCKET_SEND_RETRY_TIMEOUT_MICRO_SECOND;
+                /** #socket. */
                 result = select(pSocketConnection->localSocket + 1, NULL, &wfds, NULL, &tv);
 
                 if (result == 0) {

@@ -142,7 +142,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ *  the wrap of the socket layer :: socket.
+*/
 STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol, UINT32 sendBufSize, PINT32 pOutSockFd)
 {
     STATUS retStatus = STATUS_SUCCESS;
