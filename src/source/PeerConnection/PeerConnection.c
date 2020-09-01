@@ -38,6 +38,8 @@ CleanUp:
     return retStatus;
 }
 
+#if (ENABLE_DATA_CHANNEL)
+
 STATUS allocateSctpSortDataChannelsDataCallback(UINT64 customData, PHashEntry pHashEntry)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -101,6 +103,8 @@ CleanUp:
     return retStatus;
 }
 
+#endif
+
 VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -134,10 +138,11 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
             if (pKvsPeerConnection->pSrtpSession == NULL) {
                 CHK_STATUS(allocateSrtp(pKvsPeerConnection));
             }
-
+            #if (ENABLE_DATA_CHANNEL)
             if (pKvsPeerConnection->pSctpSession == NULL) {
                 CHK_STATUS(allocateSctp(pKvsPeerConnection));
             }
+            #endif
         }
 
     } else if ((buff[0] > 127 && buff[0] < 192) && (pKvsPeerConnection->pSrtpSession != NULL)) {
@@ -1253,8 +1258,9 @@ STATUS initKvsWebRtc(VOID)
     initializeEndianness();
 
     KVS_CRYPTO_INIT();
-
+    #if (ENABLE_DATA_CHANNEL)
     CHK_STATUS(initSctpSession());
+    #endif
 
     ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, TRUE);
 
@@ -1270,7 +1276,9 @@ STATUS deinitKvsWebRtc(VOID)
     STATUS retStatus = STATUS_SUCCESS;
     CHK(ATOMIC_LOAD_BOOL(&gKvsWebRtcInitialized), retStatus);
 
+    #if (ENABLE_DATA_CHANNEL)
     deinitSctpSession();
+    #endif
 
     srtp_shutdown();
 

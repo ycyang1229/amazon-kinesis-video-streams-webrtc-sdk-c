@@ -108,13 +108,13 @@ typedef struct {
 
     NullableBool canTrickleIce;
 } KvsPeerConnection, *PKvsPeerConnection;
-
+#if (ENABLE_DATA_CHANNEL)
 typedef struct {
     UINT32 currentDataChannelId;
     PKvsPeerConnection pKvsPeerConnection;
     PHashTable unkeyedDataChannels;
 } AllocateSctpSortDataChannelsData, *PAllocateSctpSortDataChannelsData;
-
+#endif
 STATUS onFrameReadyFunc(UINT64, UINT16, UINT16, UINT32);
 STATUS onFrameDroppedFunc(UINT64, UINT16, UINT16, UINT32);
 VOID onSctpSessionOutboundPacket(UINT64, PBYTE, UINT32);

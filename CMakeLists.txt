@@ -28,6 +28,8 @@ option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF
 option(KVS_PLAT_FREERTOS "Build for FreeRTOS" ON)
 option(BUILD_CLIENT "Build with UndefinedBehaviorSanitizer." OFF)
 option(BUILD_SIGNALING_CLIENT "Build with UndefinedBehaviorSanitizer." ON)
+option(ENABLE_DATA_CHANNEL "Enable support for data channel" OFF)
+
 
 CHECK_INCLUDE_FILES(ifaddrs.h       KVCWEBRTC_HAVE_IFADDRS_H)
 CHECK_INCLUDE_FILES(netinet/tcp.h   KVCWEBRTC_HAVE_NETINET_TCP_H)
@@ -167,7 +169,7 @@ else()
 endif()
 
 
-if(BUILD_CLIENT)
+if(BUILD_CLIENT AND ENABLE_DATA_CHANNEL)
 # usrsctp dont support pkgconfig yet
 find_library(
   Usrsctp
@@ -252,6 +254,10 @@ endif()
 # Uncomment below line for very verbose logging
 # add_definitions(-DLOG_STREAMING)
 
+if (ENABLE_DATA_CHANNEL)
+  add_definitions(-DENABLE_DATA_CHANNEL)
+endif()
+
 file(
   GLOB
   WEBRTC_CLIENT_SOURCE_FILES
@@ -294,9 +300,15 @@ target_link_libraries(
           ${OPENSSL_SSL_LIBRARY}
           ${OPENSSL_CRYPTO_LIBRARY}
           ${SRTP_LIBRARIES}
-          ${Usrsctp}
           ${MBEDTLS_LIBRARIES}
           ${EXTRA_DEPS})
+
+if(ENABLE_DATA_CHANNEL)
+target_link_libraries(
+  kvsWebrtcClient
+  PRIVATE ${Usrsctp})
+endif()
+
 endif()
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
