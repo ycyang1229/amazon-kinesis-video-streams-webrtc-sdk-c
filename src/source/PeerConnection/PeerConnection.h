@@ -51,9 +51,9 @@ typedef struct {
 
     MUTEX pSrtpSessionLock;
     PSrtpSession pSrtpSession;
-
+#if (BUILD_CLIENT && ENABLE_DATA_CHANNEL)
     PSctpSession pSctpSession;
-
+#endif
     SessionDescription remoteSessionDescription;
     PDoubleList pTransceievers;
     BOOL sctpIsEnabled;

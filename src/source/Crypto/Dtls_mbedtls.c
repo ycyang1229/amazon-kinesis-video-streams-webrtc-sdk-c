@@ -735,7 +735,7 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     //         -----------------------------------------
     //         ^               ^
     //       certBuf   certBuf + (SIZEOF(certBuf) - len)
-    CHK(mbedtls_x509_crt_parse_der(pCert, (PVOID)(certBuf + GENERATED_CERTIFICATE_MAX_SIZE - len)), len) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+    CHK(mbedtls_x509_crt_parse_der(pCert, (PVOID)(certBuf + GENERATED_CERTIFICATE_MAX_SIZE - len), len) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
 
 CleanUp:
     if (initialized) {

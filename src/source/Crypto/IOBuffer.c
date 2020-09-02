@@ -82,7 +82,7 @@ STATUS ioBufferWrite(PIOBuffer pBuffer, PBYTE pData, UINT32 dataLen)
 
     CHK(pBuffer != NULL && pData != NULL, STATUS_NULL_ARG);
 
-    freeSpace = pBuffer->cap - pBuffr->len;
+    freeSpace = pBuffer->cap - pBuffer->len;
     if (freeSpace < dataLen) {
         newCap = pBuffer->len + dataLen;
         /** #memory. #YC_TBD. this needs to be reviewed, and probably can not be used in embedded devices. */

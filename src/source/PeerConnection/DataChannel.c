@@ -1,3 +1,5 @@
+#if (ENABLE_DATA_CHANNEL)
+
 #define LOG_CLASS "DataChannel"
 
 #include "../Include_i.h"
@@ -99,3 +101,4 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+#endif

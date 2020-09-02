@@ -374,6 +374,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     attributeCount++;
 
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
+    /** #YC_TBD.*/
     SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u msid:%s %s", pKvsRtpTransceiver->sender.ssrc,
             pRtcMediaStreamTrack->streamId, pRtcMediaStreamTrack->trackId);
     attributeCount++;
@@ -405,6 +406,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         attributeCount++;
 
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ssrc");
+        /**#YC_TBD.*/
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%u label:%sRTX", pKvsRtpTransceiver->sender.rtxSsrc,
                 pRtcMediaStreamTrack->trackId);
         attributeCount++;

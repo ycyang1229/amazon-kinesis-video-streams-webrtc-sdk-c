@@ -298,7 +298,8 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 
     errCode = getaddrinfo(hostname, NULL, NULL, &res);
     if (errCode != 0) {
-        errStr = errCode == EAI_SYSTEM ? strerror(errno) : (PCHAR) gai_strerror(errCode);
+        //errStr = errCode == EAI_SYSTEM ? strerror(errno) : (PCHAR) gai_strerror(errCode);
+        errStr = errCode == EAI_SYSTEM ? "strerror(errno) not supported." : "gai_strerror(errCode) not supported.";
         CHK_ERR(FALSE, STATUS_RESOLVE_HOSTNAME_FAILED, "getaddrinfo() with errno %s", errStr);
     }
 

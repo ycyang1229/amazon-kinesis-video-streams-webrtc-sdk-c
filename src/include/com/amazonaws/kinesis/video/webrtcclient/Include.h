@@ -369,11 +369,13 @@ extern "C" {
  * Maximum allowed ICE configuration user name length
  */
 #define MAX_ICE_CONFIG_USER_NAME_LEN 512
+//#define MAX_ICE_CONFIG_USER_NAME_LEN 256
 
 /**
  * Maximum allowed ICE configuration password length
  */
-#define MAX_ICE_CONFIG_CREDENTIAL_LEN 512
+//#define MAX_ICE_CONFIG_CREDENTIAL_LEN 512
+#define MAX_ICE_CONFIG_CREDENTIAL_LEN 256
 
 /**
  * Maximum allowed signaling URI length
@@ -413,7 +415,8 @@ extern "C" {
 /**
  * Maximum length of a MediaStream's ID
  */
-#define MAX_MEDIA_STREAM_ID_LEN 255
+//#define MAX_MEDIA_STREAM_ID_LEN 255
+#define MAX_MEDIA_STREAM_ID_LEN 64
 
 /**
  * Max certificates an RtcConfiguration can accept

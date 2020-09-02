@@ -26,9 +26,9 @@ option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
 
 option(KVS_PLAT_FREERTOS "Build for FreeRTOS" ON)
-option(BUILD_CLIENT "Build with UndefinedBehaviorSanitizer." OFF)
+option(BUILD_CLIENT "Build with UndefinedBehaviorSanitizer." ON)
 option(BUILD_SIGNALING_CLIENT "Build with UndefinedBehaviorSanitizer." ON)
-option(ENABLE_DATA_CHANNEL "Enable support for data channel" OFF)
+#option(ENABLE_DATA_CHANNEL "Enable support for data channel" OFF)
 
 
 CHECK_INCLUDE_FILES(ifaddrs.h       KVCWEBRTC_HAVE_IFADDRS_H)
@@ -149,10 +149,11 @@ include_directories(${MBEDTLS_INCLUDE_DIRS})
 endif()
 
 if(BUILD_CLIENT)
+add_definitions(-DBUILD_CLIENT)
 if (OPEN_SRC_INSTALL_PREFIX)
   find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
 else()
-  find_library(SRTP_LIBRARIES srtp2 REQUIRED )
+  #find_library(SRTP_LIBRARIES srtp2 REQUIRED )
 endif()
 endif()
 
@@ -255,7 +256,7 @@ endif()
 # add_definitions(-DLOG_STREAMING)
 
 if (ENABLE_DATA_CHANNEL)
-  add_definitions(-DENABLE_DATA_CHANNEL)
+  #add_definitions(-DENABLE_DATA_CHANNEL)
 endif()
 
 file(
@@ -281,13 +282,15 @@ endif()
 
 file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
 
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/opusSampleFrames" DESTINATION .)
-file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/h264SampleFrames" DESTINATION .)
+#file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/opusSampleFrames" DESTINATION .)
+#file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/h264SampleFrames" DESTINATION .)
 
 include_directories(${OPEN_SRC_INCLUDE_DIRS})
 include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/ice)
+include_directories(${LIBKVSWEBRTC_INCLUDE_DIRS})
+include_directories(${KVS_LIBSRTP_INCLUDE_DIRS})
 
 if(BUILD_CLIENT)
 add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES})

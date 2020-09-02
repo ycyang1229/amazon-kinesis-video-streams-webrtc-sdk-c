@@ -130,7 +130,9 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
         dtlsSessionProcessPacket(pKvsPeerConnection->pDtlsSession, buff, &signedBuffLen);
 
         if (signedBuffLen > 0) {
+            #if (ENABLE_DATA_CHANNEL)
             CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
+            #endif
         }
 
         CHK_STATUS(dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &isDtlsConnected));
@@ -442,6 +444,8 @@ CleanUp:
     }
 }
 
+#if (ENABLE_DATA_CHANNEL)
+
 VOID onSctpSessionOutboundPacket(UINT64 customData, PBYTE pPacket, UINT32 packetLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -501,6 +505,8 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 }
+#endif
+
 /** 
  * #DTLS 
  * the callback of dtls outbound.
@@ -734,7 +740,9 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 
     /* Free structs that have their own thread. SCTP has threads created by SCTP library. IceAgent has the
      * connectionListener thread. Free SCTP first so it wont try to send anything through ICE. */
+    #if (ENABLE_DATA_CHANNEL)
     CHK_LOG_ERR(freeSctpSession(&pKvsPeerConnection->pSctpSession));
+    #endif
     CHK_LOG_ERR(freeIceAgent(&pKvsPeerConnection->pIceAgent));
 
     // free transceivers

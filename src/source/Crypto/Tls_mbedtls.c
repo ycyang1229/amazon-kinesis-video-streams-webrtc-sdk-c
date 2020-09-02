@@ -36,7 +36,7 @@ STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession* ppTlsSessi
     mbedtls_ssl_init(&pTlsSession->sslCtx);
     CHK(mbedtls_ctr_drbg_seed(&pTlsSession->ctrDrbg, mbedtls_entropy_func, &pTlsSession->entropy, NULL, 0) == 0, STATUS_CREATE_SSL_FAILED);
     /** #YC_TBD, need to be fxied. */
-    LODG("need to take care of the path of certificates.", KVS_CA_CERT_PATH);
+    DLOGD("need to take care of the path of certificates.", KVS_CA_CERT_PATH);
     CHK(mbedtls_x509_crt_parse_file(&pTlsSession->cacert, KVS_CA_CERT_PATH) == 0, STATUS_INVALID_CA_CERT_PATH);
 
 CleanUp:
