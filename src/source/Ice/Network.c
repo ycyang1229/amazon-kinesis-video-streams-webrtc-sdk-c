@@ -9,6 +9,7 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 ipCount = 0, destIpListLen;
+#ifdef KVCWEBRTC_HAVE_GETIFADDRS
     BOOL filterSet = TRUE;
 
 #ifdef _WIN32
@@ -18,8 +19,10 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
 #else
     struct ifaddrs *ifaddr = NULL, *ifa = NULL;
 #endif
+
     struct sockaddr_in* pIpv4Addr = NULL;
     struct sockaddr_in6* pIpv6Addr = NULL;
+#endif
 
     CHK(destIpList != NULL && pDestIpListLen != NULL, STATUS_NULL_ARG);
     CHK(*pDestIpListLen != 0, STATUS_INVALID_ARG);
@@ -79,11 +82,14 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
         }
     }
 #else
+    #ifdef KVCWEBRTC_HAVE_GETIFADDRS
     CHK(getifaddrs(&ifaddr) != -1, STATUS_GET_LOCAL_IP_ADDRESSES_FAILED);
     for (ifa = ifaddr; ifa != NULL && ipCount < destIpListLen; ifa = ifa->ifa_next) {
-        if (ifa->ifa_addr != NULL && (ifa->ifa_flags & IFF_LOOPBACK) == 0 && // ignore loopback interface
+        if (ifa->ifa_addr != NULL && 
+            (ifa->ifa_flags & IFF_LOOPBACK) == 0 && // ignore loopback interface
             (ifa->ifa_flags & IFF_RUNNING) > 0 &&                            // interface has to be allocated
             (ifa->ifa_addr->sa_family == AF_INET || ifa->ifa_addr->sa_family == AF_INET6)) {
+
             // mark vpn interface
             destIpList[ipCount].isPointToPoint = ((ifa->ifa_flags & IFF_POINTOPOINT) != 0);
 
@@ -121,10 +127,23 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
             }
         }
     }
+    #else
+    extern char* esp_get_ip(void);
+    DLOGD("external getifaddrs.");
+    destIpList[ipCount].isPointToPoint = 0;
+    destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV4;
+    destIpList[ipCount].port = 0;
+    MEMCPY(destIpList[ipCount].address, esp_get_ip(), IPV4_ADDRESS_LENGTH);
+    DLOGD("kvs ip => %d:%d:%d:%d", destIpList[ipCount].address[0], 
+                                   destIpList[ipCount].address[1], 
+                                   destIpList[ipCount].address[2], 
+                                   destIpList[ipCount].address[3]);
+    #endif
 #endif
 
 CleanUp:
 
+#ifdef KVCWEBRTC_HAVE_GETIFADDRS
 #ifdef _WIN32
     if (adapterAddresses != NULL) {
         SAFE_MEMFREE(adapterAddresses);
@@ -134,7 +153,7 @@ CleanUp:
         freeifaddrs(ifaddr);
     }
 #endif
-
+#endif
     if (pDestIpListLen != NULL) {
         *pDestIpListLen = ipCount;
     }

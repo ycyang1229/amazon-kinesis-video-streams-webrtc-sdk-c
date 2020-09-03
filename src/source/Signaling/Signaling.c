@@ -1068,6 +1068,7 @@ STATUS getIceConfig(PSignalingClient pSignalingClient, UINT64 time)
 CleanUp:
 
     if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
+        DLOGD("retStatus:%x", retStatus);
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
     }
 

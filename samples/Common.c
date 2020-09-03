@@ -225,7 +225,11 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief the handler of offer when we receive the offer.
+ * 
+ * @param 
+*/
 STATUS handleOffer(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession, PSignalingMessage pSignalingMessage)
 {
     STATUS retStatus = STATUS_SUCCESS;

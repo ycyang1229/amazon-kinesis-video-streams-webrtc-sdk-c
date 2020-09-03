@@ -24,9 +24,9 @@ typedef STATUS (*ConnectionDataAvailableFunc)(UINT64, struct __SocketConnection*
 typedef struct __SocketConnection SocketConnection;
 struct __SocketConnection {
     /* Indicate whether this socket is marked for cleanup */
-    volatile ATOMIC_BOOL connectionClosed;
+    volatile ATOMIC_BOOL connectionClosed;///< this socket is going to be closed soon.
     /* Process incoming bits */
-    volatile ATOMIC_BOOL receiveData;
+    volatile ATOMIC_BOOL receiveData;///< true means this socket can be read.
     INT32 localSocket;
     KVS_SOCKET_PROTOCOL protocol;
     KvsIpAddress peerIpAddr;

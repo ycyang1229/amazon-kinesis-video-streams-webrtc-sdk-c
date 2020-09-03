@@ -149,7 +149,7 @@ struct __IceAgent {
     volatile ATOMIC_BOOL candidateGatheringFinished;
     volatile ATOMIC_BOOL shutdown;
     volatile ATOMIC_BOOL restart;
-    volatile ATOMIC_BOOL processStun;
+    volatile ATOMIC_BOOL processStun;///< the flag indicates we can handle stun packets(true).
 
     CHAR localUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR localPassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
@@ -162,7 +162,7 @@ struct __IceAgent {
     RtcIceCandidateDiagnostics rtcSelectedRemoteIceCandidateDiagnostics;
     PHashTable requestTimestampDiagnostics;
 
-    PDoubleList localCandidates;
+    PDoubleList localCandidates;///< store the local candidate, and we also create the valid socket for local candidates.
     PDoubleList remoteCandidates;
     // store PIceCandidatePair which will be immediately checked for connectivity when the timer is fired.
     PStackQueue triggeredCheckQueue;

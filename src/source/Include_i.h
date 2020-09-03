@@ -107,7 +107,7 @@ typedef struct {
     UINT16 family;
     UINT16 port;                       // port is stored in network byte order
     BYTE address[IPV6_ADDRESS_LENGTH]; // address is stored in network byte order
-    BOOL isPointToPoint;
+    BOOL isPointToPoint;///< indicate this interface is vpn or not.
 } KvsIpAddress, *PKvsIpAddress;
 
 #define IS_IPV4_ADDR(pAddress) ((pAddress)->family == KVS_IP_FAMILY_TYPE_IPV4)

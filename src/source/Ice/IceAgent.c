@@ -7,8 +7,13 @@
 extern StateMachineState ICE_AGENT_STATE_MACHINE_STATES[];
 extern UINT32 ICE_AGENT_STATE_MACHINE_STATE_COUNT;
 
-STATUS createIceAgent(PCHAR username, PCHAR password, PIceAgentCallbacks pIceAgentCallbacks, PRtcConfiguration pRtcConfiguration,
-                      TIMER_QUEUE_HANDLE timerQueueHandle, PConnectionListener pConnectionListener, PIceAgent* ppIceAgent)
+STATUS createIceAgent(PCHAR username, 
+                      PCHAR password, 
+                      PIceAgentCallbacks pIceAgentCallbacks, 
+                      PRtcConfiguration pRtcConfiguration,
+                      TIMER_QUEUE_HANDLE timerQueueHandle, 
+                      PConnectionListener pConnectionListener, 
+                      PIceAgent* ppIceAgent)
 {
     ENTERS();
 
@@ -411,6 +416,7 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
         CHK_STATUS(findCandidateWithIp(pIpAddress, pIceAgent->localCandidates, &pDuplicatedIceCandidate));
 
         if (pDuplicatedIceCandidate == NULL &&
+            /** #udp. #socket. */
             STATUS_SUCCEEDED(createSocketConnection(pIpAddress->family,
                                                     KVS_SOCKET_PROTOCOL_UDP,
                                                     pIpAddress,
@@ -419,6 +425,7 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
                                                     incomingDataHandler,
                                                     pIceAgent->kvsRtcConfiguration.sendBufSize, 
                                                     &pSocketConnection))) {
+            /** #memory. */
             pTmpIceCandidate = MEMCALLOC(1, SIZEOF(IceCandidate));
             generateJSONSafeString(pTmpIceCandidate->id, ARRAY_SIZE(pTmpIceCandidate->id));
             pTmpIceCandidate->isRemote = FALSE;
@@ -435,7 +442,9 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
              * need to acquire lock. */
             MUTEX_LOCK(pIceAgent->lock);
             locked = TRUE;
-
+            /**
+             * #YC_TBD, do we need to add the enhancement of doing invalid candidate?
+            */
             CHK_STATUS(doubleListInsertItemHead(pIceAgent->localCandidates, (UINT64) pTmpIceCandidate));
             CHK_STATUS(createIceCandidatePairs(pIceAgent, pTmpIceCandidate, FALSE));
 
@@ -527,7 +536,7 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
     CHK(!ATOMIC_LOAD_BOOL(&pIceAgent->agentStartGathering), retStatus);
 
     ATOMIC_STORE_BOOL(&pIceAgent->agentStartGathering, TRUE);
-
+    /** latch all the ip on the localhost's network interface. */
     CHK_STATUS(getLocalhostIpAddresses(pIceAgent->localNetworkInterfaces, 
                                        &pIceAgent->localNetworkInterfaceCount,
                                        pIceAgent->kvsRtcConfiguration.iceSetInterfaceFilterFunc, 
@@ -754,17 +763,23 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
     CHK(!alreadyRestarting, retStatus);
 
     if (pIceAgent->iceAgentStateTimerTask != UINT32_MAX) {
-        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceAgentStateTimerTask, (UINT64) pIceAgent));
+        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle,
+                                         pIceAgent->iceAgentStateTimerTask,
+                                         (UINT64) pIceAgent));
         pIceAgent->iceAgentStateTimerTask = UINT32_MAX;
     }
 
     if (pIceAgent->keepAliveTimerTask != UINT32_MAX) {
-        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->keepAliveTimerTask, (UINT64) pIceAgent));
+        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle,
+                                         pIceAgent->keepAliveTimerTask,
+                                         (UINT64) pIceAgent));
         pIceAgent->keepAliveTimerTask = UINT32_MAX;
     }
 
     if (pIceAgent->iceCandidateGatheringTimerTask != UINT32_MAX) {
-        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle, pIceAgent->iceCandidateGatheringTimerTask, (UINT64) pIceAgent));
+        CHK_STATUS(timerQueueCancelTimer(pIceAgent->timerQueueHandle,
+                                         pIceAgent->iceCandidateGatheringTimerTask,
+                                         (UINT64) pIceAgent));
         pIceAgent->iceCandidateGatheringTimerTask = UINT32_MAX;
     }
 
@@ -872,7 +887,10 @@ CleanUp:
 //////////////////////////////////////////////
 // internal functions
 //////////////////////////////////////////////
-
+/**
+ * @brief check the new candidate is existed or not according to the ip address.
+ * 
+*/
 STATUS findCandidateWithIp(PKvsIpAddress pIpAddress, PDoubleList pCandidateList, PIceCandidate* ppIceCandidate)
 {
     ENTERS();
@@ -892,7 +910,8 @@ STATUS findCandidateWithIp(PKvsIpAddress pIpAddress, PDoubleList pCandidateList,
         pCurNode = pCurNode->pNext;
 
         addrLen = IS_IPV4_ADDR(pIpAddress) ? IPV4_ADDRESS_LENGTH : IPV6_ADDRESS_LENGTH;
-        if (pIpAddress->family == pIceCandidate->ipAddress.family && MEMCMP(pIceCandidate->ipAddress.address, pIpAddress->address, addrLen) == 0 &&
+        if (pIpAddress->family == pIceCandidate->ipAddress.family && 
+            MEMCMP(pIceCandidate->ipAddress.address, pIpAddress->address, addrLen) == 0 &&
             pIpAddress->port == pIceCandidate->ipAddress.port) {
             pTargetIceCandidate = pIceCandidate;
         }
@@ -970,9 +989,11 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
 
         // https://tools.ietf.org/html/rfc8445#section-6.1.2.2
         // pair local and remote candidates with the same family
-        if (pCurrentIceCandidate->state == ICE_CANDIDATE_STATE_VALID && pCurrentIceCandidate->ipAddress.family == pIceCandidate->ipAddress.family) {
+        if (pCurrentIceCandidate->state == ICE_CANDIDATE_STATE_VALID && 
+            pCurrentIceCandidate->ipAddress.family == pIceCandidate->ipAddress.family) {
+
             pIceCandidatePair = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
-            CHK(pIceCandidatePair != NULL, STATUS_NOT_ENOUGH_MEMORY);
+            CHK(pIceCandidatePair != NULL, STATUS_ICE_NOT_ENOUGH_MEMORY);
 
             if (isRemoteCandidate) {
                 pIceCandidatePair->local = (PIceCandidate) data;
@@ -985,8 +1006,13 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
 
             // ensure the new pair will go through connectivity check as soon as possible
             pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_WAITING;
-
+            /**
+             * #YC_TBD, need to review the transaction.
+            */
             CHK_STATUS(createTransactionIdStore(DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT, &pIceCandidatePair->pTransactionIdStore));
+            /**
+             * #memory.
+            */
             CHK_STATUS(hashTableCreateWithParams(ICE_HASH_TABLE_BUCKET_COUNT, ICE_HASH_TABLE_BUCKET_LENGTH, &pIceCandidatePair->requestSentTime));
 
             pIceCandidatePair->lastDataSentTime = 0;

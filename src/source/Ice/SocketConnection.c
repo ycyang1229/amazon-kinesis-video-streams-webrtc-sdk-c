@@ -28,6 +28,7 @@ STATUS createSocketConnection(KVS_IP_FAMILY_TYPE familyType,
     /** #socket. */
     CHK_STATUS(createSocket(familyType, protocol, sendBufSize, &pSocketConnection->localSocket));
     if (pBindAddr) {
+        /** #socket. */
         CHK_STATUS(socketBind(pBindAddr, pSocketConnection->localSocket));
         pSocketConnection->hostIpAddr = *pBindAddr;
     }
