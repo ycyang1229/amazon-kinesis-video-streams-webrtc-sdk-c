@@ -18,10 +18,12 @@ extern "C" {
 #define SIGNALING_STATE_GET_TOKEN      ((UINT64)(1 << 1))
 #define SIGNALING_STATE_DESCRIBE       ((UINT64)(1 << 2))
 #define SIGNALING_STATE_CREATE         ((UINT64)(1 << 3))
+
 #define SIGNALING_STATE_GET_ENDPOINT   ((UINT64)(1 << 4))
 #define SIGNALING_STATE_GET_ICE_CONFIG ((UINT64)(1 << 5))
 #define SIGNALING_STATE_READY          ((UINT64)(1 << 6))
 #define SIGNALING_STATE_CONNECT        ((UINT64)(1 << 7))
+
 #define SIGNALING_STATE_CONNECTED      ((UINT64)(1 << 8))
 #define SIGNALING_STATE_DISCONNECTED   ((UINT64)(1 << 9))
 #define SIGNALING_STATE_DELETE         ((UINT64)(1 << 10))
