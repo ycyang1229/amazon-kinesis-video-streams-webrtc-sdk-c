@@ -535,7 +535,9 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     MUTEX_UNLOCK(pCallInfo->pSignalingClient->lwsServiceLock);
     locked = FALSE;
 
-    while (retVal >= 0 && !gInterruptedFlagBySignalHandler && pCallInfo->callInfo.pRequestInfo != NULL &&
+    while (retVal >= 0 && 
+           !gInterruptedFlagBySignalHandler && 
+           pCallInfo->callInfo.pRequestInfo != NULL &&
            !ATOMIC_LOAD_BOOL(&pCallInfo->callInfo.pRequestInfo->terminating)) {
         if (!MUTEX_TRYLOCK(pCallInfo->pSignalingClient->lwsSerializerLock)) {
             THREAD_SLEEP(LWS_SERVICE_LOOP_ITERATION_WAIT);
@@ -1065,7 +1067,7 @@ STATUS getIceServerConfig(PSignalingClient pSignalingClient, UINT64 time)
     CHK_STATUS(validateIceConfiguration(pSignalingClient));
 
 CleanUp:
-
+    SHOW_LOG_ERR(retStatus);
     freeLwsCallInfo(&pLwsCallInfo);
     MEMFREE(url);
     MEMFREE(paramsJson);
