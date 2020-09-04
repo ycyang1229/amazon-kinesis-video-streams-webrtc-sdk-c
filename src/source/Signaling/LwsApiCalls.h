@@ -221,7 +221,7 @@ STATUS deleteSignalingChannel(PSignalingClient, UINT64);
 STATUS createLwsCallInfo(PSignalingClient, PRequestInfo, UINT32, PLwsCallInfo*);
 STATUS freeLwsCallInfo(PLwsCallInfo*);
 
-PVOID receiveLwsMessageWrapper(PVOID);
+PVOID wssReceptionThread(PVOID);
 
 STATUS sendWssMessage(PSignalingClient, PCHAR, PCHAR, PCHAR, UINT32, PCHAR, UINT32);
 STATUS writeLwsData(PSignalingClient, BOOL);

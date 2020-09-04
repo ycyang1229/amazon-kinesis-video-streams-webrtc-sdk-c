@@ -1771,7 +1771,7 @@ STATUS receiveWssMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     /**
      * #thread.
     */
-    CHK_STATUS(THREAD_CREATE(&receivedTid, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper));
+    CHK_STATUS(THREAD_CREATE(&receivedTid, wssReceptionThread, (PVOID) pSignalingMessageWrapper));
     CHK_STATUS(THREAD_DETACH(receivedTid));
 
 CleanUp:
@@ -1883,7 +1883,7 @@ CleanUp:
     return retStatus;
 }
 
-PVOID receiveLwsMessageWrapper(PVOID args)
+PVOID wssReceptionThread(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingMessageWrapper pSignalingMessageWrapper = (PSignalingMessageWrapper) args;
