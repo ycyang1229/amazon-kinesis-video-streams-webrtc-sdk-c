@@ -146,6 +146,10 @@ typedef struct {
     volatile SIZE_T result;
 
     // Sent message result
+    /** 
+     * the result of wss messages we send. this may be handled by different threads. 
+     * it must be atomic or be protected.
+     * */
     volatile SIZE_T messageResult;
 
     // Client is ready to connect to signaling channel
@@ -256,6 +260,9 @@ typedef struct {
     struct lws_context* pLwsContext;
 
     // Signaling protocols
+    /**
+     * #websocket.
+    */
     struct lws_protocols signalingProtocols[3];
 
     // List of the ongoing messages
@@ -296,7 +303,7 @@ typedef struct {
 STATUS createSignalingSync(PSignalingClientInfoInternal, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
 STATUS freeSignaling(PSignalingClient*);
 
-STATUS signalingSendMessageSync(PSignalingClient, PSignalingMessage);
+STATUS signalingSendMessage(PSignalingClient, PSignalingMessage);
 STATUS signalingGetIceConfigInfoCout(PSignalingClient, PUINT32);
 STATUS signalingGetIceConfigInfo(PSignalingClient, UINT32, PIceConfigInfo*);
 STATUS signalingConnectSync(PSignalingClient);
@@ -307,9 +314,9 @@ STATUS validateSignalingCallbacks(PSignalingClient, PSignalingClientCallbacks);
 STATUS validateSignalingClientInfo(PSignalingClient, PSignalingClientInfoInternal);
 STATUS validateIceConfiguration(PSignalingClient);
 
-STATUS signalingStoreOngoingMessage(PSignalingClient, PSignalingMessage);
-STATUS signalingRemoveOngoingMessage(PSignalingClient, PCHAR);
-STATUS signalingGetOngoingMessage(PSignalingClient, PCHAR, PCHAR, PSignalingMessage*);
+STATUS signalingStoreMessage(PSignalingClient, PSignalingMessage);
+STATUS signalingRemoveMessage(PSignalingClient, PCHAR);
+STATUS signalingGetMessage(PSignalingClient, PCHAR, PCHAR, PSignalingMessage*);
 
 STATUS refreshIceConfigurationCallback(UINT32, UINT64, UINT64);
 

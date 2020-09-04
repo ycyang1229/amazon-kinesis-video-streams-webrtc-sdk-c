@@ -75,6 +75,13 @@ extern "C" {
     "\n}"
 
 // Parameter names for Signaling connect URL
+/**
+ * 
+ * https://docs.aws.amazon.com/zh_tw/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis-1.html
+ * https://docs.aws.amazon.com/zh_tw/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis-2.html
+ * 
+ * 
+*/
 #define SIGNALING_ROLE_PARAM_NAME         "X-Amz-Role"
 #define SIGNALING_CHANNEL_NAME_PARAM_NAME "X-Amz-ChannelName"
 #define SIGNALING_CHANNEL_ARN_PARAM_NAME  "X-Amz-ChannelARN"
@@ -192,10 +199,10 @@ typedef struct {
 VOID lwsSignalHandler(INT32);
 
 // Performs a blocking call
-STATUS lwsCompleteSync(PLwsCallInfo);
+STATUS httpsCallDone(PLwsCallInfo);
 
 // LWS listener handler
-PVOID lwsListenerHandler(PVOID);
+PVOID httpsRspThread(PVOID);
 
 // Retry thread
 PVOID reconnectHandler(PVOID);
@@ -216,12 +223,12 @@ STATUS freeLwsCallInfo(PLwsCallInfo*);
 
 PVOID receiveLwsMessageWrapper(PVOID);
 
-STATUS sendLwsMessage(PSignalingClient, PCHAR, PCHAR, PCHAR, UINT32, PCHAR, UINT32);
+STATUS sendWssMessage(PSignalingClient, PCHAR, PCHAR, PCHAR, UINT32, PCHAR, UINT32);
 STATUS writeLwsData(PSignalingClient, BOOL);
 STATUS terminateLwsListenerLoop(PSignalingClient);
-STATUS receiveLwsMessage(PSignalingClient, PCHAR, UINT32);
+STATUS receiveWssMessage(PSignalingClient, PCHAR, UINT32);
 STATUS getMessageTypeFromString(PCHAR, UINT32, SIGNALING_MESSAGE_TYPE*);
-STATUS wakeLwsServiceEventLoop(PSignalingClient);
+STATUS wakeWssService(PSignalingClient);
 STATUS terminateConnectionWithStatus(PSignalingClient, SERVICE_CALL_RESULT);
 
 #ifdef __cplusplus

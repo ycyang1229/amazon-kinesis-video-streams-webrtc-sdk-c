@@ -67,7 +67,7 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
 
     DLOGI("Message received:\ntype: %u\npeer client id: %s\npayload len: %u\npayload: %s\nCorrelationId: %s\nErrorType: %s\nStatusCode: "
           "%u\nDescription: %s",
-          pReceivedSignalingMessage->signalingMessage.messageType, pReceivedSignalingMessage->signalingMessage.peerClientId,
+          pReceivedSignalingMessage->signalingMessage.messageType, pReceivedSignalingMessage->signalingMessage.senderClientId,
           pReceivedSignalingMessage->signalingMessage.payloadLen, pReceivedSignalingMessage->signalingMessage.payload,
           pReceivedSignalingMessage->signalingMessage.correlationId, pReceivedSignalingMessage->errorType, pReceivedSignalingMessage->statusCode,
           pReceivedSignalingMessage->description);
@@ -77,12 +77,12 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     SignalingMessage message;
     message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     message.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
-    STRCPY(message.peerClientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
+    STRCPY(message.senderClientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
     MEMSET(message.payload, 'B', 200);
     message.payload[200] = '\0';
     message.payloadLen = 0;
 
-    status = signalingSendMessageSync(pTest->pActiveClient, &message);
+    status = signalingSendMessage(pTest->pActiveClient, &message);
     CHK_LOG_ERR(status);
 
     // Return success to continue
@@ -120,7 +120,7 @@ STATUS viewerMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
 
     DLOGI("Message received:\ntype: %u\npeer client id: %s\npayload len: %u\npayload: %s\nCorrelationId: %s\nErrorType: %s\nStatusCode: "
           "%u\nDescription: %s",
-          pReceivedSignalingMessage->signalingMessage.messageType, pReceivedSignalingMessage->signalingMessage.peerClientId,
+          pReceivedSignalingMessage->signalingMessage.messageType, pReceivedSignalingMessage->signalingMessage.senderClientId,
           pReceivedSignalingMessage->signalingMessage.payloadLen, pReceivedSignalingMessage->signalingMessage.payload,
           pReceivedSignalingMessage->signalingMessage.correlationId, pReceivedSignalingMessage->errorType, pReceivedSignalingMessage->statusCode,
           pReceivedSignalingMessage->description);
@@ -318,7 +318,7 @@ TEST_F(SignalingApiFunctionalityTest, mockMaster)
     // Write something
     SignalingMessage message;
     message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
-    STRCPY(message.peerClientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
+    STRCPY(message.senderClientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
     message.payloadLen = 0;
     message.correlationId[0] = '\0';
     message.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
@@ -450,7 +450,7 @@ TEST_F(SignalingApiFunctionalityTest, mockViewer)
     SignalingMessage message;
     message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     message.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-    STRCPY(message.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    STRCPY(message.senderClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     MEMSET(message.payload, 'A', 100);
     message.payload[100] = '\0';
     message.payloadLen = 0;
@@ -814,7 +814,7 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
                      "        \"description\": \"Test attempt to reconnect ice server\"\n"
                      "    }\n"
                      "}";
-    EXPECT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, message, ARRAY_SIZE(message)));
+    EXPECT_EQ(STATUS_SUCCESS, receiveWssMessage(pSignalingClient, message, ARRAY_SIZE(message)));
 
     DLOGV("After RECONNECT_ICE_SERVER injection");
 
@@ -822,7 +822,7 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
     SignalingMessage signalingMessage;
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    STRCPY(signalingMessage.senderClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -943,7 +943,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
     SignalingMessage signalingMessage;
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    STRCPY(signalingMessage.senderClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -1144,7 +1144,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionNoDis
     SignalingMessage signalingMessage;
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    STRCPY(signalingMessage.senderClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -1257,7 +1257,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionAuthE
     SignalingMessage signalingMessage;
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    STRCPY(signalingMessage.senderClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -1374,7 +1374,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     SignalingMessage signalingMessage;
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    STRCPY(signalingMessage.senderClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -1448,7 +1448,7 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
                      "        \"description\": \"Test attempt to send GO_AWAY message\"\n"
                      "    }\n"
                      "}";
-    EXPECT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, message, ARRAY_SIZE(message)));
+    EXPECT_EQ(STATUS_SUCCESS, receiveWssMessage(pSignalingClient, message, ARRAY_SIZE(message)));
 
     DLOGV("After GO_AWAY injection");
 
@@ -1456,7 +1456,7 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
     SignalingMessage signalingMessage;
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    STRCPY(signalingMessage.senderClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -1530,7 +1530,7 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
                      "        \"description\": \"Test attempt to send an unknown message\"\n"
                      "    }\n"
                      "}";
-    EXPECT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, message, ARRAY_SIZE(message)));
+    EXPECT_EQ(STATUS_SUCCESS, receiveWssMessage(pSignalingClient, message, ARRAY_SIZE(message)));
 
     DLOGV("After Unknown message type injection");
 
@@ -1541,7 +1541,7 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
     SignalingMessage signalingMessage;
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    STRCPY(signalingMessage.senderClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -1639,7 +1639,7 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     SignalingMessage signalingMessage;
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    STRCPY(signalingMessage.senderClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -1722,7 +1722,7 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
     SignalingMessage signalingMessage;
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    STRCPY(signalingMessage.senderClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -1853,7 +1853,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
     SignalingMessage signalingMessage;
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    STRCPY(signalingMessage.senderClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -2047,7 +2047,7 @@ TEST_F(SignalingApiFunctionalityTest, signalingClientDisconnectSyncVariations)
     SignalingMessage message;
     message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     message.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
-    STRCPY(message.peerClientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
+    STRCPY(message.senderClientId, TEST_SIGNALING_VIEWER_CLIENT_ID);
     MEMSET(message.payload, 'A', 200);
     message.payload[200] = '\0';
     message.payloadLen = 0;

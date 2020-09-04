@@ -413,7 +413,7 @@ extern "C" {
 /**
  * Maximum length of SDP member in RtcSessionDescriptionInit
  */
-#define MAX_SESSION_DESCRIPTION_INIT_SDP_LEN 25000
+#define MAX_SESSION_DESCRIPTION_INIT_SDP_LEN 15*1024
 
 /**
  * Maximum length of a MediaStream's ID
@@ -1057,6 +1057,8 @@ typedef struct {
 
 /**
  * @brief Structure defining the basic signaling message
+ *          https://docs.aws.amazon.com/zh_tw/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis-7.html
+ * 
  */
 typedef struct {
     UINT32 version; //!< Current version of the structure
@@ -1065,10 +1067,10 @@ typedef struct {
 
     CHAR correlationId[MAX_CORRELATION_ID_LEN + 1]; //!< Correlation Id string
 
-    CHAR peerClientId[MAX_SIGNALING_CLIENT_ID_LEN + 1]; //!< Sender client id
+    CHAR senderClientId[MAX_SIGNALING_CLIENT_ID_LEN + 1]; //!< Sender client id
 
     UINT32 payloadLen; //!< Optional payload length. If 0, the length will be calculated
-
+    /** #memory. */
     CHAR payload[MAX_SIGNALING_MESSAGE_LEN + 1]; //!< Actual signaling message payload
 } SignalingMessage, *PSignalingMessage;
 
@@ -1080,9 +1082,9 @@ typedef struct {
                                        //!< peer client ID and payload
 
     SERVICE_CALL_RESULT statusCode; //!< Response status code
-
+    /** #memory.*/
     CHAR errorType[MAX_ERROR_TYPE_STRING_LEN + 1]; //!< Error type of the signaling message
-
+    /** #memory.*/
     CHAR description[MAX_MESSAGE_DESCRIPTION_LEN + 1]; //!< Optional description of the message
 } ReceivedSignalingMessage, *PReceivedSignalingMessage;
 

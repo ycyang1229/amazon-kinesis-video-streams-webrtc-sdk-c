@@ -9,7 +9,7 @@ namespace webrtcclient {
 class SignalingApiTest : public WebRtcClientTestBase {
 };
 
-TEST_F(SignalingApiTest, signalingSendMessageSync)
+TEST_F(SignalingApiTest, signalingSendMessage)
 {
     STATUS expectedStatus;
     SignalingMessage signalingMessage;
@@ -18,7 +18,7 @@ TEST_F(SignalingApiTest, signalingSendMessageSync)
 
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    STRCPY(signalingMessage.senderClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -42,7 +42,7 @@ TEST_F(SignalingApiTest, signalingSendMessageSync)
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
 
     // No peer id
-    signalingMessage.peerClientId[0] = '\0';
+    signalingMessage.senderClientId[0] = '\0';
     EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
 
     // No peer id no correlation id
@@ -75,7 +75,7 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
 
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    STRCPY(signalingMessage.senderClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -89,7 +89,7 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
 
     // No peer id
-    signalingMessage.peerClientId[0] = '\0';
+    signalingMessage.senderClientId[0] = '\0';
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
 
     // No peer id no correlation id
@@ -137,7 +137,7 @@ TEST_F(SignalingApiTest, signalingClientDeleteSync)
     SignalingMessage signalingMessage;
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    STRCPY(signalingMessage.senderClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
@@ -289,7 +289,7 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     // Send a message and get metrics
     signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     signalingMessage.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-    STRCPY(signalingMessage.peerClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
+    STRCPY(signalingMessage.senderClientId, TEST_SIGNALING_MASTER_CLIENT_ID);
     MEMSET(signalingMessage.payload, 'A', 100);
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;

@@ -291,7 +291,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMessage pSignalingMessage)
+STATUS signalingSendMessage(PSignalingClient pSignalingClient, PSignalingMessage pSignalingMessage)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -299,7 +299,7 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
     BOOL removeFromList = FALSE;
 
     CHK(pSignalingClient != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
-    CHK(pSignalingMessage->peerClientId != NULL && pSignalingMessage->payload != NULL, STATUS_INVALID_ARG);
+    CHK(pSignalingMessage->senderClientId != NULL && pSignalingMessage->payload != NULL, STATUS_INVALID_ARG);
     CHK(pSignalingMessage->version <= SIGNALING_MESSAGE_CURRENT_VERSION, STATUS_SIGNALING_INVALID_SIGNALING_MESSAGE_VERSION);
 
     // Prepare the buffer to send
@@ -318,12 +318,17 @@ STATUS signalingSendMessageSync(PSignalingClient pSignalingClient, PSignalingMes
     }
 
     // Store the signaling message
-    CHK_STATUS(signalingStoreOngoingMessage(pSignalingClient, pSignalingMessage));
+    CHK_STATUS(signalingStoreMessage(pSignalingClient, pSignalingMessage));
     removeFromList = TRUE;
 
     // Perform the call
-    CHK_STATUS(sendLwsMessage(pSignalingClient, pOfferType, pSignalingMessage->peerClientId, pSignalingMessage->payload,
-                              pSignalingMessage->payloadLen, pSignalingMessage->correlationId, 0));
+    CHK_STATUS(sendWssMessage(pSignalingClient, 
+                              pOfferType, 
+                              pSignalingMessage->senderClientId, 
+                              pSignalingMessage->payload,
+                              pSignalingMessage->payloadLen, 
+                              pSignalingMessage->correlationId, 
+                              0));
 
     // Update the internal diagnostics only after successfully sending
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesSent);
@@ -334,7 +339,7 @@ CleanUp:
 
     // Remove from the list if previously added
     if (removeFromList) {
-        signalingRemoveOngoingMessage(pSignalingClient, pSignalingMessage->correlationId);
+        signalingRemoveMessage(pSignalingClient, pSignalingMessage->correlationId);
     }
 
     LEAVES();
@@ -636,7 +641,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingStoreOngoingMessage(PSignalingClient pSignalingClient, PSignalingMessage pSignalingMessage)
+STATUS signalingStoreMessage(PSignalingClient pSignalingClient, PSignalingMessage pSignalingMessage)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -646,7 +651,7 @@ STATUS signalingStoreOngoingMessage(PSignalingClient pSignalingClient, PSignalin
     CHK(pSignalingClient != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
     MUTEX_LOCK(pSignalingClient->messageQueueLock);
     locked = TRUE;
-    CHK_STATUS(signalingGetOngoingMessage(pSignalingClient, pSignalingMessage->correlationId, pSignalingMessage->peerClientId, &pExistingMessage));
+    CHK_STATUS(signalingGetMessage(pSignalingClient, pSignalingMessage->correlationId, pSignalingMessage->senderClientId, &pExistingMessage));
     CHK(pExistingMessage == NULL, STATUS_SIGNALING_DUPLICATE_MESSAGE_BEING_SENT);
     CHK_STATUS(stackQueueEnqueue(pSignalingClient->pMessageQueue, (UINT64) pSignalingMessage));
 
@@ -660,7 +665,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingRemoveOngoingMessage(PSignalingClient pSignalingClient, PCHAR correlationId)
+STATUS signalingRemoveMessage(PSignalingClient pSignalingClient, PCHAR correlationId)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -704,7 +709,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingGetOngoingMessage(PSignalingClient pSignalingClient, PCHAR correlationId, PCHAR peerClientId, PSignalingMessage* ppSignalingMessage)
+STATUS signalingGetMessage(PSignalingClient pSignalingClient, PCHAR correlationId, PCHAR senderClientId, PSignalingMessage* ppSignalingMessage)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -714,7 +719,7 @@ STATUS signalingGetOngoingMessage(PSignalingClient pSignalingClient, PCHAR corre
     UINT64 data;
 
     CHK(pSignalingClient != NULL && correlationId != NULL && ppSignalingMessage != NULL, STATUS_NULL_ARG);
-    if (peerClientId == NULL || IS_EMPTY_STRING(peerClientId)) {
+    if (senderClientId == NULL || IS_EMPTY_STRING(senderClientId)) {
         checkPeerClientId = FALSE;
     }
 
@@ -730,7 +735,7 @@ STATUS signalingGetOngoingMessage(PSignalingClient pSignalingClient, PCHAR corre
 
         if (((correlationId[0] == '\0' && pExistingMessage->correlationId[0] == '\0') ||
              0 == STRCMP(pExistingMessage->correlationId, correlationId)) &&
-            (!checkPeerClientId || 0 == STRCMP(pExistingMessage->peerClientId, peerClientId))) {
+            (!checkPeerClientId || 0 == STRCMP(pExistingMessage->senderClientId, senderClientId))) {
             *ppSignalingMessage = pExistingMessage;
 
             // Early return

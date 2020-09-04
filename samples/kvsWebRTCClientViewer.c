@@ -149,7 +149,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     message.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-    STRCPY(message.peerClientId, SAMPLE_MASTER_CLIENT_ID);
+    STRCPY(message.senderClientId, SAMPLE_MASTER_CLIENT_ID);
     message.payloadLen = (buffLen / SIZEOF(CHAR)) - 1;
     message.correlationId[0] = '\0';
 

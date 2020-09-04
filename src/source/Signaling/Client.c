@@ -61,7 +61,7 @@ STATUS signalingClientSendMessageSync(SIGNALING_CLIENT_HANDLE signalingClientHan
 
     DLOGI("Signaling Client Sending Message Sync");
 
-    CHK_STATUS(signalingSendMessageSync(pSignalingClient, pSignalingMessage));
+    CHK_STATUS(signalingSendMessage(pSignalingClient, pSignalingMessage));
 
 CleanUp:
 
