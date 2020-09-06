@@ -640,7 +640,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
 
     MEMSET(&iceAgentCallbacks, 0, SIZEOF(IceAgentCallbacks));
     MEMSET(&dtlsSessionCallbacks, 0, SIZEOF(DtlsSessionCallbacks));
-
+    /** #memory. */
     pKvsPeerConnection = (PKvsPeerConnection) MEMCALLOC(1, SIZEOF(KvsPeerConnection));
     CHK(pKvsPeerConnection != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
