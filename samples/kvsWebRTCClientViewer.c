@@ -153,9 +153,9 @@ INT32 main(INT32 argc, CHAR* argv[])
     message.payloadLen = (buffLen / SIZEOF(CHAR)) - 1;
     message.correlationId[0] = '\0';
 
-    retStatus = signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, &message);
+    retStatus = signalingClientSendMessage(pSampleConfiguration->signalingClientHandle, &message);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS Viewer] signalingClientSendMessageSync(): operation returned status code: 0x%08x \n", retStatus);
+        printf("[KVS Viewer] signalingClientSendMessage(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
 

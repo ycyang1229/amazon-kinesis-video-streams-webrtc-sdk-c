@@ -199,10 +199,10 @@ typedef struct {
 VOID lwsSignalHandler(INT32);
 
 // Performs a blocking call
-STATUS httpsCallDone(PLwsCallInfo);
+STATUS LwsCallDone(PLwsCallInfo);
 
 // LWS listener handler
-PVOID httpsRspThread(PVOID);
+PVOID LwsRspThread(PVOID);
 
 // Retry thread
 PVOID reconnectHandler(PVOID);
@@ -215,7 +215,7 @@ STATUS describeSignalingChannel(PSignalingClient, UINT64);
 STATUS createSignalingChannel(PSignalingClient, UINT64);
 STATUS getSignalingChannelEndpoint(PSignalingClient, UINT64);
 STATUS getIceServerConfig(PSignalingClient, UINT64);
-STATUS connectSignalingChannelLws(PSignalingClient, UINT64);
+STATUS connectSignalingChannel(PSignalingClient, UINT64);
 STATUS deleteSignalingChannel(PSignalingClient, UINT64);
 
 STATUS createLwsCallInfo(PSignalingClient, PRequestInfo, UINT32, PLwsCallInfo*);
@@ -224,7 +224,7 @@ STATUS freeLwsCallInfo(PLwsCallInfo*);
 PVOID wssReceptionThread(PVOID);
 
 STATUS sendWssMessage(PSignalingClient, PCHAR, PCHAR, PCHAR, UINT32, PCHAR, UINT32);
-STATUS writeLwsData(PSignalingClient, BOOL);
+STATUS flushWssData(PSignalingClient, BOOL);
 STATUS terminateLwsListenerLoop(PSignalingClient);
 STATUS receiveWssMessage(PSignalingClient, PCHAR, UINT32);
 STATUS getMessageTypeFromString(PCHAR, UINT32, SIGNALING_MESSAGE_TYPE*);

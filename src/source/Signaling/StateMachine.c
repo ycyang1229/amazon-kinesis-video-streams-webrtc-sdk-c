@@ -719,7 +719,7 @@ STATUS executeConnectSignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_CONNECTING));
     }
 
-    retStatus = connectSignalingChannel(pSignalingClient, time);
+    retStatus = connectChannel(pSignalingClient, time);
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 

@@ -53,7 +53,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingClientSendMessageSync(SIGNALING_CLIENT_HANDLE signalingClientHandle, PSignalingMessage pSignalingMessage)
+STATUS signalingClientSendMessage(SIGNALING_CLIENT_HANDLE signalingClientHandle, PSignalingMessage pSignalingMessage)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -87,7 +87,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingClientDisconnectSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
+STATUS signalingClientDisconnect(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -95,7 +95,7 @@ STATUS signalingClientDisconnectSync(SIGNALING_CLIENT_HANDLE signalingClientHand
 
     DLOGI("Signaling Client Disconnect Sync");
 
-    CHK_STATUS(signalingDisconnectSync(pSignalingClient));
+    CHK_STATUS(signalingDisconnect(pSignalingClient));
 
 CleanUp:
 

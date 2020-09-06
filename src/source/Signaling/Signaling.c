@@ -437,7 +437,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingDisconnectSync(PSignalingClient pSignalingClient)
+STATUS signalingDisconnect(PSignalingClient pSignalingClient)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -1127,7 +1127,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS connectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
+STATUS connectChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -1135,12 +1135,15 @@ STATUS connectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Check for the stale credentials
+    /**
+     * check the correctness and expiration of credentials.
+    */
     CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
-
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-
     // We are not caching connect calls
-
+    /**
+     * hook function.
+    */
     if (pSignalingClient->clientInfo.connectPreHookFn != NULL) {
         retStatus = pSignalingClient->clientInfo.connectPreHookFn(pSignalingClient->clientInfo.hookCustomData);
     }
@@ -1149,7 +1152,7 @@ STATUS connectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
         // No need to reconnect again if already connected. This can happen if we get to this state after ice refresh
         if (!ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-            retStatus = connectSignalingChannelLws(pSignalingClient, time);
+            retStatus = connectSignalingChannel(pSignalingClient, time);
 
             // Store the time of the call on success
             if (STATUS_SUCCEEDED(retStatus)) {
@@ -1159,7 +1162,9 @@ STATUS connectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
         }
     }
-
+    /**
+     * hook function.
+    */
     if (pSignalingClient->clientInfo.connectPostHookFn != NULL) {
         retStatus = pSignalingClient->clientInfo.connectPostHookFn(pSignalingClient->clientInfo.hookCustomData);
     }

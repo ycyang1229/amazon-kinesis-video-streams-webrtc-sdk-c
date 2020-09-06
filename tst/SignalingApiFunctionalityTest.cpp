@@ -327,37 +327,37 @@ TEST_F(SignalingApiFunctionalityTest, mockMaster)
 
     // Expect the bloat to be over the max size
     expectedStatus = mAccessKeyIdSet ? STATUS_SIGNALING_MAX_MESSAGE_LEN_AFTER_ENCODING : STATUS_NULL_ARG;
-    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(signalingHandle, &message));
+    EXPECT_EQ(expectedStatus, signalingClientSendMessage(signalingHandle, &message));
 
     // Something reasonable
     message.payload[MAX_SIGNALING_MESSAGE_LEN / 2] = '\0';
     expectedStatus = mAccessKeyIdSet ? STATUS_SUCCESS : STATUS_NULL_ARG;
-    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(signalingHandle, &message));
+    EXPECT_EQ(expectedStatus, signalingClientSendMessage(signalingHandle, &message));
 
     // Repeat the same message with no correlation id
     STRCPY(message.correlationId, SIGNAING_TEST_CORRELATION_ID);
     expectedStatus = mAccessKeyIdSet ? STATUS_SUCCESS : STATUS_NULL_ARG;
-    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(signalingHandle, &message));
+    EXPECT_EQ(expectedStatus, signalingClientSendMessage(signalingHandle, &message));
     message.correlationId[0] = '\0';
 
     // Smaller answer
     message.payload[100] = '\0';
-    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(signalingHandle, &message));
+    EXPECT_EQ(expectedStatus, signalingClientSendMessage(signalingHandle, &message));
 
     // Small answer
     message.payload[1] = '\0';
-    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(signalingHandle, &message));
+    EXPECT_EQ(expectedStatus, signalingClientSendMessage(signalingHandle, &message));
 
     // Empty
     message.payload[0] = '\0';
     expectedStatus = mAccessKeyIdSet ? STATUS_INVALID_ARG_LEN : STATUS_NULL_ARG;
-    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(signalingHandle, &message));
+    EXPECT_EQ(expectedStatus, signalingClientSendMessage(signalingHandle, &message));
 
     message.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
     MEMSET(message.payload, 'C', 300);
     message.payload[300] = '\0';
     expectedStatus = mAccessKeyIdSet ? STATUS_SUCCESS : STATUS_NULL_ARG;
-    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(signalingHandle, &message));
+    EXPECT_EQ(expectedStatus, signalingClientSendMessage(signalingHandle, &message));
 
     DLOGI("Awaiting a little for tests termination");
     THREAD_SLEEP(1 * HUNDREDS_OF_NANOS_IN_A_SECOND);
@@ -456,17 +456,17 @@ TEST_F(SignalingApiFunctionalityTest, mockViewer)
     message.payloadLen = 0;
     message.correlationId[0] = '\0';
 
-    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(signalingHandle, &message));
+    EXPECT_EQ(expectedStatus, signalingClientSendMessage(signalingHandle, &message));
 
     message.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
     MEMSET(message.payload, 'B', 200);
     message.payload[200] = '\0';
-    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(signalingHandle, &message));
+    EXPECT_EQ(expectedStatus, signalingClientSendMessage(signalingHandle, &message));
 
     message.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
     MEMSET(message.payload, 'B', 300);
     message.payload[300] = '\0';
-    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(signalingHandle, &message));
+    EXPECT_EQ(expectedStatus, signalingClientSendMessage(signalingHandle, &message));
 
     THREAD_SLEEP(1 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
@@ -828,7 +828,7 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
     signalingMessage.payloadLen = 0;
     signalingMessage.correlationId[0] = '\0';
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
     deleteSignalingChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
@@ -949,7 +949,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
     signalingMessage.payloadLen = 0;
     signalingMessage.correlationId[0] = '\0';
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
     deleteSignalingChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
@@ -1150,7 +1150,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionNoDis
     signalingMessage.payloadLen = 0;
     signalingMessage.correlationId[0] = '\0';
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
     deleteSignalingChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
@@ -1263,7 +1263,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionAuthE
     signalingMessage.payloadLen = 0;
     signalingMessage.correlationId[0] = '\0';
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
     deleteSignalingChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
@@ -1380,7 +1380,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     signalingMessage.payloadLen = 0;
     signalingMessage.correlationId[0] = '\0';
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
     deleteSignalingChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
@@ -1462,7 +1462,7 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
     signalingMessage.payloadLen = 0;
     signalingMessage.correlationId[0] = '\0';
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
     deleteSignalingChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
@@ -1547,7 +1547,7 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
     signalingMessage.payloadLen = 0;
     signalingMessage.correlationId[0] = '\0';
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
     deleteSignalingChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
@@ -1645,7 +1645,7 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     signalingMessage.payloadLen = 0;
     signalingMessage.correlationId[0] = '\0';
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
     deleteSignalingChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
@@ -1728,7 +1728,7 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
     signalingMessage.payloadLen = 0;
     signalingMessage.correlationId[0] = '\0';
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
     //
     // Store the ARN, free the client, repeat the same with the ARN, ensure we don't hit the describe and create states
@@ -1776,7 +1776,7 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
     signalingMessage.payloadLen = 0;
     signalingMessage.correlationId[0] = '\0';
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
     deleteSignalingChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
@@ -1859,7 +1859,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
     signalingMessage.payloadLen = 0;
     signalingMessage.correlationId[0] = '\0';
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
     //
     // Store the ARN, free the client, repeat the same with the ARN, ensure we don't hit the describe and create states
@@ -1907,7 +1907,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
     signalingMessage.payloadLen = 0;
     signalingMessage.correlationId[0] = '\0';
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(signalingHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientDeleteSync(signalingHandle));
 
@@ -2033,15 +2033,15 @@ TEST_F(SignalingApiFunctionalityTest, signalingClientDisconnectSyncVariations)
 
     initializeSignalingClient();
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnect(mSignalingClientHandle));
 
     // Connect and disconnect
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnect(mSignalingClientHandle));
 
     // Retry
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnect(mSignalingClientHandle));
 
     // Can't send a message
     SignalingMessage message;
@@ -2053,7 +2053,7 @@ TEST_F(SignalingApiFunctionalityTest, signalingClientDisconnectSyncVariations)
     message.payloadLen = 0;
     message.correlationId[0] = '\0';
 
-    EXPECT_EQ(STATUS_INVALID_STREAM_STATE, signalingClientSendMessageSync(mSignalingClientHandle, &message));
+    EXPECT_EQ(STATUS_INVALID_STREAM_STATE, signalingClientSendMessage(mSignalingClientHandle, &message));
 
     // Get ICE info is OK
     UINT32 count;
@@ -2066,7 +2066,7 @@ TEST_F(SignalingApiFunctionalityTest, signalingClientDisconnectSyncVariations)
 
     // Reconnect and send a message successfully
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &message));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(mSignalingClientHandle, &message));
 
     deinitializeSignalingClient();
 }
@@ -2197,7 +2197,7 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
     EXPECT_EQ(3, describeCount);
     EXPECT_EQ(3, getEndpointCount);
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnect(signalingHandle));
 
     deleteSignalingChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
@@ -2424,7 +2424,7 @@ TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshBeforeConnect)
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnect(signalingHandle));
 
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
@@ -2536,7 +2536,7 @@ TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshParallelToConnect)
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnect(signalingHandle));
 
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);

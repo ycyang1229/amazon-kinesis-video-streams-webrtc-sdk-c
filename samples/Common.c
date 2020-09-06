@@ -316,7 +316,7 @@ STATUS respondWithAnswer(PSampleStreamingSession pSampleStreamingSession)
     message.payloadLen = (UINT32) STRLEN(message.payload);
     message.correlationId[0] = '\0';
 
-    retStatus = signalingClientSendMessageSync(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle, &message);
+    retStatus = signalingClientSendMessage(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle, &message);
 
 CleanUp:
 
@@ -343,7 +343,7 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
         message.payloadLen = (UINT32) STRLEN(candidateJson);
         STRCPY(message.payload, candidateJson);
         message.correlationId[0] = '\0';
-        CHK_STATUS(signalingClientSendMessageSync(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle, &message));
+        CHK_STATUS(signalingClientSendMessage(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle, &message));
     }
 
 CleanUp:

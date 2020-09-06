@@ -106,6 +106,9 @@ typedef struct {
     SignalingApiCallHookFunc getEndpointPostHookFn;
     SignalingApiCallHookFunc getIceConfigPreHookFn;
     SignalingApiCallHookFunc getIceConfigPostHookFn;
+    /**
+     * the hook function of connecting signal channel.
+    */
     SignalingApiCallHookFunc connectPreHookFn;
     SignalingApiCallHookFunc connectPostHookFn;
     SignalingApiCallHookFunc deletePreHookFn;
@@ -242,6 +245,7 @@ typedef struct {
     MUTEX receiveLock;
 
     // Conditional variable for receiving response to the sent message
+    /** conditional variable for receiving the response of sent message. */
     CVAR receiveCvar;
 
     // Execute the state machine until this time
@@ -293,6 +297,9 @@ typedef struct {
     UINT64 getEndpointTime;
     UINT64 getIceConfigTime;
     UINT64 deleteTime;
+    /**
+     * the time of connecting signaling channgel succesfully.
+    */
     UINT64 connectTime;
 } SignalingClient, *PSignalingClient;
 
@@ -307,7 +314,7 @@ STATUS signalingSendMessage(PSignalingClient, PSignalingMessage);
 STATUS signalingGetIceConfigInfoCout(PSignalingClient, PUINT32);
 STATUS signalingGetIceConfigInfo(PSignalingClient, UINT32, PIceConfigInfo*);
 STATUS signalingConnectSync(PSignalingClient);
-STATUS signalingDisconnectSync(PSignalingClient);
+STATUS signalingDisconnect(PSignalingClient);
 STATUS signalingDeleteSync(PSignalingClient);
 
 STATUS validateSignalingCallbacks(PSignalingClient, PSignalingClientCallbacks);
@@ -332,7 +339,7 @@ STATUS describeChannel(PSignalingClient, UINT64);
 STATUS createChannel(PSignalingClient, UINT64);
 STATUS getChannelEndpoint(PSignalingClient, UINT64);
 STATUS getIceConfig(PSignalingClient, UINT64);
-STATUS connectSignalingChannel(PSignalingClient, UINT64);
+STATUS connectChannel(PSignalingClient, UINT64);
 STATUS deleteChannel(PSignalingClient, UINT64);
 STATUS signalingGetMetrics(PSignalingClient, PSignalingClientMetrics);
 
