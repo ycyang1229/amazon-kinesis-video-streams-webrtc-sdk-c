@@ -1378,7 +1378,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pSignalingClient->listenerTracker.lock);
     }
-
+    pthread_exit(NULL);
     LEAVES();
     return (PVOID)(ULONG_PTR) retStatus;
 }
@@ -1811,6 +1811,7 @@ STATUS receiveWssMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     /**
      * #thread.
     */
+   usleep(500);
     CHK_STATUS(THREAD_CREATE(&receivedTid, wssReceptionThread, (PVOID) pSignalingMessageWrapper));
     CHK_STATUS(THREAD_DETACH(receivedTid));
 
@@ -1925,6 +1926,7 @@ CleanUp:
 
 PVOID wssReceptionThread(PVOID args)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingMessageWrapper pSignalingMessageWrapper = (PSignalingMessageWrapper) args;
     PSignalingClient pSignalingClient = NULL;
@@ -1948,7 +1950,8 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 
     SAFE_MEMFREE(pSignalingMessageWrapper);
-
+    pthread_exit(NULL);
+    LEAVES();
     return (PVOID)(ULONG_PTR) retStatus;
 }
 
