@@ -50,7 +50,8 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
     customData = lws_get_opaque_user_data(wsi);
     pLwsCallInfo = (PLwsCallInfo) customData;
 
-    lws_set_log_level(LLL_NOTICE | LLL_INFO | LLL_WARN | LLL_ERR, NULL);
+    //lws_set_log_level(LLL_NOTICE | LLL_INFO | LLL_WARN | LLL_ERR, NULL);
+    lws_set_log_level(LLL_WARN | LLL_ERR, NULL);
 
     CHK(pLwsCallInfo != NULL && pLwsCallInfo->pSignalingClient != NULL && pLwsCallInfo->pSignalingClient->pLwsContext != NULL &&
             pLwsCallInfo->callInfo.pRequestInfo != NULL && pLwsCallInfo->protocolIndex == PROTOCOL_INDEX_HTTPS,
@@ -379,8 +380,8 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
             break;
 
         case LWS_CALLBACK_CLIENT_RECEIVE:
-            DLOGD("Client receive %.*s", dataSize, (PCHAR) pDataIn);
-
+            //DLOGD("Client receive %.*s", dataSize, (PCHAR) pDataIn);
+            
             // Check if it's a binary data
             CHK(!lws_frame_is_binary(wsi), STATUS_SIGNALING_RECEIVE_BINARY_DATA_NOT_SUPPORTED);
 
@@ -394,7 +395,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
                 STATUS_SIGNALING_RECEIVED_MESSAGE_LARGER_THAN_MAX_DATA_LEN);
             MEMCPY(&pLwsCallInfo->receiveBuffer[LWS_PRE + pLwsCallInfo->receiveBufferSize], pDataIn, dataSize);
             pLwsCallInfo->receiveBufferSize += (UINT32) dataSize;
-
+            DLOGD("%d/%d", dataSize, pLwsCallInfo->receiveBufferSize);
             // Flush on last
             if (lws_is_final_fragment(wsi)) {
                 CHK_STATUS(receiveWssMessage(pLwsCallInfo->pSignalingClient, 
@@ -1378,6 +1379,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pSignalingClient->listenerTracker.lock);
     }
+    DLOGD("pthread exit");
     pthread_exit(NULL);
     LEAVES();
     return (PVOID)(ULONG_PTR) retStatus;
@@ -1658,7 +1660,7 @@ STATUS receiveWssMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
         // Check if anything needs to be done
         CHK_WARN(pMessage != NULL && messageLen != 0, retStatus, "Signaling received an empty message");
     }
-
+    //DLOGD("receive wss msg:%s", pMessage);
     // Parse the response
     jsmn_init(&parser);
     tokenCount = jsmn_parse(&parser, pMessage, messageLen, tokens, MAX_JSON_TOKEN_COUNT);
@@ -1811,7 +1813,7 @@ STATUS receiveWssMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     /**
      * #thread.
     */
-   usleep(500);
+   
     CHK_STATUS(THREAD_CREATE(&receivedTid, wssReceptionThread, (PVOID) pSignalingMessageWrapper));
     CHK_STATUS(THREAD_DETACH(receivedTid));
 
@@ -1950,6 +1952,7 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 
     SAFE_MEMFREE(pSignalingMessageWrapper);
+    DLOGD("pthread exit");
     pthread_exit(NULL);
     LEAVES();
     return (PVOID)(ULONG_PTR) retStatus;
