@@ -45,7 +45,7 @@ CleanUp:
 
 STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pch, UINT32 lineLen)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR search;
     UINT8 currentMediaAttributesCount;
@@ -67,7 +67,7 @@ STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pch, 
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -134,7 +134,7 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
             }
 
             if (0 == STRNCMP(curr, SDP_VERSION_MARKER, (ARRAY_SIZE(SDP_VERSION_MARKER) - 1))) {
-                STRTOUI64(curr, curr + MAX_SDP_TOKEN_LENGTH, 10, &pSessionDescription->version);
+                STRTOUI64(curr+SDP_ATTRIBUTE_LENGTH, curr + lineLen, 10, &pSessionDescription->version);
             }
 
             if (0 == STRNCMP(curr, SDP_ATTRIBUTE_MARKER, (ARRAY_SIZE(SDP_ATTRIBUTE_MARKER) - 1))) {

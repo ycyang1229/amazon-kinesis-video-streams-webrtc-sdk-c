@@ -326,7 +326,10 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
 
     CHK(pIceAgent != NULL && pIceCandidateString != NULL, STATUS_NULL_ARG);
     CHK(!IS_EMPTY_STRING(pIceCandidateString), STATUS_INVALID_ARG);
-
+    if(pIceCandidateString!=NULL){
+        printf("%s\n", pIceCandidateString);
+        DLOGD("%s\n", pIceCandidateString);
+    }
     MEMSET(&candidateIpAddr, 0x00, SIZEOF(KvsIpAddress));
 
     MUTEX_LOCK(pIceAgent->lock);
@@ -337,20 +340,57 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
 
     curr = pIceCandidateString;
     tail = pIceCandidateString + STRLEN(pIceCandidateString);
+    /**
+     * https://webrtc.ren/post?id=1178
+     * candidate:3295060623 1 udp 2113937151 192.168.193.120 55573 typ host generation 0 ufrag 5+QO network-cost 999
+     * a=candidate:1211076970 1 udp 41885439 104.130.198.83 47751 typ relay raddr 0.0.0.0 rport 0 generation 0
+     * a=candidate:1211076970 1 udp 41819903 104.130.198.83 38132 typ relay raddr 0.0.0.0 rport 0 generation 0
+     * 
+     * the foundation is 1211076970
+     * the component is 1. Another reason for using the datachannel, there are no RTCP candidates
+     * the transport is UDP
+     * the priority is 41885439
+     * the IP address is 104.130.198.83 (the ip of the TURN server I used)
+     * the port is 47751
+     * the typ is relay
+     * the raddr and rport are set to 0.0.0.0 and 0 respectively in order to avoid information leaks when iceTransports is set to relay
+     * the generation is 0. This is a Jingle extension of vanilla ICE that allows detecting ice restarts
+     * 
+    */
+    BOOL protocol = FALSE;
+    BOOL priority = FALSE;
     while ((next = STRNCHR(curr, tail - curr, ' ')) != NULL && !(foundIp && foundPort)) {
         tokenLen = (UINT32)(next - curr);
         CHK(STRNCMPI("tcp", curr, tokenLen) != 0, STATUS_ICE_CANDIDATE_STRING_IS_TCP);
 
+        if(!protocol){
+            if(STRNCMPI("udp", curr, tokenLen) == 0){
+                protocol = TRUE;
+            }
+            curr = next + 1;
+            continue;
+        }
+        if(!priority){
+            priority=TRUE;
+            curr = next + 1;
+            continue;
+        }
+        /** find port. */
         if (foundIp) {
+            DLOGD("found port:%d, %s", tokenLen, curr);
             CHK_STATUS(STRTOUI32(curr, curr + tokenLen, 10, &portValue));
 
             candidateIpAddr.port = htons(portValue);
             foundPort = TRUE;
-        } else {
+        }
+        /** find ip */
+        else
+        {
+            DLOGD("found ip:%d, %s", tokenLen, curr);
             len = MIN(next - curr, KVS_IP_ADDRESS_STRING_BUFFER_LEN - 1);
             STRNCPY(ipBuf, curr, len);
             ipBuf[len] = '\0';
-
+            DLOGD("ipBuf: %s", ipBuf);
             if ((foundIp = inet_pton(AF_INET, ipBuf, candidateIpAddr.address) == 1 ? TRUE : FALSE)) {
                 candidateIpAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
             } else if ((foundIp = inet_pton(AF_INET6, ipBuf, candidateIpAddr.address) == 1 ? TRUE : FALSE)) {
