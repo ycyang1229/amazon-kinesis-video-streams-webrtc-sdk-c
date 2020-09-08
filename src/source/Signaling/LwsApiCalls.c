@@ -1848,7 +1848,8 @@ STATUS receiveWssMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
         CHK_STATUS(THREAD_CREATE(&receivedTid, wssReceptionThread, (PVOID) NULL));
         
     }
-
+    UBaseType_t num = uxQueueSpacesAvailable(tmpQ);
+    DLOGD("unhandled num in q: %d", 32-num);
     BaseType_t err = xQueueSend(tmpQ, &pSignalingMessageWrapper, 0);
     if(err!=pdPASS){
         DLOGD("send q failed.");

@@ -842,6 +842,7 @@ CleanUp:
 */
 STATUS setReceiversSsrc(PSessionDescription pRemoteSessionDescription, PDoubleList pTransceievers)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSdpMediaDescription pMediaDescription = NULL;
     BOOL foundSsrc, isVideoMediaSection, isAudioMediaSection, isAudioCodec, isVideoCodec;
@@ -907,6 +908,6 @@ STATUS setReceiversSsrc(PSessionDescription pRemoteSessionDescription, PDoubleLi
     }
 
 CleanUp:
-
+    LEAVES();
     return retStatus;
 }
