@@ -13,15 +13,17 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction,
                                RTC_CODEC rtcCodec,
                                PKvsRtpTransceiver* ppKvsRtpTransceiver)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsRtpTransceiver pKvsRtpTransceiver = NULL;
 
     CHK(ppKvsRtpTransceiver != NULL && pKvsPeerConnection != NULL && pRtcMediaStreamTrack != NULL, STATUS_NULL_ARG);
-
+    /** #memory.*/
     pKvsRtpTransceiver = (PKvsRtpTransceiver) MEMCALLOC(1, SIZEOF(KvsRtpTransceiver));
     CHK(pKvsRtpTransceiver != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
     pKvsRtpTransceiver->peerFrameBufferSize = DEFAULT_PEER_FRAME_BUFFER_SIZE;
+    /** #memory.*/
     pKvsRtpTransceiver->peerFrameBuffer = (PBYTE) MEMALLOC(pKvsRtpTransceiver->peerFrameBufferSize);
     CHK(pKvsRtpTransceiver->peerFrameBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY);
     pKvsRtpTransceiver->pKvsPeerConnection = pKvsPeerConnection;
@@ -50,7 +52,7 @@ CleanUp:
     if (ppKvsRtpTransceiver != NULL) {
         *ppKvsRtpTransceiver = pKvsRtpTransceiver;
     }
-
+    LEAVES();
     return retStatus;
 }
 

@@ -166,6 +166,7 @@ CleanUp:
 */
 STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol, UINT32 sendBufSize, PINT32 pOutSockFd)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     INT32 sockfd, sockType, flags;
@@ -214,12 +215,13 @@ STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol,
     }
 
 CleanUp:
-
+    LEAVES();
     return retStatus;
 }
 
 STATUS socketBind(PKvsIpAddress pHostIpAddress, INT32 sockfd)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     struct sockaddr_in ipv4Addr;
     struct sockaddr_in6 ipv6Addr;
@@ -266,11 +268,13 @@ STATUS socketBind(PKvsIpAddress pHostIpAddress, INT32 sockfd)
     pHostIpAddress->port = (UINT16) pHostIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4 ? ipv4Addr.sin_port : ipv6Addr.sin6_port;
 
 CleanUp:
+    LEAVES();
     return retStatus;
 }
 
 STATUS socketConnect(PKvsIpAddress pPeerAddress, INT32 sockfd)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     struct sockaddr_in ipv4PeerAddr;
     struct sockaddr_in6 ipv6PeerAddr;
@@ -300,11 +304,18 @@ STATUS socketConnect(PKvsIpAddress pPeerAddress, INT32 sockfd)
     CHK_ERR(retVal >= 0 || errno == EINPROGRESS, STATUS_SOCKET_CONNECT_FAILED, "connect() failed with errno %s", strerror(errno));
 
 CleanUp:
+    LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief use the name of the host to get the ip of this host.
+ * 
+ * @param[in] hostname
+ * @param[out] destIp
+*/
 STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     INT32 errCode;
     PCHAR errStr;
@@ -342,12 +353,13 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-
+    LEAVES();
     return retStatus;
 }
 
 STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 generatedStrLen = 0; // number of characters written if buffer is large enough not counting the null terminator
 
@@ -369,7 +381,7 @@ STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen
     CHK(generatedStrLen < bufferLen, STATUS_BUFFER_TOO_SMALL);
 
 CleanUp:
-
+    LEAVES();
     return retStatus;
 }
 

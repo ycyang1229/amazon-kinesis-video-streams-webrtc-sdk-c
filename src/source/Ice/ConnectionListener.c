@@ -6,13 +6,14 @@
 
 STATUS createConnectionListener(PConnectionListener* ppConnectionListener)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     /** #memory #YC_TBD, need to improve.*/
     UINT32 allocationSize = SIZEOF(ConnectionListener) + MAX_UDP_PACKET_SIZE;
     PConnectionListener pConnectionListener = NULL;
 
     CHK(ppConnectionListener != NULL, STATUS_NULL_ARG);
-
+    /**#memory*/
     pConnectionListener = (PConnectionListener) MEMCALLOC(1, allocationSize);
     CHK(pConnectionListener != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
@@ -27,7 +28,7 @@ STATUS createConnectionListener(PConnectionListener* ppConnectionListener)
 
     // pConnectionListener->pBuffer starts at the end of ConnectionListener struct
     pConnectionListener->pBuffer = (PBYTE)(pConnectionListener + 1);
-    pConnectionListener->bufferLen = MAX_UDP_PACKET_SIZE;
+    pConnectionListener->bufferLen = MAX_UDP_PACKET_SIZE;//!< 65507
 
 CleanUp:
 
@@ -39,12 +40,13 @@ CleanUp:
     if (ppConnectionListener != NULL) {
         *ppConnectionListener = pConnectionListener;
     }
-
+    LEAVES();
     return retStatus;
 }
 
 STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PConnectionListener pConnectionListener = NULL;
 
@@ -84,7 +86,7 @@ STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-
+    LEAVES();
     return retStatus;
 }
 /**
@@ -95,6 +97,7 @@ CleanUp:
 */
 STATUS connectionListenerAddConnection(PConnectionListener pConnectionListener, PSocketConnection pSocketConnection)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
@@ -116,12 +119,13 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pConnectionListener->lock);
     }
-
+    LEAVES();
     return retStatus;
 }
 
 STATUS connectionListenerRemoveConnection(PConnectionListener pConnectionListener, PSocketConnection pSocketConnection)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS, cvarWaitStatus = STATUS_SUCCESS;
     BOOL locked = FALSE, hasConnection = FALSE;
     PDoubleListNode pCurNode = NULL;
@@ -165,12 +169,13 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pConnectionListener->lock);
     }
-
+    LEAVES();
     return retStatus;
 }
 
 STATUS connectionListenerRemoveAllConnection(PConnectionListener pConnectionListener)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS, cvarWaitStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     PDoubleListNode pCurNode = NULL;
@@ -213,12 +218,20 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pConnectionListener->lock);
     }
-
+    LEAVES();
     return retStatus;
 }
-
+/**
+ * Spin off a listener thread that listen for incoming traffic for all PSocketConnection stored in connectionList.
+ * Whenever a PSocketConnection receives data, invoke ConnectionDataAvailableFunc passed in.
+ *
+ * @param - PConnectionListener      - IN - the ConnectionListener struct to use
+ *
+ * @return - STATUS status of execution
+ */
 STATUS connectionListenerStart(PConnectionListener pConnectionListener)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     ATOMIC_BOOL listenerRoutineStarted = FALSE;
 
@@ -227,10 +240,11 @@ STATUS connectionListenerStart(PConnectionListener pConnectionListener)
     listenerRoutineStarted = ATOMIC_EXCHANGE_BOOL(&pConnectionListener->listenerRoutineStarted, TRUE);
     CHK(!listenerRoutineStarted, retStatus);
     /** #thread. */
+    /** #task. */
     CHK_STATUS(THREAD_CREATE(&pConnectionListener->receiveDataRoutine, connectionListenerReceiveDataRoutine, (PVOID) pConnectionListener));
 
 CleanUp:
-
+    LEAVES();
     return retStatus;
 }
 /**
@@ -240,6 +254,7 @@ CleanUp:
 */
 PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PConnectionListener pConnectionListener = (PConnectionListener) arg;
     PDoubleListNode pCurNode = NULL, pNodeToDelete = NULL;
@@ -452,6 +467,6 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 
     ATOMIC_STORE_BOOL(&pConnectionListener->listenerRoutineStarted, FALSE);
-
+    LEAVES();
     return (PVOID)(ULONG_PTR) retStatus;
 }

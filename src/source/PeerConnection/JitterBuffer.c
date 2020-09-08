@@ -2,8 +2,13 @@
 
 #include "../Include_i.h"
 
-STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc, FrameDroppedFunc onFrameDroppedFunc, DepayRtpPayloadFunc depayRtpPayloadFunc,
-                          UINT32 maxLatency, UINT32 clockRate, UINT64 customData, PJitterBuffer* ppJitterBuffer)
+STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc,
+                          FrameDroppedFunc onFrameDroppedFunc,
+                          DepayRtpPayloadFunc depayRtpPayloadFunc,
+                          UINT32 maxLatency,
+                          UINT32 clockRate,
+                          UINT64 customData,
+                          PJitterBuffer* ppJitterBuffer)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -11,7 +16,7 @@ STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc, FrameDroppedFunc onFr
 
     CHK(ppJitterBuffer != NULL && onFrameReadyFunc != NULL && onFrameDroppedFunc != NULL && depayRtpPayloadFunc != NULL, STATUS_NULL_ARG);
     CHK(clockRate != 0, STATUS_INVALID_ARG);
-
+    /** #memory. */
     pJitterBuffer = (PJitterBuffer) MEMALLOC(SIZEOF(JitterBuffer));
     CHK(pJitterBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
@@ -21,7 +26,7 @@ STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc, FrameDroppedFunc onFr
     pJitterBuffer->clockRate = clockRate;
 
     MEMSET(pJitterBuffer->pktBuffer, 0, SIZEOF(pJitterBuffer->pktBuffer));
-
+    /** set the default tolerable latency and re-calculat it according to the video/audio codec. */
     pJitterBuffer->maxLatency = maxLatency;
     if (pJitterBuffer->maxLatency == 0) {
         pJitterBuffer->maxLatency = DEFAULT_JITTER_BUFFER_MAX_LATENCY;

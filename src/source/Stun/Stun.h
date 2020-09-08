@@ -224,6 +224,18 @@ typedef enum {
  *
  * https://tools.ietf.org/html/rfc5389#section-15
  * https://tools.ietf.org/html/rfc3489#section-11.2
+ * 
+ *     0                   1                   2                   3
+ *     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *    |0 0|     STUN Message Type     |         Message Length        |
+ *    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *    |                         Magic Cookie                          |
+ *    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *    |                                                               |
+ *    |                     Transaction ID (96 bits)                  |
+ *    |                                                               |
+ *    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  *
  */
 typedef struct {
@@ -362,7 +374,7 @@ typedef struct {
     UINT32 attributesCount;
 
     // The entire structure allocation size
-    UINT32 allocationSize;
+    UINT32 allocationSize;///!< the total size of the stun packet including header and unused payload.
 
     // Stun attributes
     PStunAttributeHeader* attributeList;

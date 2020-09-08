@@ -61,6 +61,7 @@ CleanUp:
 */
 STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     SctpSessionCallbacks sctpSessionCallbacks;
     AllocateSctpSortDataChannelsData data;
@@ -100,6 +101,7 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     }
 
 CleanUp:
+    LEAVES();
     return retStatus;
 }
 
@@ -107,6 +109,7 @@ CleanUp:
 
 VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     BOOL isDtlsConnected = FALSE;
@@ -165,12 +168,13 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
     }
 
 CleanUp:
-
+    LEAVES();
     CHK_LOG_ERR(retStatus);
 }
 
 STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuffer, UINT32 bufferLen)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     PKvsRtpTransceiver pTransceiver;
@@ -250,11 +254,13 @@ CleanUp:
         freeRtpPacket(&pRtpPacket);
         CHK_LOG_ERR(retStatus);
     }
+    LEAVES();
     return retStatus;
 }
 
 STATUS changePeerConnectionState(PKvsPeerConnection pKvsPeerConnection, RTC_PEER_CONNECTION_STATE newState)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
@@ -282,11 +288,13 @@ CleanUp:
     }
 
     CHK_LOG_ERR(retStatus);
+    LEAVES();
     return retStatus;
 }
 
 STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, UINT32 frameSize)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsRtpTransceiver pTransceiver = (PKvsRtpTransceiver) customData;
     PRtpPacket pPacket = NULL;
@@ -306,7 +314,10 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
         pTransceiver->inboundStats.framesReceived++;
     }
     MUTEX_UNLOCK(pTransceiver->statsLock);
-
+    /**
+     * re-size the peer frame buffer if it is not enough.
+     * #YC_TBD.
+    */
     if (frameSize > pTransceiver->peerFrameBufferSize) {
         MEMFREE(pTransceiver->peerFrameBuffer);
         pTransceiver->peerFrameBufferSize = (UINT32)(frameSize * PEER_FRAME_BUFFER_SIZE_INCREMENT_FACTOR);
@@ -329,6 +340,7 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
     }
 
 CleanUp:
+    LEAVES();
     return retStatus;
 }
 
@@ -357,6 +369,7 @@ CleanUp:
 
 VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     RTC_PEER_CONNECTION_STATE newConnectionState = RTC_PEER_CONNECTION_STATE_NEW;
@@ -408,10 +421,12 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
+    LEAVES();
 }
 
 VOID onNewIceLocalCandidate(UINT64 customData, PCHAR candidateSdpStr)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     BOOL locked = FALSE;
@@ -442,6 +457,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
     }
+    LEAVES();
 }
 
 #if (ENABLE_DATA_CHANNEL)
@@ -484,6 +500,7 @@ CleanUp:
 
 VOID onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pName, UINT32 pNameLen)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     PKvsDataChannel pKvsDataChannel = NULL;
@@ -502,7 +519,7 @@ VOID onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pNa
     pKvsPeerConnection->onDataChannel(pKvsPeerConnection->onDataChannelCustomData, &(pKvsDataChannel->dataChannel));
 
 CleanUp:
-
+    LEAVES();
     CHK_LOG_ERR(retStatus);
 }
 #endif
@@ -513,6 +530,7 @@ CleanUp:
 */
 VOID onDtlsOutboundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
 {
+    ENTERS();
     PKvsPeerConnection pKvsPeerConnection = NULL;
     if (customData == 0) {
         return;
@@ -520,10 +538,12 @@ VOID onDtlsOutboundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
 
     pKvsPeerConnection = (PKvsPeerConnection) customData;
     iceAgentSendPacket(pKvsPeerConnection->pIceAgent, pBuffer, bufferLen);
+    LEAVES();
 }
 /** #DTLS. */
 VOID onDtlsStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE newDtlsState)
 {
+    ENTERS();
     PKvsPeerConnection pKvsPeerConnection = NULL;
     if (customData == 0) {
         return;
@@ -534,6 +554,7 @@ VOID onDtlsStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE newDtlsState)
     if (newDtlsState == CLOSED) {
         changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CLOSED);
     }
+    LEAVES();
 }
 
 /* Generate a printable string that does not
@@ -559,6 +580,7 @@ CleanUp:
 
 STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
+    ENTERS();
     UNUSED_PARAM(timerId);
     STATUS retStatus = STATUS_SUCCESS;
     BOOL ready = FALSE;
@@ -619,6 +641,7 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
 CleanUp:
     CHK_LOG_ERR(retStatus);
     SAFE_MEMFREE(rawPacket);
+    LEAVES();
     return retStatus;
 }
 
@@ -632,7 +655,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
      * the callback of the dtls sessions.
     */
     DtlsSessionCallbacks dtlsSessionCallbacks;
-    UINT32 logLevel = LOG_LEVEL_DEBUG;
+    UINT32 logLevel = LOG_LEVEL_VERBOSE;
     PCHAR logLevelStr = NULL;
     PConnectionListener pConnectionListener = NULL;
 
@@ -668,12 +691,13 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     /** */
     CHK_STATUS(hashTableCreateWithParams(RTX_HASH_TABLE_BUCKET_COUNT, RTX_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pRtxTable));
     CHK_STATUS(doubleListCreate(&(pKvsPeerConnection->pTransceievers)));
-
+    /** #YC_TBD, */
+    #if 0
     if ((logLevelStr = GETENV(DEBUG_LOG_LEVEL_ENV_VAR)) != NULL) {
         CHK_STATUS(STRTOUI32(logLevelStr, NULL, 10, &logLevel));
         logLevel = MIN(MAX(logLevel, LOG_LEVEL_VERBOSE), LOG_LEVEL_SILENT);
     }
-
+    #endif
     SET_LOGGER_LOG_LEVEL(logLevel);
 
     pKvsPeerConnection->pSrtpSessionLock = MUTEX_CREATE(TRUE);
@@ -1096,11 +1120,24 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
-STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack pRtcMediaStreamTrack, PRtcRtpTransceiverInit pRtcRtpTransceiverInit,
+/**
+ * @brief Create a new RtcRtpTransceiver and add it to the set of transceivers.
+ *
+ * Reference https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-addtransceiver
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in] PRtcMediaStreamTrack Stream track information for the codec appropriate codec, or NULL for RECVONLY
+ * @param[in] PRtcRtpTransceiverInit PRtcRtpTransceiverInit that may configure our new Transceiver
+ * @param[in,out] PRtcRtpTransceiver* IN/Initialized and configured RtcRtpTransceiver
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+STATUS addTransceiver(PRtcPeerConnection pPeerConnection,
+                      PRtcMediaStreamTrack pRtcMediaStreamTrack,
+                      PRtcRtpTransceiverInit pRtcRtpTransceiverInit,
                       PRtcRtpTransceiver* ppRtcRtpTransceiver)
 {
-    UNUSED_PARAM(pRtcRtpTransceiverInit);
+    //UNUSED_PARAM(pRtcRtpTransceiverInit);
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsRtpTransceiver pKvsRtpTransceiver = NULL;
@@ -1110,12 +1147,15 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     UINT32 clockRate = 0;
     UINT32 ssrc = (UINT32) RAND(), rtxSsrc = (UINT32) RAND();
     RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+
     if (pRtcRtpTransceiverInit != NULL) {
         direction = pRtcRtpTransceiverInit->direction;
     }
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
-
+    /**
+     * set up the configuration of the codec.
+    */
     switch (pRtcMediaStreamTrack->codec) {
         case RTC_CODEC_OPUS:
             depayFunc = depayOpusFromRtpPayload;
@@ -1143,10 +1183,23 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     }
 
     // TODO: Add ssrc duplicate detection here not only relying on RAND()
-    CHK_STATUS(createKvsRtpTransceiver(direction, pKvsPeerConnection, ssrc, rtxSsrc, pRtcMediaStreamTrack, NULL, pRtcMediaStreamTrack->codec,
+    CHK_STATUS(createKvsRtpTransceiver(direction,
+                                       pKvsPeerConnection,
+                                       ssrc,
+                                       rtxSsrc,
+                                       pRtcMediaStreamTrack,
+                                       NULL,
+                                       pRtcMediaStreamTrack->codec,
                                        &pKvsRtpTransceiver));
-    CHK_STATUS(createJitterBuffer(onFrameReadyFunc, onFrameDroppedFunc, depayFunc, DEFAULT_JITTER_BUFFER_MAX_LATENCY, clockRate,
-                                  (UINT64) pKvsRtpTransceiver, &pJitterBuffer));
+
+    CHK_STATUS(createJitterBuffer(onFrameReadyFunc,
+                                  onFrameDroppedFunc,
+                                  depayFunc,
+                                  DEFAULT_JITTER_BUFFER_MAX_LATENCY,
+                                  clockRate,
+                                  (UINT64) pKvsRtpTransceiver,
+                                  &pJitterBuffer));
+    /** link the jitter buffer with transceiver. */
     CHK_STATUS(kvsRtpTransceiverSetJitterBuffer(pKvsRtpTransceiver, pJitterBuffer));
 
     // after pKvsRtpTransceiver is successfully created, jitterBuffer will be freed by pKvsRtpTransceiver.
@@ -1155,8 +1208,12 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack p
     CHK_STATUS(doubleListInsertItemHead(pKvsPeerConnection->pTransceievers, (UINT64) pKvsRtpTransceiver));
     *ppRtcRtpTransceiver = (PRtcRtpTransceiver) pKvsRtpTransceiver;
 
-    CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle, RTCP_FIRST_REPORT_DELAY, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
-                                  rtcpReportsCallback, (UINT64) pKvsRtpTransceiver, &pKvsRtpTransceiver->rtcpReportsTimerId));
+    CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle,
+                                  RTCP_FIRST_REPORT_DELAY,
+                                  TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
+                                  rtcpReportsCallback,
+                                  (UINT64) pKvsRtpTransceiver,
+                                  &pKvsRtpTransceiver->rtcpReportsTimerId));
 
     pKvsRtpTransceiver = NULL;
 

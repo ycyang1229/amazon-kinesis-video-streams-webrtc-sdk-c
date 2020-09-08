@@ -5,6 +5,10 @@
 #include "../Include_i.h"
 
 static BOOL gInterruptedFlagBySignalHandler;
+#if 1
+TID receivedTid = INVALID_TID_VALUE;
+QueueHandle_t tmpQ;
+#endif
 VOID lwsSignalHandler(INT32 signal)
 {
     UNUSED_PARAM(signal);
@@ -312,6 +316,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
 
             if (connected && !ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
                 // Handle re-connection in a reconnect handler thread
+                /** #task. */
                 CHK_STATUS(THREAD_CREATE(&pSignalingClient->reconnecterTracker.threadId, reconnectHandler, (PVOID) pSignalingClient));
                 CHK_STATUS(THREAD_DETACH(pSignalingClient->reconnecterTracker.threadId));
             }
@@ -351,6 +356,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
                 ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
 
                 // Handle re-connection in a reconnect handler thread
+                /** #task. */
                 CHK_STATUS(THREAD_CREATE(&pSignalingClient->reconnecterTracker.threadId, reconnectHandler, (PVOID) pSignalingClient));
                 CHK_STATUS(THREAD_DETACH(pSignalingClient->reconnecterTracker.threadId));
             }
@@ -380,7 +386,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
             break;
 
         case LWS_CALLBACK_CLIENT_RECEIVE:
-            //DLOGD("Client receive %.*s", dataSize, (PCHAR) pDataIn);
+            DLOGD("Client receive %.*s", dataSize, (PCHAR) pDataIn);
             
             // Check if it's a binary data
             CHK(!lws_frame_is_binary(wsi), STATUS_SIGNALING_RECEIVE_BINARY_DATA_NOT_SUPPORTED);
@@ -973,6 +979,7 @@ CleanUp:
     return retStatus;
 }
 /**
+ * @brief making a https call. After receiving the response of https call, we will validate the result.
  * #HTTPS.
  * https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_AWSAcuitySignalingService_GetIceServerConfig.html
 */
@@ -1039,7 +1046,9 @@ STATUS getIceServerConfig(PSignalingClient pSignalingClient, UINT64 time)
 
     MEMSET(&pSignalingClient->iceConfigs, 0x00, MAX_ICE_CONFIG_COUNT * SIZEOF(IceConfigInfo));
     pSignalingClient->iceConfigCount = 0;
-
+    /**
+     * parse all the tokens.
+    */
     // Loop through the tokens and extract the ice configuration
     for (i = 0; i < tokenCount; i++) {
         if (!jsonInIceServerList) {
@@ -1287,6 +1296,7 @@ STATUS connectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
 
     // The actual connection will be handled in a separate thread
     // Start the request/response thread
+    /** #task. */
     CHK_STATUS(THREAD_CREATE(&pSignalingClient->listenerTracker.threadId, LwsRspThread, (PVOID) pLwsCallInfo));
     CHK_STATUS(THREAD_DETACH(pSignalingClient->listenerTracker.threadId));
 
@@ -1627,7 +1637,13 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief the handler of the received messages.
+ * 
+ * @param[in]
+ * @param[in]
+ * @param[in]
+*/
 STATUS receiveWssMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT32 messageLen)
 {
     ENTERS();
@@ -1638,7 +1654,7 @@ STATUS receiveWssMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     UINT32 i, strLen, outLen = MAX_SIGNALING_MESSAGE_LEN;
     UINT32 tokenCount;
     PSignalingMessageWrapper pSignalingMessageWrapper = NULL;
-    TID receivedTid = INVALID_TID_VALUE;
+    
     BOOL parsedMessageType = FALSE, parsedStatusResponse = FALSE;
     PSignalingMessage pOngoingMessage;
 
@@ -1672,6 +1688,11 @@ STATUS receiveWssMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.version = SIGNALING_MESSAGE_CURRENT_VERSION;
 
     // Loop through the tokens and extract the stream description
+    /**
+     *
+     * parse all the token out of payload.
+     * 
+    */
     for (i = 1; i < tokenCount; i++) {
         if (compareJsonString(pMessage, &tokens[i], JSMN_STRING, (PCHAR) "senderClientId")) {
             strLen = (UINT32)(tokens[i + 1].end - tokens[i + 1].start);
@@ -1682,6 +1703,7 @@ STATUS receiveWssMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
         } else if (compareJsonString(pMessage, &tokens[i], JSMN_STRING, (PCHAR) "messageType")) {
             strLen = (UINT32)(tokens[i + 1].end - tokens[i + 1].start);
             CHK(strLen <= MAX_SIGNALING_MESSAGE_TYPE_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+            /** get the mapping value of the message type. */
             CHK_STATUS(getMessageTypeFromString(pMessage + tokens[i + 1].start, strLen,
                                                 &pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType));
 
@@ -1743,7 +1765,11 @@ STATUS receiveWssMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     // Message type is a mandatory field.
     CHK(parsedMessageType, STATUS_SIGNALING_INVALID_MESSAGE_TYPE);
     pSignalingMessageWrapper->pSignalingClient = pSignalingClient;
-
+    /**
+     * 
+     * the handler of this message.
+     * 
+    */
     switch (pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_STATUS_RESPONSE:
             if (pSignalingMessageWrapper->receivedSignalingMessage.statusCode != SERVICE_CALL_RESULT_OK) {
@@ -1794,6 +1820,7 @@ STATUS receiveWssMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
             break;
 
         case SIGNALING_MESSAGE_TYPE_OFFER:
+            /** check the sender client id is valid or not. */
             CHK(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.senderClientId[0] != '\0',
                 STATUS_SIGNALING_NO_PEER_CLIENT_ID_IN_MESSAGE);
             // Explicit fall-through !!!
@@ -1808,14 +1835,26 @@ STATUS receiveWssMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
         default:
             break;
     }
-
     // Issue the callback on a separate thread
     /**
      * #thread.
     */
-   
+    #if 0
     CHK_STATUS(THREAD_CREATE(&receivedTid, wssReceptionThread, (PVOID) pSignalingMessageWrapper));
     CHK_STATUS(THREAD_DETACH(receivedTid));
+    #else
+    if(receivedTid==INVALID_TID_VALUE){
+        tmpQ = xQueueCreate( 32, sizeof(PSignalingMessageWrapper));
+        CHK_STATUS(THREAD_CREATE(&receivedTid, wssReceptionThread, (PVOID) NULL));
+        
+    }
+
+    BaseType_t err = xQueueSend(tmpQ, &pSignalingMessageWrapper, 0);
+    if(err!=pdPASS){
+        DLOGD("send q failed.");
+    }
+    
+    #endif
 
 CleanUp:
 
@@ -1925,29 +1964,42 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief for the original design, we create one thread for each message.
+*/
 PVOID wssReceptionThread(PVOID args)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PSignalingMessageWrapper pSignalingMessageWrapper = (PSignalingMessageWrapper) args;
-    PSignalingClient pSignalingClient = NULL;
+    PSignalingMessageWrapper pSignalingMessageWrapper;
+    while(1)
+    {
+        BaseType_t err = xQueueReceive(tmpQ, &pSignalingMessageWrapper, 0xffffffffUL);
+        if(err != pdPASS){
+            usleep(2000000);
+            DLOGD("get no q");
+        }else{
+            retStatus = STATUS_SUCCESS;
+        
+            PSignalingClient pSignalingClient = NULL;
 
-    CHK(pSignalingMessageWrapper != NULL, STATUS_NULL_ARG);
+            CHK(pSignalingMessageWrapper != NULL, STATUS_NULL_ARG);
 
-    pSignalingClient = pSignalingMessageWrapper->pSignalingClient;
+            pSignalingClient = pSignalingMessageWrapper->pSignalingClient;
 
-    CHK(pSignalingClient != NULL, STATUS_INTERNAL_ERROR);
+            CHK(pSignalingClient != NULL, STATUS_INTERNAL_ERROR);
 
-    // Updating the diagnostics info before calling the client callback
-    ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesReceived);
+            // Updating the diagnostics info before calling the client callback
+            ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesReceived);
 
-    // Calling client receive message callback if specified
-    if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
-        CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
-                                                                                &pSignalingMessageWrapper->receivedSignalingMessage));
+            // Calling client receive message callback if specified
+            if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
+                CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
+                                                                                        &pSignalingMessageWrapper->receivedSignalingMessage));
+            }
+        }
+        
     }
-
 CleanUp:
     CHK_LOG_ERR(retStatus);
 

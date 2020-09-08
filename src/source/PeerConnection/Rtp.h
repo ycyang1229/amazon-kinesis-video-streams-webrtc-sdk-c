@@ -14,6 +14,9 @@ extern "C" {
 #define HIGHEST_EXPECTED_BIT_RATE                  (10 * 1024 * 1024)
 #define DEFAULT_SEQ_NUM_BUFFER_SIZE                1000
 #define DEFAULT_VALID_INDEX_BUFFER_SIZE            1000
+/**
+ * #memory.
+*/
 #define DEFAULT_PEER_FRAME_BUFFER_SIZE             (5 * 1024)
 #define SRTP_AUTH_TAG_OVERHEAD                     10
 
@@ -59,7 +62,7 @@ typedef struct {
     RtcOnBandwidthEstimation onBandwidthEstimation;
     UINT64 onPictureLossCustomData;
     RtcOnPictureLoss onPictureLoss;
-
+    /** #memory. */
     PBYTE peerFrameBuffer;
     UINT32 peerFrameBufferSize;
 

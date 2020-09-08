@@ -345,7 +345,13 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief get the number of ice configurations.
+ * 
+ * @param[in] pSignalingClient the handle of signaling client.
+ * @param[out] pIceConfigCount the number of ice configurations.
+ * 
+*/
 STATUS signalingGetIceConfigInfoCout(PSignalingClient pSignalingClient, PUINT32 pIceConfigCount)
 {
     ENTERS();
@@ -354,11 +360,18 @@ STATUS signalingGetIceConfigInfoCout(PSignalingClient pSignalingClient, PUINT32 
     CHK(pSignalingClient != NULL && pIceConfigCount != NULL, STATUS_NULL_ARG);
 
     // Validate the state in sync ICE config mode only
+    /**
+     * if we use async mode, we need to check the state of signaling client.
+    */
     if (!pSignalingClient->pChannelInfo->asyncIceServerConfig) {
         CHK_STATUS(
             acceptStateMachineState(pSignalingClient->pStateMachine, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED));
     }
-
+    /**
+     * we make a https call to get the information of ice servers, and validate the information. 
+     * If the information is correct, we will set iceConfigRetrieved as true.
+     * 
+    */
     if (ATOMIC_LOAD_BOOL(&pSignalingClient->iceConfigRetrieved)) {
         *pIceConfigCount = pSignalingClient->iceConfigCount;
     } else {
@@ -372,7 +385,14 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief get the information of ice servers. 
+ * 
+ * @param[in] the handle of this signaling client.
+ * @param[in] the index of ice servers, it may have more than one server.
+ * @param[out] the pointer of ice server information.
+ * 
+*/
 STATUS signalingGetIceConfigInfo(PSignalingClient pSignalingClient, UINT32 index, PIceConfigInfo* ppIceConfigInfo)
 {
     ENTERS();
@@ -382,6 +402,9 @@ STATUS signalingGetIceConfigInfo(PSignalingClient pSignalingClient, UINT32 index
     CHK(index < pSignalingClient->iceConfigCount, STATUS_SIGNALING_INVALID_ICE_CONFIG_COUNT);
 
     // Validate the state in sync ICE config mode only
+    /**
+     * if we use async mode, we need to check the state of signaling client.
+    */
     if (!pSignalingClient->pChannelInfo->asyncIceServerConfig) {
         CHK_STATUS(
             acceptStateMachineState(pSignalingClient->pStateMachine, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED));
@@ -532,7 +555,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief validate the configureation of ice servers.
+*/
 STATUS validateIceConfiguration(PSignalingClient pSignalingClient)
 {
     ENTERS();
@@ -600,8 +625,12 @@ STATUS refreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UIN
     // If we are coming from async code we need to check if we have already landed in Ready state
     if (ATOMIC_LOAD_BOOL(&pSignalingClient->asyncGetIceConfig)) {
         // Re-schedule in a while
-        CHK_STATUS(timerQueueAddTimer(pSignalingClient->timerQueueHandle, SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY,
-                                      TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, refreshIceConfigurationCallback, (UINT64) pSignalingClient, &newTimerId));
+        CHK_STATUS(timerQueueAddTimer(pSignalingClient->timerQueueHandle, 
+                                      SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY,
+                                      TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
+                                      refreshIceConfigurationCallback,
+                                      (UINT64) pSignalingClient,
+                                      &newTimerId));
         CHK(FALSE, retStatus);
     }
 
@@ -708,7 +737,11 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief get the message according to the correlation id and sender client id.
+ * 
+ * 
+*/
 STATUS signalingGetMessage(PSignalingClient pSignalingClient, PCHAR correlationId, PCHAR senderClientId, PSignalingMessage* ppSignalingMessage)
 {
     ENTERS();
@@ -1034,8 +1067,12 @@ STATUS getIceConfig(PSignalingClient pSignalingClient, UINT64 time)
     // Check if we need to async the API and if so early return
     if (ATOMIC_LOAD_BOOL(&pSignalingClient->asyncGetIceConfig)) {
         // We will emulate the call and kick off the ice refresh routine
-        CHK_STATUS(timerQueueAddTimer(pSignalingClient->timerQueueHandle, SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY,
-                                      TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, refreshIceConfigurationCallback, (UINT64) pSignalingClient, &timerId));
+        CHK_STATUS(timerQueueAddTimer(pSignalingClient->timerQueueHandle, 
+                                      SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY,
+                                      TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, 
+                                      refreshIceConfigurationCallback,
+                                      (UINT64) pSignalingClient,
+                                      &timerId));
 
         // Success early return to prime the state machine to the next state which is Ready
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);

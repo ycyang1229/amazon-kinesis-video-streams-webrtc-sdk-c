@@ -1076,7 +1076,10 @@ typedef struct {
     CHAR senderClientId[MAX_SIGNALING_CLIENT_ID_LEN + 1]; //!< Sender client id
 
     UINT32 payloadLen; //!< Optional payload length. If 0, the length will be calculated
-    /** #memory. */
+    /** 
+     * #memory. 
+     * this paylod is plain text, not base64 encoded text.
+    */
     CHAR payload[MAX_SIGNALING_MESSAGE_LEN + 1]; //!< Actual signaling message payload
 } SignalingMessage, *PSignalingMessage;
 

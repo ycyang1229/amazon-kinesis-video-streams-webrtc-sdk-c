@@ -120,7 +120,13 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief get the number of ice configurations.
+ * 
+ * @param[in] signalingClientHandle the handle of signaling client.
+ * @param[out] pIceConfigCount the number of ice configurations.
+ * 
+*/
 STATUS signalingClientGetIceConfigInfoCount(SIGNALING_CLIENT_HANDLE signalingClientHandle, PUINT32 pIceConfigCount)
 {
     ENTERS();
@@ -137,7 +143,14 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief get the information of ice servers. 
+ * 
+ * @param[in] the handle of this signaling client.
+ * @param[in] the index of ice servers, it may have more than one server.
+ * @param[out] the pointer of ice server information.
+ * 
+*/
 STATUS signalingClientGetIceConfigInfo(SIGNALING_CLIENT_HANDLE signalingClientHandle, UINT32 index, PIceConfigInfo* ppIceConfigInfo)
 {
     ENTERS();

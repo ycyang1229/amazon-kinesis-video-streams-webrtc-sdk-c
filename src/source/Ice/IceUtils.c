@@ -185,22 +185,32 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief use the information of the url to retrieve the information of ice servers and set up the configuration of ice servers.
+ * 
+ * @param[out] pIceServer
+ * @param[in] url
+ * @param[in] username
+ * @param[in] credential
+*/
 STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR credential)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR separator = NULL, urlNoPrefix = NULL, paramStart = NULL;
-    UINT32 port = ICE_STUN_DEFAULT_PORT;
+    UINT32 port = ICE_STUN_DEFAULT_PORT;//!< port is 3478
 
     // username and credential is only mandatory for turn server
     CHK(url != NULL && pIceServer != NULL, STATUS_NULL_ARG);
-
+    /** stun. */
     if (STRNCMP(ICE_URL_PREFIX_STUN, url, STRLEN(ICE_URL_PREFIX_STUN)) == 0) {
         urlNoPrefix = STRCHR(url, ':') + 1;
         pIceServer->isTurn = FALSE;
-    } else if (STRNCMP(ICE_URL_PREFIX_TURN, url, STRLEN(ICE_URL_PREFIX_TURN)) == 0 ||
-               STRNCMP(ICE_URL_PREFIX_TURN_SECURE, url, STRLEN(ICE_URL_PREFIX_TURN_SECURE)) == 0) {
+    }
+    /** turn. */
+    else if (STRNCMP(ICE_URL_PREFIX_TURN, url, STRLEN(ICE_URL_PREFIX_TURN)) == 0 ||
+               STRNCMP(ICE_URL_PREFIX_TURN_SECURE, url, STRLEN(ICE_URL_PREFIX_TURN_SECURE)) == 0) 
+    {
         CHK(username != NULL && username[0] != '\0', STATUS_ICE_URL_TURN_MISSING_USERNAME);
         CHK(credential != NULL && credential[0] != '\0', STATUS_ICE_URL_TURN_MISSING_CREDENTIAL);
 
@@ -209,8 +219,9 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
         STRNCPY(pIceServer->credential, credential, MAX_ICE_CONFIG_CREDENTIAL_LEN);
         urlNoPrefix = STRCHR(url, ':') + 1;
         pIceServer->isTurn = TRUE;
+        /** does turn use tls. */
         pIceServer->isSecure = STRNCMP(ICE_URL_PREFIX_TURN_SECURE, url, STRLEN(ICE_URL_PREFIX_TURN_SECURE)) == 0;
-
+        /** is turn tcp or udp. */
         pIceServer->transport = KVS_SOCKET_PROTOCOL_NONE;
         if (STRSTR(url, ICE_URL_TRANSPORT_UDP) != NULL) {
             pIceServer->transport = KVS_SOCKET_PROTOCOL_UDP;
@@ -218,10 +229,12 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
             pIceServer->transport = KVS_SOCKET_PROTOCOL_TCP;
         }
 
-    } else {
+    } 
+    else 
+    {
         CHK(FALSE, STATUS_ICE_URL_INVALID_PREFIX);
     }
-
+    /** retrieve the port. */
     if ((separator = STRCHR(urlNoPrefix, ':')) != NULL) {
         separator++;
         paramStart = STRCHR(urlNoPrefix, '?');

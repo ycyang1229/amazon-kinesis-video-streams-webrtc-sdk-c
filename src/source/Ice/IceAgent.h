@@ -182,6 +182,7 @@ struct __IceAgent {
     // Current ice agent state
     UINT64 iceAgentState;
     // The state machine
+    /** the state machine of this ice agent. */
     PStateMachine pStateMachine;
     STATUS iceAgentStatus;
     UINT64 stateEndTime;

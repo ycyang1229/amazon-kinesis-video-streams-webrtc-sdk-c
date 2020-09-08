@@ -23,8 +23,7 @@ STATUS createIceAgent(PCHAR username,
 
     CHK(ppIceAgent != NULL && username != NULL && password != NULL && pConnectionListener != NULL, STATUS_NULL_ARG);
     CHK(STRNLEN(username, MAX_ICE_CONFIG_USER_NAME_LEN + 1) <= MAX_ICE_CONFIG_USER_NAME_LEN &&
-            STRNLEN(password, MAX_ICE_CONFIG_CREDENTIAL_LEN + 1) <= MAX_ICE_CONFIG_CREDENTIAL_LEN,
-        STATUS_INVALID_ARG);
+        STRNLEN(password, MAX_ICE_CONFIG_CREDENTIAL_LEN + 1) <= MAX_ICE_CONFIG_CREDENTIAL_LEN, STATUS_INVALID_ARG);
 
     // allocate the entire struct
     pIceAgent = (PIceAgent) MEMCALLOC(1, SIZEOF(IceAgent));
@@ -54,8 +53,13 @@ STATUS createIceAgent(PCHAR username,
     pIceAgent->lock = MUTEX_CREATE(FALSE);
 
     // Create the state machine
-    CHK_STATUS(createStateMachine(ICE_AGENT_STATE_MACHINE_STATES, ICE_AGENT_STATE_MACHINE_STATE_COUNT, (UINT64) pIceAgent, iceAgentGetCurrentTime,
-                                  (UINT64) pIceAgent, &pIceAgent->pStateMachine));
+    CHK_STATUS(createStateMachine(ICE_AGENT_STATE_MACHINE_STATES,
+                                  ICE_AGENT_STATE_MACHINE_STATE_COUNT,
+                                  (UINT64) pIceAgent,
+                                  iceAgentGetCurrentTime,
+                                  (UINT64) pIceAgent,
+                                  &pIceAgent->pStateMachine));
+
     pIceAgent->iceAgentStatus = STATUS_SUCCESS;
     pIceAgent->iceAgentStateTimerTask = UINT32_MAX;
     pIceAgent->keepAliveTimerTask = UINT32_MAX;
@@ -78,13 +82,17 @@ STATUS createIceAgent(PCHAR username,
     // Pre-allocate stun packets
 
     // no other attribtues needed: https://tools.ietf.org/html/rfc8445#section-11
+    /**
+     * create one stun packet.
+    */
     CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_INDICATION, NULL, &pIceAgent->pBindingIndication));
     CHK_STATUS(hashTableCreateWithParams(ICE_HASH_TABLE_BUCKET_COUNT, ICE_HASH_TABLE_BUCKET_LENGTH, &pIceAgent->requestTimestampDiagnostics));
 
     pIceAgent->iceServersCount = 0;
     for (i = 0; i < MAX_ICE_SERVERS_COUNT; i++) {
         if (pRtcConfiguration->iceServers[i].urls[0] != '\0' &&
-            STATUS_SUCCEEDED(parseIceServer(&pIceAgent->iceServers[pIceAgent->iceServersCount], (PCHAR) pRtcConfiguration->iceServers[i].urls,
+            STATUS_SUCCEEDED(parseIceServer(&pIceAgent->iceServers[pIceAgent->iceServersCount], 
+                                            (PCHAR) pRtcConfiguration->iceServers[i].urls,
                                             (PCHAR) pRtcConfiguration->iceServers[i].username,
                                             (PCHAR) pRtcConfiguration->iceServers[i].credential))) {
             pIceAgent->rtcIceServerDiagnostics[i].port = (INT32) getInt16(pIceAgent->iceServers[i].ipAddress.port);
@@ -530,6 +538,7 @@ CleanUp:
 
 STATUS iceAgentStartGathering(PIceAgent pIceAgent)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
@@ -565,7 +574,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-
+    LEAVES();
     return retStatus;
 }
 

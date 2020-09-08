@@ -1083,6 +1083,7 @@ STATUS createStunPacket(STUN_PACKET_TYPE stunPacketType, PBYTE transactionId, PS
     PStunPacket pStunPacket = NULL;
 
     CHK(ppStunPacket != NULL, STATUS_NULL_ARG);
+    /** #memory, the default size of stun packet is 2kB.*/
     CHK(NULL != (pStunPacket = (PStunPacket) MEMCALLOC(1, STUN_PACKET_ALLOCATION_SIZE)), STATUS_NOT_ENOUGH_MEMORY);
     pStunPacket->attributesCount = 0;
     pStunPacket->header.messageLength = 0;

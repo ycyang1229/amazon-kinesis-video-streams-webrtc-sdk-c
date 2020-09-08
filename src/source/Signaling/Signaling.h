@@ -86,6 +86,9 @@ typedef struct {
     //
 
     // Injected ICE server refresh period
+    /**
+     * refresh period is 30 secs now.
+    */
     UINT64 iceRefreshPeriod;
 
     // Injected connect timeout
@@ -212,6 +215,9 @@ typedef struct {
     UINT32 iceConfigCount;
 
     // Returned Ice configurations
+    /**
+     * we will have these information after making a https call and receiving the result from server.
+    */
     IceConfigInfo iceConfigs[MAX_ICE_CONFIG_COUNT];
 
     // The state machine
