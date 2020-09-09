@@ -287,7 +287,8 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     UINT32 i;
     BOOL locked = FALSE;
     PDtlsSessionCertificateInfo pCertInfo;
-
+    //extern void mbedtls_debug_set_threshold( int threshold );
+    //mbedtls_debug_set_threshold(3);
     CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
 
     MUTEX_LOCK(pDtlsSession->sslLock);
@@ -317,7 +318,6 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
                                                        ARRAY_SIZE(DTLS_SRTP_SUPPORTED_PROFILES)) == 0, STATUS_CREATE_SSL_FAILED);
     /** Configure extended key export callback. (Default: none.)*/
     mbedtls_ssl_conf_export_keys_ext_cb(&pDtlsSession->sslCtxConfig, dtlsSessionKeyDerivationCallback, pDtlsSession);
-
     CHK(mbedtls_ssl_setup(&pDtlsSession->sslCtx, &pDtlsSession->sslCtxConfig) == 0, STATUS_DTLS_SSL_CTX_SETUP_FAILED);
     mbedtls_ssl_set_mtu(&pDtlsSession->sslCtx, DEFAULT_MTU_SIZE);
     /** Set the underlying BIO callbacks for write, read and read-with-timeout.*/
