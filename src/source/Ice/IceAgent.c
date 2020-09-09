@@ -1338,6 +1338,7 @@ CleanUp:
 
 STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     UINT64 data;
@@ -1390,7 +1391,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-
+    LEAVES();
     return retStatus;
 }
 
