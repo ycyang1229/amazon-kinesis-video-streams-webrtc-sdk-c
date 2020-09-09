@@ -657,6 +657,7 @@ CleanUp:
 
 STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT32 bufLen, PKvsIpAddress pDestIp)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PTurnPeer pSendPeer = NULL;
     UINT32 paddedDataLen = 0;
@@ -727,7 +728,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pTurnConnection->lock);
     }
-
+    LEAVES();
     return retStatus;
 }
 

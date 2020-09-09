@@ -270,6 +270,8 @@ STATUS iceAgentValidateKvsRtcConfig(PKvsRtcConfiguration pKvsRtcConfiguration)
     if (pKvsRtcConfiguration->iceConnectionCheckPollingInterval == 0) {
         pKvsRtcConfiguration->iceConnectionCheckPollingInterval = KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL;
     }
+    pKvsRtcConfiguration->iceConnectionCheckPollingInterval = KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL;
+    DLOGD("iceConnectionCheckPollingInterval:%d", pKvsRtcConfiguration->iceConnectionCheckPollingInterval);
 
     DLOGD("\n\ticeLocalCandidateGatheringTimeout: %u ms"
           "\n\ticeConnectionCheckTimeout: %u ms"
@@ -459,10 +461,13 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
 
     for (i = 0; i < pIceAgent->localNetworkInterfaceCount; ++i) {
         pIpAddress = &pIceAgent->localNetworkInterfaces[i];
-
+        DLOGD("IpAddress: %s", pIpAddress);
         // make sure pIceAgent->localCandidates has no duplicates
         CHK_STATUS(findCandidateWithIp(pIpAddress, pIceAgent->localCandidates, &pDuplicatedIceCandidate));
-
+        if(pDuplicatedIceCandidate != NULL){
+            DLOGD("duplicate candidates.");
+        }
+        DLOGD("create socket.");
         if (pDuplicatedIceCandidate == NULL &&
             /** #udp. #socket. */
             STATUS_SUCCEEDED(createSocketConnection(pIpAddress->family,
@@ -473,6 +478,7 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
                                                     incomingDataHandler,
                                                     pIceAgent->kvsRtcConfiguration.sendBufSize, 
                                                     &pSocketConnection))) {
+            DLOGD("create socket successfully.");
             /** #memory. */
             pTmpIceCandidate = MEMCALLOC(1, SIZEOF(IceCandidate));
             generateJSONSafeString(pTmpIceCandidate->id, ARRAY_SIZE(pTmpIceCandidate->id));
@@ -509,7 +515,7 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
             CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener, pNewIceCandidate->pSocketConnection));
         }
     }
-
+    DLOGD("localCandidateCount:%d.", localCandidateCount);
     CHK(localCandidateCount != 0, STATUS_ICE_NO_LOCAL_HOST_CANDIDATE_AVAILABLE);
 
 CleanUp:
@@ -558,13 +564,16 @@ STATUS iceAgentStartAgent(PIceAgent pIceAgent, PCHAR remoteUsername, PCHAR remot
         DLOGW("remoteUsername:localUsername will be truncated to stay within %u char limit", MAX_ICE_CONFIG_USER_NAME_LEN);
     }
     SNPRINTF(pIceAgent->combinedUserName, ARRAY_SIZE(pIceAgent->combinedUserName), "%s:%s", pIceAgent->remoteUsername, pIceAgent->localUsername);
-
+    DLOGD("%s, %s, %s", pIceAgent->combinedUserName, pIceAgent->remoteUsername, pIceAgent->remotePassword);
     MUTEX_UNLOCK(pIceAgent->lock);
     locked = FALSE;
 
-    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, KVS_ICE_DEFAULT_TIMER_START_DELAY,
-                                  pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval, iceAgentStateTransitionTimerCallback,
-                                  (UINT64) pIceAgent, &pIceAgent->iceAgentStateTimerTask));
+    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, 
+                                  KVS_ICE_DEFAULT_TIMER_START_DELAY,
+                                  pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,
+                                  iceAgentStateTransitionTimerCallback,
+                                  (UINT64) pIceAgent, 
+                                  &pIceAgent->iceAgentStateTimerTask));
 
 CleanUp:
 
@@ -604,8 +613,12 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
 
     pIceAgent->candidateGatheringEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceLocalCandidateGatheringTimeout;
 
-    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, KVS_ICE_DEFAULT_TIMER_START_DELAY, KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL,
-                                  iceAgentGatherCandidateTimerCallback, (UINT64) pIceAgent, &pIceAgent->iceCandidateGatheringTimerTask));
+    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
+                                  KVS_ICE_DEFAULT_TIMER_START_DELAY,
+                                  KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL,
+                                  iceAgentGatherCandidateTimerCallback,
+                                  (UINT64) pIceAgent,
+                                  &pIceAgent->iceCandidateGatheringTimerTask));
 
 CleanUp:
 
@@ -1211,6 +1224,7 @@ CleanUp:
 
 STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgent pIceAgent, PIceCandidatePair pIceCandidatePair)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributePriority pStunAttributePriority = NULL;
     UINT32 checkSum = 0;
@@ -1233,20 +1247,24 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
         CHK_STATUS(hashTableUpsert(pIceAgent->requestTimestampDiagnostics, checkSum, GETTIME()));
     }
 
-    CHK_STATUS(iceAgentSendStunPacket(pStunBindingRequest, (PBYTE) pIceAgent->remotePassword,
-                                      (UINT32) STRLEN(pIceAgent->remotePassword) * SIZEOF(CHAR), pIceAgent, pIceCandidatePair->local,
+    CHK_STATUS(iceAgentSendStunPacket(pStunBindingRequest, 
+                                      (PBYTE) pIceAgent->remotePassword,
+                                      (UINT32) STRLEN(pIceAgent->remotePassword) * SIZEOF(CHAR),
+                                      pIceAgent,
+                                      pIceCandidatePair->local,
                                       &pIceCandidatePair->remote->ipAddress));
 
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-
+    LEAVES();
     return retStatus;
 }
 
 STATUS iceAgentSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen, PIceAgent pIceAgent, PIceCandidate pLocalCandidate,
                               PKvsIpAddress pDestAddr)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidatePair pIceCandidatePair = NULL;
 
@@ -1281,7 +1299,7 @@ STATUS iceAgentSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-
+    LEAVES();
     return retStatus;
 }
 
@@ -1295,6 +1313,7 @@ CleanUp:
  */
 STATUS iceAgentStateTransitionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
+    ENTERS();
     UNUSED_PARAM(timerId);
     UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS;
@@ -1313,7 +1332,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-
+    LEAVES();
     return retStatus;
 }
 
@@ -1377,6 +1396,7 @@ CleanUp:
 
 STATUS iceAgentCheckCandidatePairConnection(PIceAgent pIceAgent)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL triggeredCheckQueueEmpty;
     UINT64 data;
@@ -1427,7 +1447,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-
+    LEAVES();
     return retStatus;
 }
 
@@ -1615,6 +1635,7 @@ CleanUp:
 
 STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     UINT64 data;
@@ -1694,7 +1715,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-
+    LEAVES();
     return retStatus;
 }
 
@@ -1816,6 +1837,7 @@ CleanUp:
 
 STATUS iceAgentCheckConnectionStateSetup(PIceAgent pIceAgent)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 iceCandidatePairCount = 0;
     PDoubleListNode pCurNode = NULL;
@@ -1863,7 +1885,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-
+    LEAVES();
     return retStatus;
 }
 
@@ -2241,6 +2263,7 @@ STATUS incomingDataHandler(UINT64 customData,
                            PKvsIpAddress pSrc,
                            PKvsIpAddress pDest)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     BOOL locked = FALSE;
@@ -2270,7 +2293,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
     }
-
+    LEAVES();
     return retStatus;
 }
 

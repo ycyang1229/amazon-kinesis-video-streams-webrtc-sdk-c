@@ -138,6 +138,7 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
                                    destIpList[ipCount].address[1], 
                                    destIpList[ipCount].address[2], 
                                    destIpList[ipCount].address[3]);
+    ipCount++;
     #endif
 #endif
 

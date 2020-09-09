@@ -345,8 +345,10 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
             pSocketConnection = socketList[i];
             /** remove the closed sockets. */
             if (socketConnectionIsClosed(pSocketConnection)) {
+                DLOGD("isclosed");
                 updateSocketList = TRUE;
             } else {
+                DLOGD("pSocketConnection->localSocket:%x", pSocketConnection->localSocket);
                 FD_SET(pSocketConnection->localSocket, &rfds);
                 nfds = MAX(nfds, pSocketConnection->localSocket);
             }
@@ -365,7 +367,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
         // blocking call
         /** polling. #YC_TBD, */
         retval = select(nfds, &rfds, NULL, NULL, &tv);
-
+        DLOGD("up");
         if (retval == -1) {
             DLOGE("select() failed with errno %s", strerror(errno));
             continue;
@@ -393,6 +395,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                                        (struct sockaddr*) &srcAddrBuff,
                                        &srcAddrBuffLen);
                     /** #YC_TBD, need to review. */
+                    DLOGD("readLen:%d", readLen);
                     if (readLen < 0) {
                         switch (errno) {
                             case EWOULDBLOCK:

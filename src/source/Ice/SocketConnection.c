@@ -161,6 +161,7 @@ CleanUp:
 
 STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf, UINT32 bufLen, PKvsIpAddress pDestIp)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
@@ -196,7 +197,8 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pSocketConnection->lock);
     }
-
+    SHOW_LOG_ERR(retStatus);
+    LEAVES();
     return retStatus;
 }
 
@@ -306,6 +308,7 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
 
 STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, UINT32 bufLen, PKvsIpAddress pDestIp, PUINT32 pBytesWritten)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     INT32 socketWriteAttempt = 0;
     SSIZE_T result = 0;
@@ -316,38 +319,43 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     struct timeval tv;
     socklen_t addrLen = 0;
     struct sockaddr* destAddr = NULL;
-    struct sockaddr_in ipv4Addr;
-    struct sockaddr_in6 ipv6Addr;
+    struct sockaddr_in* ipv4Addr = MEMALLOC(sizeof(struct sockaddr_in));
+    struct sockaddr_in6* ipv6Addr = MEMALLOC(sizeof(struct sockaddr_in6));
 
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(buf != NULL && bufLen > 0, STATUS_INVALID_ARG);
 
     if (pDestIp != NULL) {
+        DLOGD("get pDestIp");
         /** #IPV4 */
         if (IS_IPV4_ADDR(pDestIp)) {
-            addrLen = SIZEOF(ipv4Addr);
-            MEMSET(&ipv4Addr, 0x00, SIZEOF(ipv4Addr));
-            ipv4Addr.sin_family = AF_INET;
-            ipv4Addr.sin_port = pDestIp->port;
-            MEMCPY(&ipv4Addr.sin_addr, pDestIp->address, IPV4_ADDRESS_LENGTH);
-            destAddr = (struct sockaddr*) &ipv4Addr;
+            DLOGD("ipv4");
+            addrLen = sizeof(struct sockaddr_in);//SIZEOF(ipv4Addr);
+            MEMSET(ipv4Addr, 0x00, sizeof(struct sockaddr_in));
+            ipv4Addr->sin_family = AF_INET;
+            ipv4Addr->sin_port = pDestIp->port;
+            MEMCPY(&ipv4Addr->sin_addr, pDestIp->address, IPV4_ADDRESS_LENGTH);
+            destAddr = (struct sockaddr*) ipv4Addr;
 
         } 
         /** #IPV6 */
         else 
         {
-            addrLen = SIZEOF(ipv6Addr);
-            MEMSET(&ipv6Addr, 0x00, SIZEOF(ipv6Addr));
-            ipv6Addr.sin6_family = AF_INET6;
-            ipv6Addr.sin6_port = pDestIp->port;
-            MEMCPY(&ipv6Addr.sin6_addr, pDestIp->address, IPV6_ADDRESS_LENGTH);
-            destAddr = (struct sockaddr*) &ipv6Addr;
+            DLOGD("ipv6");
+            addrLen = sizeof(struct sockaddr_in6);
+            MEMSET(ipv6Addr, 0x00, sizeof(struct sockaddr_in6));
+            ipv6Addr->sin6_family = AF_INET6;
+            ipv6Addr->sin6_port = pDestIp->port;
+            MEMCPY(&ipv6Addr->sin6_addr, pDestIp->address, IPV6_ADDRESS_LENGTH);
+            destAddr = (struct sockaddr*) ipv6Addr;
         }
     }
 
     while (socketWriteAttempt < MAX_SOCKET_WRITE_RETRY && bytesWritten < bufLen) {
         /** #sokcet. #YC_TBD. */
+        
         result = sendto(pSocketConnection->localSocket, buf, bufLen, NO_SIGNAL, destAddr, addrLen);
+        DLOGD("socketWriteAttempt:%d, %d", socketWriteAttempt, result);
         if (result < 0) {
             errorNum = errno;
             if (errorNum == EAGAIN || errorNum == EWOULDBLOCK) {
@@ -397,6 +405,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         DLOGD("Warning: Send data failed with 0x%08x", retStatus);
     }
-
+    SHOW_LOG_ERR(retStatus);
+    LEAVES();
     return retStatus;
 }

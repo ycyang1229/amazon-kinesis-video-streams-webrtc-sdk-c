@@ -94,7 +94,7 @@ STATUS serializeTimeDescription(PSdpTimeDescription pSDPTimeDescription, PCHAR* 
 
 STATUS serializeAttribute(PSdpAttributes pSDPAttributes, PCHAR* ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 currentWriteSize = 0;
 
@@ -111,7 +111,7 @@ STATUS serializeAttribute(PSdpAttributes pSDPAttributes, PCHAR* ppOutputData, PU
         *ppOutputData += currentWriteSize;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 

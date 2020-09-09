@@ -66,6 +66,7 @@ typedef struct {
      * since this is from remote, we have to keep it as the maximum. 
      * The spec left this open, so the better way is we keep it open too.
      * #YC_TBD, need to be fixed. 
+     * retrieve remote ice ufrag and pwd for the remote description.
      * */
     CHAR remoteIceUfrag[MAX_ICE_UFRAG_LEN + 1];
     CHAR remoteIcePwd[MAX_ICE_PWD_LEN + 1];

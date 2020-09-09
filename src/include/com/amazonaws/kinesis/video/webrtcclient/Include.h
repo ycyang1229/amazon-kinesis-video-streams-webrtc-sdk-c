@@ -557,7 +557,8 @@ extern "C" {
 /**
  * Default signaling creation timeout
  */
-#define SIGNALING_CREATE_TIMEOUT (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+//#define SIGNALING_CREATE_TIMEOUT (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define SIGNALING_CREATE_TIMEOUT (60 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 /**
  * Default connect sync API timeout

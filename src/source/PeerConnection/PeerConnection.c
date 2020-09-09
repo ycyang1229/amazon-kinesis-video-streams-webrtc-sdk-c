@@ -8,6 +8,7 @@ static volatile ATOMIC_BOOL gKvsWebRtcInitialized = (SIZE_T) FALSE;
 */
 STATUS allocateSrtp(PKvsPeerConnection pKvsPeerConnection)
 {
+    ENTERS();
     /** #memory. */
     DtlsKeyingMaterial dtlsKeyingMaterial;
     STATUS retStatus = STATUS_SUCCESS;
@@ -34,7 +35,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         DLOGW("dtlsSessionPopulateKeyingMaterial failed with 0x%08x", retStatus);
     }
-
+    LEAVES();
     return retStatus;
 }
 
@@ -580,7 +581,7 @@ CleanUp:
 
 STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
-    ENTERS();
+    //ENTERS();
     UNUSED_PARAM(timerId);
     STATUS retStatus = STATUS_SUCCESS;
     BOOL ready = FALSE;
@@ -641,7 +642,7 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
 CleanUp:
     CHK_LOG_ERR(retStatus);
     SAFE_MEMFREE(rawPacket);
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -978,6 +979,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     CHK_STATUS(deserializeSessionDescription(pSessionDescription, pSessionDescriptionInit->sdp));
 
     for (i = 0; i < pSessionDescription->sessionAttributesCount; i++) {
+        //DLOGD("name:%s, attri:%s", pSessionDescription->sdpAttributes[i].attributeName, pSessionDescription->sdpAttributes[i].attributeValue);
         if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "fingerprint") == 0) {
             STRNCPY(pKvsPeerConnection->remoteCertificateFingerprint, pSessionDescription->sdpAttributes[i].attributeValue + 8,
                     CERTIFICATE_FINGERPRINT_LENGTH);
@@ -987,11 +989,13 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     }
 
     for (i = 0; i < pSessionDescription->mediaCount; i++) {
+        //DLOGD("media name:%s", pSessionDescription->mediaDescriptions[i].mediaName);
         if (STRNCMP(pSessionDescription->mediaDescriptions[i].mediaName, "application", SIZEOF("application") - 1) == 0) {
             pKvsPeerConnection->sctpIsEnabled = TRUE;
         }
 
         for (j = 0; j < pSessionDescription->mediaDescriptions[i].mediaAttributesCount; j++) {
+            //DLOGD("media description name:%s, attri:%s", pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue);
             if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "ice-ufrag") == 0) {
                 remoteIceUfrag = pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue;
             } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "ice-pwd") == 0) {
@@ -1017,7 +1021,20 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     /** if the ufrag and pwd of remote ice agent is not null, we need to latch it and restart local ice agent. 
      * #YC_TBD, need to check it.
     */
-    if (!IS_EMPTY_STRING(pKvsPeerConnection->remoteIceUfrag) && !IS_EMPTY_STRING(pKvsPeerConnection->remoteIcePwd) &&
+    if(pKvsPeerConnection->remoteIceUfrag!=NULL){
+        DLOGD("pKvsPeerConnection->remoteIceUfrag: %s", pKvsPeerConnection->remoteIceUfrag);
+    }
+    if(remoteIceUfrag!=NULL){
+        DLOGD("remoteIceUfrag: %s", remoteIceUfrag);
+    }
+    if(pKvsPeerConnection->remoteIcePwd!=NULL){
+        DLOGD("pKvsPeerConnection->remoteIcePwd: %s", pKvsPeerConnection->remoteIcePwd);
+    }
+    if(remoteIcePwd!=NULL){
+        DLOGD("remoteIcePwd: %s", remoteIcePwd);
+    }
+    if (!IS_EMPTY_STRING(pKvsPeerConnection->remoteIceUfrag) && 
+        !IS_EMPTY_STRING(pKvsPeerConnection->remoteIcePwd) &&
         STRNCMP(pKvsPeerConnection->remoteIceUfrag, remoteIceUfrag, MAX_ICE_UFRAG_LEN) != 0 &&
         STRNCMP(pKvsPeerConnection->remoteIcePwd, remoteIcePwd, MAX_ICE_PWD_LEN) != 0) {
         CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIceUfrag, LOCAL_ICE_UFRAG_LEN));
@@ -1037,11 +1054,12 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     }
     CHK_STATUS(setTransceiverPayloadTypes(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pKvsPeerConnection->pTransceievers));
     CHK_STATUS(setReceiversSsrc(pSessionDescription, pKvsPeerConnection->pTransceievers));
-
-    if (NULL != getenv(DEBUG_LOG_SDP)) {
+    #if 0
+    if (NULL != getenv(DEBUG_LOG_SDP)) 
+    {
         DLOGD("REMOTE_SDP:%s\n", pSessionDescriptionInit->sdp);
     }
-
+    #endif
 CleanUp:
 
     LEAVES();
@@ -1080,7 +1098,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief 
+*/
 STATUS createAnswer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionInit pSessionDescriptionInit)
 {
     ENTERS();
@@ -1111,10 +1131,12 @@ STATUS setLocalDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescri
     CHK(pKvsPeerConnection != NULL && pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
 
     CHK_STATUS(iceAgentStartGathering(pKvsPeerConnection->pIceAgent));
-
-    if (NULL != getenv(DEBUG_LOG_SDP)) {
+    #if 0
+    if (NULL != getenv(DEBUG_LOG_SDP)) 
+    {
         DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
     }
+    #endif
 CleanUp:
 
     LEAVES();
