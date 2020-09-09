@@ -129,7 +129,7 @@ extern "C" {
 #define STATUS_SOCKET_SET_SEND_BUFFER_SIZE_FAILED  STATUS_NETWORKING_BASE + 0x00000023
 #define STATUS_GET_SOCKET_FLAG_FAILED              STATUS_NETWORKING_BASE + 0x00000024
 #define STATUS_SET_SOCKET_FLAG_FAILED              STATUS_NETWORKING_BASE + 0x00000025
-#define STATUS_SOCKET_INVALID_ARG              STATUS_NETWORKING_BASE + 0x00000026
+#define STATUS_SOCKET_INVALID_ARG                  STATUS_NETWORKING_BASE + 0x00000026
 /*!@} */
 
 /*===========================================================================================*/
@@ -149,13 +149,15 @@ extern "C" {
 #define STATUS_SSL_UNKNOWN_SRTP_PROFILE                   STATUS_DTLS_BASE + 0x00000006
 #define STATUS_SSL_INVALID_CERTIFICATE_BITS               STATUS_DTLS_BASE + 0x00000007
 #define STATUS_DTLS_NULL_ARG                              STATUS_DTLS_BASE + 0x00000008
-#define STATUS_DTLS_DRBG_SEED_FAILED                           STATUS_DTLS_BASE + 0x00000009
-#define STATUS_DTLS_RSA_GEN_KEY_FAILED                           STATUS_DTLS_BASE + 0x0000000A
-#define STATUS_DTLS_ECP_GEN_KEY_FAILED                           STATUS_DTLS_BASE + 0x0000000B
-#define STATUS_DTLS_MPI_READ_FAILED                           STATUS_DTLS_BASE + 0x0000000C
-#define STATUS_DTLS_GEN_TIME_FAILED                           STATUS_DTLS_BASE + 0x0000000D
-#define STATUS_DTLS_X509_SET_FAILED                           STATUS_DTLS_BASE + 0x0000000E
-
+#define STATUS_DTLS_DRBG_SEED_FAILED                      STATUS_DTLS_BASE + 0x00000009
+#define STATUS_DTLS_RSA_GEN_KEY_FAILED                    STATUS_DTLS_BASE + 0x0000000A
+#define STATUS_DTLS_ECP_GEN_KEY_FAILED                    STATUS_DTLS_BASE + 0x0000000B
+#define STATUS_DTLS_MPI_READ_FAILED                       STATUS_DTLS_BASE + 0x0000000C
+#define STATUS_DTLS_GEN_TIME_FAILED                       STATUS_DTLS_BASE + 0x0000000D
+#define STATUS_DTLS_X509_SET_FAILED                       STATUS_DTLS_BASE + 0x0000000E
+#define STATUS_DTLS_SSL_CTX_SETUP_FAILED                  STATUS_DTLS_BASE + 0x0000000F
+#define STATUS_TLS_SSL_CTX_SETUP_FAILED                   STATUS_DTLS_BASE + 0x00000010
+#define STATUS_TLS_SSL_HANDSHAKE_FAILED                   STATUS_DTLS_BASE + 0x00000011
 /*!@} */
 
 /*===========================================================================================*/
@@ -198,9 +200,9 @@ extern "C" {
 #define STATUS_ICE_NO_AVAILABLE_ICE_CANDIDATE_PAIR                         STATUS_ICE_BASE + 0x00000026
 #define STATUS_TURN_CONNECTION_PEER_NOT_USABLE                             STATUS_ICE_BASE + 0x00000027
 #define STATUS_ICE_SERVER_INDEX_INVALID                                    STATUS_ICE_BASE + 0x00000028
-#define STATUS_ICE_NOT_ENOUGH_MEMORY                                    STATUS_ICE_BASE + 0x00000029
-#define STATUS_ICE_NULL_ARG                                    STATUS_ICE_BASE + 0x0000002A
-
+#define STATUS_ICE_NOT_ENOUGH_MEMORY                                       STATUS_ICE_BASE + 0x00000029
+#define STATUS_ICE_NULL_ARG                                                STATUS_ICE_BASE + 0x0000002A
+#define STATUS_ICE_NULL_NOMINATED_CANDIDATE_PAIR                       STATUS_ICE_BASE + 0x0000002B
 /*!@} */
 
 /*===========================================================================================*/

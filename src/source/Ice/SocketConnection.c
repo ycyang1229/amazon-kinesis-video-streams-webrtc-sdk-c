@@ -326,10 +326,10 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     CHK(buf != NULL && bufLen > 0, STATUS_INVALID_ARG);
 
     if (pDestIp != NULL) {
-        DLOGD("get pDestIp");
+        //DLOGD("get pDestIp");
         /** #IPV4 */
         if (IS_IPV4_ADDR(pDestIp)) {
-            DLOGD("ipv4");
+            //DLOGD("ipv4");
             addrLen = sizeof(struct sockaddr_in);//SIZEOF(ipv4Addr);
             MEMSET(ipv4Addr, 0x00, sizeof(struct sockaddr_in));
             ipv4Addr->sin_family = AF_INET;
@@ -341,7 +341,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
         /** #IPV6 */
         else 
         {
-            DLOGD("ipv6");
+            //DLOGD("ipv6");
             addrLen = sizeof(struct sockaddr_in6);
             MEMSET(ipv6Addr, 0x00, sizeof(struct sockaddr_in6));
             ipv6Addr->sin6_family = AF_INET6;

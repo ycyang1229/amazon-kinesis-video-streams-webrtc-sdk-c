@@ -128,6 +128,7 @@ CleanUp:
 
 INT32 dtlsSessionSendCallback(PVOID customData, const unsigned char* pBuf, ULONG len)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PDtlsSession pDtlsSession = (PDtlsSession) customData;
 
@@ -136,12 +137,13 @@ INT32 dtlsSessionSendCallback(PVOID customData, const unsigned char* pBuf, ULONG
     pDtlsSession->dtlsSessionCallbacks.outboundPacketFn(pDtlsSession->dtlsSessionCallbacks.outBoundPacketFnCustomData, (PBYTE) pBuf, len);
 
 CleanUp:
-
+    LEAVES();
     return STATUS_FAILED(retStatus) ? -retStatus : len;
 }
 
 INT32 dtlsSessionReceiveCallback(PVOID customData, unsigned char* pBuf, ULONG len)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PDtlsSession pDtlsSession = (PDtlsSession) customData;
     PIOBuffer pBuffer;
@@ -156,7 +158,7 @@ INT32 dtlsSessionReceiveCallback(PVOID customData, unsigned char* pBuf, ULONG le
     }
 
 CleanUp:
-
+    LEAVES();
     return STATUS_FAILED(retStatus) ? -retStatus : readBytes;
 }
 
@@ -164,6 +166,7 @@ CleanUp:
 // Reference: https://tls.mbed.org/kb/how-to/dtls-tutorial
 VOID dtlsSessionSetTimerCallback(PVOID customData, UINT32 intermediateDelayInMs, UINT32 finalDelayInMs)
 {
+    ENTERS();
     PDtlsSessionTimer pTimer = (PDtlsSessionTimer) customData;
 
     pTimer->intermediateDelay = intermediateDelayInMs * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
@@ -172,6 +175,7 @@ VOID dtlsSessionSetTimerCallback(PVOID customData, UINT32 intermediateDelayInMs,
     if (finalDelayInMs != 0) {
         pTimer->updatedTime = GETTIME();
     }
+    LEAVES();
 }
 
 // Provide mbedtls timer functionality for retransmission and timeout calculation
@@ -184,6 +188,7 @@ VOID dtlsSessionSetTimerCallback(PVOID customData, UINT32 intermediateDelayInMs,
 //   2: final delay has passed
 INT32 dtlsSessionGetTimerCallback(PVOID customData)
 {
+    ENTERS();
     PDtlsSessionTimer pTimer = (PDtlsSessionTimer) customData;
     UINT64 elapsed = GETTIME() - pTimer->updatedTime;
 
@@ -196,6 +201,7 @@ INT32 dtlsSessionGetTimerCallback(PVOID customData)
     } else {
         return 0;
     }
+    LEAVES();
 }
 /**
  * @brief the callback on the software timer.
@@ -205,9 +211,9 @@ INT32 dtlsSessionGetTimerCallback(PVOID customData)
 */
 STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 customData)
 {
+    ENTERS();
     UNUSED_PARAM(timerID);
     UNUSED_PARAM(currentTime);
-    ENTERS();
     INT32 handshakeStatus;
     STATUS retStatus = STATUS_SUCCESS;
     PDtlsSession pDtlsSession = (PDtlsSession) customData;
@@ -257,6 +263,7 @@ INT32 dtlsSessionKeyDerivationCallback(PVOID customData,
                                        const unsigned char serverRandom[MAX_DTLS_RANDOM_BYTES_LEN],
                                        mbedtls_tls_prf_types tlsProfile)
 {
+    ENTERS();
     UNUSED_PARAM(pKeyBlock);
     UNUSED_PARAM(maclen);
     UNUSED_PARAM(keylen);
@@ -267,6 +274,7 @@ INT32 dtlsSessionKeyDerivationCallback(PVOID customData,
     MEMCPY(pKeys->randBytes, clientRandom, MAX_DTLS_RANDOM_BYTES_LEN);
     MEMCPY(pKeys->randBytes + MAX_DTLS_RANDOM_BYTES_LEN, serverRandom, MAX_DTLS_RANDOM_BYTES_LEN);
     pKeys->tlsProfile = tlsProfile;
+    LEAVES();
     return 0;
 }
 /**
@@ -310,7 +318,7 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     /** Configure extended key export callback. (Default: none.)*/
     mbedtls_ssl_conf_export_keys_ext_cb(&pDtlsSession->sslCtxConfig, dtlsSessionKeyDerivationCallback, pDtlsSession);
 
-    CHK(mbedtls_ssl_setup(&pDtlsSession->sslCtx, &pDtlsSession->sslCtxConfig) == 0, STATUS_SSL_CTX_CREATION_FAILED);
+    CHK(mbedtls_ssl_setup(&pDtlsSession->sslCtx, &pDtlsSession->sslCtxConfig) == 0, STATUS_DTLS_SSL_CTX_SETUP_FAILED);
     mbedtls_ssl_set_mtu(&pDtlsSession->sslCtx, DEFAULT_MTU_SIZE);
     /** Set the underlying BIO callbacks for write, read and read-with-timeout.*/
     mbedtls_ssl_set_bio(&pDtlsSession->sslCtx, pDtlsSession, dtlsSessionSendCallback, dtlsSessionReceiveCallback, NULL);
@@ -586,6 +594,7 @@ CleanUp:
 */
 STATUS dtlsSessionShutdown(PDtlsSession pDtlsSession)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
@@ -608,7 +617,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pDtlsSession->sslLock);
     }
-
+    LEAVES();
     return retStatus;
 }
 

@@ -1453,6 +1453,7 @@ CleanUp:
 
 STATUS iceAgentSendKeepAliveTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
+    ENTERS();
     UNUSED_PARAM(timerId);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
@@ -1489,7 +1490,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
     }
-
+    LEAVES();
     return retStatus;
 }
 
@@ -1951,6 +1952,7 @@ CleanUp:
 
 STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     PIceCandidatePair pIceCandidatePair = NULL, pLastDataSendingIceCandidatePair = NULL;
@@ -2006,8 +2008,12 @@ STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
     }
 
     // schedule sending keep alive
-    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, KVS_ICE_DEFAULT_TIMER_START_DELAY, KVS_ICE_SEND_KEEP_ALIVE_INTERVAL,
-                                  iceAgentSendKeepAliveTimerCallback, (UINT64) pIceAgent, &pIceAgent->keepAliveTimerTask));
+    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
+                                  KVS_ICE_DEFAULT_TIMER_START_DELAY,
+                                  KVS_ICE_SEND_KEEP_ALIVE_INTERVAL,
+                                  iceAgentSendKeepAliveTimerCallback,
+                                  (UINT64) pIceAgent,
+                                  &pIceAgent->keepAliveTimerTask));
 
 CleanUp:
 
@@ -2020,7 +2026,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-
+    LEAVES();
     return retStatus;
 }
 
@@ -2170,7 +2176,7 @@ STATUS iceAgentNominateCandidatePair(PIceAgent pIceAgent)
     }
 
     // should have a nominated pair.
-    CHK(pNominatedCandidatePair != NULL, STATUS_ICE_FAILED_TO_NOMINATE_CANDIDATE_PAIR);
+    CHK(pNominatedCandidatePair != NULL, STATUS_ICE_NULL_NOMINATED_CANDIDATE_PAIR);
 
     pNominatedCandidatePair->nominated = TRUE;
 
@@ -2228,6 +2234,7 @@ CleanUp:
 STATUS incomingRelayedDataHandler(UINT64 customData, PSocketConnection pSocketConnection, PBYTE pBuffer, UINT32 bufferLen, PKvsIpAddress pSrc,
                                   PKvsIpAddress pDest)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidate pRelayedCandidate = (PIceCandidate) customData;
     // this should be more than enough. Usually the number of channel data in each tcp message is around 4
@@ -2245,7 +2252,7 @@ STATUS incomingRelayedDataHandler(UINT64 customData, PSocketConnection pSocketCo
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
-
+    LEAVES();
     return retStatus;
 }
 /**
