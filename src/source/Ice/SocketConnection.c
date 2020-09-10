@@ -161,10 +161,10 @@ CleanUp:
 
 STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf, UINT32 bufLen, PKvsIpAddress pDestIp)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
-
+    //DLOGD("bufLen:%d", bufLen);
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK((pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP || pDestIp != NULL), STATUS_INVALID_ARG);
 
@@ -198,7 +198,7 @@ CleanUp:
         MUTEX_UNLOCK(pSocketConnection->lock);
     }
     SHOW_LOG_ERR(retStatus);
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -308,7 +308,7 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
 
 STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, UINT32 bufLen, PKvsIpAddress pDestIp, PUINT32 pBytesWritten)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     INT32 socketWriteAttempt = 0;
     SSIZE_T result = 0;
@@ -355,7 +355,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
         /** #sokcet. #YC_TBD. */
         
         result = sendto(pSocketConnection->localSocket, buf, bufLen, NO_SIGNAL, destAddr, addrLen);
-        DLOGD("socketWriteAttempt:%d, %d", socketWriteAttempt, result);
+        //DLOGD("socketWriteAttempt:%d, %d", socketWriteAttempt, result);
         if (result < 0) {
             errorNum = errno;
             if (errorNum == EAGAIN || errorNum == EWOULDBLOCK) {
@@ -406,6 +406,6 @@ CleanUp:
         DLOGD("Warning: Send data failed with 0x%08x", retStatus);
     }
     SHOW_LOG_ERR(retStatus);
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }

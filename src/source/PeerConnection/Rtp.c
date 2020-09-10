@@ -203,7 +203,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     UINT64 randomRtpTimeoffset = 0; // TODO: spec requires random rtp time offset
     UINT64 rtpTimestamp = 0;
     UINT64 now = GETTIME();
-
+    DLOGD("%u", now);
     // stats updates
     DOUBLE fps = 0.0;
     UINT32 frames = 0, keyframes = 0, bytesSent = 0, packetsSent = 0, headerBytesSent = 0, framesSent = 0;
@@ -325,6 +325,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
         }
 
         CHK_STATUS(encryptRtpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
+        DLOGD("packetLen:%d ", packetLen);
         sendStatus = iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen);
         if (sendStatus == STATUS_SEND_DATA_FAILED) {
             packetsDiscardedOnSend++;

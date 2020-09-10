@@ -10,7 +10,7 @@ STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc,
                           UINT64 customData,
                           PJitterBuffer* ppJitterBuffer)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PJitterBuffer pJitterBuffer = NULL;
 
@@ -50,13 +50,13 @@ CleanUp:
         *ppJitterBuffer = pJitterBuffer;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS freeJitterBuffer(PJitterBuffer* ppJitterBuffer)
 {
-    ENTERS();
+    //ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     PJitterBuffer pJitterBuffer = NULL;
@@ -75,13 +75,13 @@ STATUS freeJitterBuffer(PJitterBuffer* ppJitterBuffer)
 CleanUp:
     CHK_LOG_ERR(retStatus);
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOOL pPacketDiscarded)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PRtpPacket pCurPacket = NULL;
 
@@ -123,13 +123,13 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS jitterBufferPop(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT16 index;
     UINT16 lastIndex;
@@ -223,13 +223,13 @@ STATUS jitterBufferPop(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
 CleanUp:
     CHK_LOG_ERR(retStatus);
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS jitterBufferDropBufferData(PJitterBuffer pJitterBuffer, UINT16 startIndex, UINT16 endIndex, UINT32 nextTimestamp)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT16 index = startIndex;
     PRtpPacket pCurPacket = NULL;
@@ -248,13 +248,13 @@ STATUS jitterBufferDropBufferData(PJitterBuffer pJitterBuffer, UINT16 startIndex
 CleanUp:
     CHK_LOG_ERR(retStatus);
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS jitterBufferFillFrameData(PJitterBuffer pJitterBuffer, PBYTE pFrame, UINT32 frameSize, PUINT32 pFilledSize, UINT16 startIndex, UINT16 endIndex)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT16 index = startIndex;
     PRtpPacket pCurPacket = NULL;
@@ -278,6 +278,6 @@ CleanUp:
     }
     CHK_LOG_ERR(retStatus);
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }

@@ -345,10 +345,10 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
             pSocketConnection = socketList[i];
             /** remove the closed sockets. */
             if (socketConnectionIsClosed(pSocketConnection)) {
-                DLOGD("isclosed");
+                //DLOGD("isclosed");
                 updateSocketList = TRUE;
             } else {
-                DLOGD("pSocketConnection->localSocket:%x", pSocketConnection->localSocket);
+                //DLOGD("pSocketConnection->localSocket:%x", pSocketConnection->localSocket);
                 FD_SET(pSocketConnection->localSocket, &rfds);
                 nfds = MAX(nfds, pSocketConnection->localSocket);
             }
@@ -367,7 +367,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
         // blocking call
         /** polling. #YC_TBD, */
         retval = select(nfds, &rfds, NULL, NULL, &tv);
-        DLOGD("up");
+        //DLOGD("up");
         if (retval == -1) {
             DLOGE("select() failed with errno %s", strerror(errno));
             continue;
@@ -395,7 +395,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                                        (struct sockaddr*) &srcAddrBuff,
                                        &srcAddrBuffLen);
                     /** #YC_TBD, need to review. */
-                    DLOGD("readLen:%d", readLen);
+                    //DLOGD("readLen:%d", readLen);
                     if (readLen < 0) {
                         switch (errno) {
                             case EWOULDBLOCK:
@@ -403,7 +403,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                             default:
                                 /* on any other error, close connection */
                                 CHK_STATUS(socketConnectionClosed(pSocketConnection));
-                                DLOGD("recvfrom() failed with errno %s for socket %d", strerror(errno), pSocketConnection->localSocket);
+                                //DLOGD("recvfrom() failed with errno %s for socket %d", strerror(errno), pSocketConnection->localSocket);
                                 break;
                         }
 

@@ -70,7 +70,7 @@ CleanUp:
 STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen, BOOL generateMessageIntegrity, BOOL generateFingerprint,
                            PBYTE pBuffer, PUINT32 pSize)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i, encodedLen = 0, packetSize = 0, remaining = 0, crc32, hmacLen;
     UINT16 size;
@@ -510,7 +510,7 @@ CleanUp:
         *pSize = packetSize;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -1062,7 +1062,7 @@ CleanUp:
 
 STATUS freeStunPacket(PStunPacket* ppStunPacket)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(ppStunPacket != NULL, STATUS_NULL_ARG);
@@ -1071,13 +1071,13 @@ STATUS freeStunPacket(PStunPacket* ppStunPacket)
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS createStunPacket(STUN_PACKET_TYPE stunPacketType, PBYTE transactionId, PStunPacket* ppStunPacket)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i;
     PStunPacket pStunPacket = NULL;
@@ -1117,13 +1117,13 @@ CleanUp:
         *ppStunPacket = pStunPacket;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS appendStunAddressAttribute(PStunPacket pStunPacket, STUN_ATTRIBUTE_TYPE addressAttributeType, PKvsIpAddress pAddress)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributeAddress pAttribute = NULL;
     PStunAttributeHeader pAttributeHeader = NULL;
@@ -1150,13 +1150,13 @@ STATUS appendStunAddressAttribute(PStunPacket pStunPacket, STUN_ATTRIBUTE_TYPE a
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS appendStunUsernameAttribute(PStunPacket pStunPacket, PCHAR userName)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributeUsername pAttribute = NULL;
     PStunAttributeHeader pAttributeHeader = NULL;
@@ -1195,7 +1195,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -1254,7 +1254,7 @@ CleanUp:
 
 STATUS appendStunPriorityAttribute(PStunPacket pStunPacket, UINT32 priority)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributePriority pAttribute = NULL;
     PStunAttributeHeader pAttributeHeader = NULL;
@@ -1280,13 +1280,13 @@ STATUS appendStunPriorityAttribute(PStunPacket pStunPacket, UINT32 priority)
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS appendStunFlagAttribute(PStunPacket pStunPacket, STUN_ATTRIBUTE_TYPE attrType)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributeFlag pAttribute = NULL;
     PStunAttributeHeader pAttributeHeader = NULL;
@@ -1308,13 +1308,13 @@ STATUS appendStunFlagAttribute(PStunPacket pStunPacket, STUN_ATTRIBUTE_TYPE attr
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS appendStunLifetimeAttribute(PStunPacket pStunPacket, UINT32 lifetime)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributeLifetime pAttribute = NULL;
     PStunAttributeHeader pAttributeHeader = NULL;
@@ -1340,13 +1340,13 @@ STATUS appendStunLifetimeAttribute(PStunPacket pStunPacket, UINT32 lifetime)
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS appendStunChangeRequestAttribute(PStunPacket pStunPacket, UINT32 changeFlag)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributeChangeRequest pAttribute = NULL;
     PStunAttributeHeader pAttributeHeader = NULL;
@@ -1372,13 +1372,13 @@ STATUS appendStunChangeRequestAttribute(PStunPacket pStunPacket, UINT32 changeFl
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS appendStunRequestedTransportAttribute(PStunPacket pStunPacket, UINT8 protocol)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributeRequestedTransport pAttribute = NULL;
     PStunAttributeHeader pAttributeHeader = NULL;
@@ -1405,13 +1405,13 @@ STATUS appendStunRequestedTransportAttribute(PStunPacket pStunPacket, UINT8 prot
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS appendStunRealmAttribute(PStunPacket pStunPacket, PCHAR realm)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributeRealm pAttribute = NULL;
     PStunAttributeHeader pAttributeHeader = NULL;
@@ -1448,13 +1448,13 @@ STATUS appendStunRealmAttribute(PStunPacket pStunPacket, PCHAR realm)
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS appendStunNonceAttribute(PStunPacket pStunPacket, PBYTE nonce, UINT16 nonceLen)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributeNonce pAttribute = NULL;
     PStunAttributeHeader pAttributeHeader = NULL;
@@ -1490,7 +1490,7 @@ STATUS appendStunNonceAttribute(PStunPacket pStunPacket, PBYTE nonce, UINT16 non
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 

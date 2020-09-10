@@ -122,7 +122,7 @@ CleanUp:
 
 STATUS iceUtilsPackageStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen, PBYTE pBuffer, PUINT32 pBufferLen)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 stunPacketSize = 0;
     BOOL addMessageIntegrity = FALSE;
@@ -142,14 +142,14 @@ STATUS iceUtilsPackageStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen, PKvsIpAddress pDest, PSocketConnection pSocketConnection,
                               PTurnConnection pTurnConnection, BOOL useTurn)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 stunPacketSize = STUN_PACKET_ALLOCATION_SIZE;
     //BYTE stunPacketBuffer[STUN_PACKET_ALLOCATION_SIZE];
@@ -166,14 +166,14 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
     MEMFREE(stunPacketBuffer);
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS iceUtilsSendData(PBYTE buffer, UINT32 size, PKvsIpAddress pDest, PSocketConnection pSocketConnection, PTurnConnection pTurnConnection,
                         BOOL useTurn)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK((pSocketConnection != NULL && !useTurn) || (pTurnConnection != NULL && useTurn), STATUS_INVALID_ARG);
@@ -191,7 +191,7 @@ STATUS iceUtilsSendData(PBYTE buffer, UINT32 size, PKvsIpAddress pDest, PSocketC
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**

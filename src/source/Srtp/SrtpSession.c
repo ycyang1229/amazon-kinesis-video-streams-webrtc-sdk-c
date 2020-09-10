@@ -11,7 +11,7 @@
 */
 STATUS initSrtpSession(PBYTE receiveKey, PBYTE transmitKey, KVS_SRTP_PROFILE profile, PSrtpSession* ppSrtpSession)
 {
-    ENTERS();
+    //ENTERS();
     UNUSED_PARAM(profile);
 
     STATUS retStatus = STATUS_SUCCESS;
@@ -71,13 +71,13 @@ CleanUp:
         freeSrtpSession(&pSrtpSession);
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS freeSrtpSession(PSrtpSession* ppSrtpSession)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     srtp_err_status_t errStatus;
 
@@ -100,7 +100,7 @@ STATUS freeSrtpSession(PSrtpSession* ppSrtpSession)
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -108,7 +108,7 @@ CleanUp:
 */
 STATUS decryptSrtpPacket(PSrtpSession pSrtpSession, PVOID encryptedMessage, PINT32 len)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     srtp_err_status_t errStatus;
     /** #YC_TBD, need to check the error message of libsrtp.*/
@@ -117,7 +117,7 @@ STATUS decryptSrtpPacket(PSrtpSession pSrtpSession, PVOID encryptedMessage, PINT
             "Decrypting rtp packet failed with error code %u on srtp session %" PRIu64, errStatus, pSrtpSession->srtp_receive_session);
 
 CleanUp:
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -125,7 +125,7 @@ CleanUp:
 */
 STATUS decryptSrtcpPacket(PSrtpSession pSrtpSession, PVOID encryptedMessage, PINT32 len)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     srtp_err_status_t errStatus;
 
@@ -134,7 +134,7 @@ STATUS decryptSrtcpPacket(PSrtpSession pSrtpSession, PVOID encryptedMessage, PIN
             "Decrypting rtcp packet failed with error code %u on srtp session %" PRIu64, errStatus, pSrtpSession->srtp_receive_session);
 
 CleanUp:
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -142,7 +142,7 @@ CleanUp:
 */
 STATUS encryptRtpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     srtp_err_status_t status;
 
@@ -152,7 +152,7 @@ STATUS encryptRtpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len)
             pSrtpSession->srtp_transmit_session);
 
 CleanUp:
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -160,7 +160,7 @@ CleanUp:
 */
 STATUS encryptRtcpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     srtp_err_status_t status;
 
@@ -170,6 +170,6 @@ STATUS encryptRtcpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len)
             pSrtpSession->srtp_transmit_session);
 
 CleanUp:
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }

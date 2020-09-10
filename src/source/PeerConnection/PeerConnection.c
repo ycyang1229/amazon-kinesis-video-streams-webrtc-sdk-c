@@ -563,7 +563,7 @@ VOID onDtlsStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE newDtlsState)
  */
 STATUS generateJSONSafeString(PCHAR pDst, UINT32 len)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i = 0;
 
@@ -575,7 +575,7 @@ STATUS generateJSONSafeString(PCHAR pDst, UINT32 len)
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -1168,7 +1168,8 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection,
     DepayRtpPayloadFunc depayFunc;
     UINT32 clockRate = 0;
     UINT32 ssrc = (UINT32) RAND(), rtxSsrc = (UINT32) RAND();
-    RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    //RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
 
     if (pRtcRtpTransceiverInit != NULL) {
         direction = pRtcRtpTransceiverInit->direction;
