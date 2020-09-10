@@ -68,6 +68,8 @@ extern "C" {
 #define STATUS_SDP_VERSION_ERROR                STATUS_SDP_BASE + 0x0000000E
 #define STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED       STATUS_SDP_BASE + 0x0000000F
 #define STATUS_SDP_NULL_ARG                     STATUS_SDP_BASE + 0x00000010
+#define STATUS_SDP_ICE_CANDIDATE_NULL_ARG                     STATUS_SDP_BASE + 0x00000011
+
 /*!@} */
 
 /*===========================================================================================*/
@@ -1789,7 +1791,7 @@ PUBLIC_API PCHAR getNatBehaviorStr(NAT_BEHAVIOR natBehavior);
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
-PUBLIC_API STATUS createSignalingClientSync(PSignalingClientInfo, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider,
+PUBLIC_API STATUS createSignalingClient(PSignalingClientInfo, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider,
                                             PSIGNALING_CLIENT_HANDLE);
 
 /**
@@ -1852,7 +1854,7 @@ PUBLIC_API STATUS signalingClientGetIceConfigInfo(SIGNALING_CLIENT_HANDLE, UINT3
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
-PUBLIC_API STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE);
+PUBLIC_API STATUS signalingClientConnect(SIGNALING_CLIENT_HANDLE);
 
 /**
  * @brief Disconnects the signaling client.

@@ -25,11 +25,11 @@ extern "C" {
  * Ring buffer storing transactionIds
  */
 typedef struct {
-    UINT32 maxTransactionIdsCount;
+    UINT32 maxTransactionIdsCount;//!< the capacity of this buffer.
     UINT32 nextTransactionIdIndex;
     UINT32 earliestTransactionIdIndex;
     UINT32 transactionIdCount;
-    PBYTE transactionIds;
+    PBYTE transactionIds;//!< the buffer pointer.
 } TransactionIdStore, *PTransactionIdStore;
 
 STATUS createTransactionIdStore(UINT32, PTransactionIdStore*);

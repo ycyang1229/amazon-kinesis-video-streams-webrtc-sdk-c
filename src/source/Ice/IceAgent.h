@@ -166,9 +166,12 @@ struct __IceAgent {
     PHashTable requestTimestampDiagnostics;
 
     PDoubleList localCandidates;///< store the local candidate, and we also create the valid socket for local candidates.
-    PDoubleList remoteCandidates;
+    PDoubleList remoteCandidates;//!< store the remote candiate.
     // store PIceCandidatePair which will be immediately checked for connectivity when the timer is fired.
     PStackQueue triggeredCheckQueue;
+    /**
+     * one pair is composed of one local ice candidate and one remote ice candidate.
+    */
     PDoubleList iceCandidatePairs;
 
     PConnectionListener pConnectionListener;

@@ -34,7 +34,7 @@ TEST_F(SignalingApiTest, signalingSendMessage)
 
     // Connect and retry
     expectedStatus = mAccessKeyIdSet ? STATUS_SUCCESS : STATUS_NULL_ARG;
-    EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
+    EXPECT_EQ(expectedStatus, signalingClientConnect(mSignalingClientHandle));
     EXPECT_EQ(expectedStatus, signalingClientSendMessage(mSignalingClientHandle, &signalingMessage));
 
     // Some correlation id
@@ -81,7 +81,7 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     signalingMessage.payloadLen = 0;
     signalingMessage.correlationId[0] = '\0';
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(mSignalingClientHandle));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(mSignalingClientHandle, &signalingMessage));
 
     // Some correlation id
@@ -101,18 +101,18 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     EXPECT_EQ(STATUS_SUCCESS, freeFileCredentialProvider(&pAwsCredentialProvider));
 }
 
-TEST_F(SignalingApiTest, signalingClientConnectSync)
+TEST_F(SignalingApiTest, signalingClientConnect)
 {
     STATUS expectedStatus;
 
     initializeSignalingClient();
-    EXPECT_NE(STATUS_SUCCESS, signalingClientConnectSync(INVALID_SIGNALING_CLIENT_HANDLE_VALUE));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientConnect(INVALID_SIGNALING_CLIENT_HANDLE_VALUE));
     expectedStatus = mAccessKeyIdSet ? STATUS_SUCCESS : STATUS_NULL_ARG;
-    EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
+    EXPECT_EQ(expectedStatus, signalingClientConnect(mSignalingClientHandle));
 
     // Connect again
-    EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
-    EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
+    EXPECT_EQ(expectedStatus, signalingClientConnect(mSignalingClientHandle));
+    EXPECT_EQ(expectedStatus, signalingClientConnect(mSignalingClientHandle));
 
     deinitializeSignalingClient();
 }
@@ -131,7 +131,7 @@ TEST_F(SignalingApiTest, signalingClientDeleteSync)
 
     // Attempt to call a connect should fail
     expectedStatus = mAccessKeyIdSet ? STATUS_INVALID_STREAM_STATE : STATUS_NULL_ARG;
-    EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
+    EXPECT_EQ(expectedStatus, signalingClientConnect(mSignalingClientHandle));
 
     // Attempt to send a message should fail
     SignalingMessage signalingMessage;
@@ -269,7 +269,7 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_NE(0, metrics.signalingClientStats.dpApiCallLatency);
 
     // Connect and get metrics
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(mSignalingClientHandle));
 
     // Await for a little to ensure we get some metrics for the connection duration
     THREAD_SLEEP(200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND);

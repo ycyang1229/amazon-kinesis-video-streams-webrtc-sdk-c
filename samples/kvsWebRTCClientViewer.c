@@ -51,20 +51,22 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     sprintf(pSampleConfiguration->clientInfo.clientId, "%s_%u", SAMPLE_VIEWER_CLIENT_ID, RAND() % MAX_UINT32);
 
-    retStatus = createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
-                                          &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
+    retStatus = createSignalingClient(&pSampleConfiguration->clientInfo, 
+                                          &pSampleConfiguration->channelInfo,
+                                          &pSampleConfiguration->signalingClientCallbacks, 
+                                          pSampleConfiguration->pCredentialProvider,
                                           &pSampleConfiguration->signalingClientHandle);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS Viewer] createSignalingClientSync(): operation returned status code: 0x%08x \n", retStatus);
+        printf("[KVS Viewer] createSignalingClient(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
 
     printf("[KVS Viewer] Signaling client created successfully\n");
 
     // Enable the processing of the messages
-    retStatus = signalingClientConnectSync(pSampleConfiguration->signalingClientHandle);
+    retStatus = signalingClientConnect(pSampleConfiguration->signalingClientHandle);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS Viewer] signalingClientConnectSync(): operation returned status code: 0x%08x \n", retStatus);
+        printf("[KVS Viewer] signalingClientConnect(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
 

@@ -38,6 +38,7 @@ extern "C" {
 #define DEFAULT_TURN_MAX_PEER_COUNT                       32
 
 // all turn channel numbers must be greater than 0x4000 and less than 0x7FFF
+/** #YC_TBD.*/
 #define TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE (UINT16) 0x4000
 
 // 2 byte channel number 2 data byte size

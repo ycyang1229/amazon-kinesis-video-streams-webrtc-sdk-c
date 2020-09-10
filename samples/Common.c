@@ -857,7 +857,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
         // Check if we need to re-create the signaling client on-the-fly
         if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient) &&
             STATUS_SUCCEEDED(freeSignalingClient(&pSampleConfiguration->signalingClientHandle)) &&
-            STATUS_SUCCEEDED(createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
+            STATUS_SUCCEEDED(createSignalingClient(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                                        &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
                                                        &pSampleConfiguration->signalingClientHandle))) {
             // Re-set the variable again
@@ -868,7 +868,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
         if (IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleConfiguration->signalingClientHandle)) {
             CHK_STATUS(signalingClientGetCurrentState(pSampleConfiguration->signalingClientHandle, &signalingClientState));
             if (signalingClientState == SIGNALING_CLIENT_STATE_READY) {
-                UNUSED_PARAM(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
+                UNUSED_PARAM(signalingClientConnect(pSampleConfiguration->signalingClientHandle));
             }
         }
     }

@@ -1102,7 +1102,7 @@ STATUS getIceServerConfig(PSignalingClient pSignalingClient, UINT64 time)
     CHK_STATUS(validateIceConfiguration(pSignalingClient));
 
 CleanUp:
-    SHOW_LOG_ERR(retStatus);
+    CHK_LOG_ERR(retStatus);
     freeLwsCallInfo(&pLwsCallInfo);
     MEMFREE(url);
     MEMFREE(paramsJson);

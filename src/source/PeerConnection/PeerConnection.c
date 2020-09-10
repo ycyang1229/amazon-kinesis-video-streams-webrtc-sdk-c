@@ -821,7 +821,18 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief Set a callback when new Ice collects new local candidate.
+ *
+ * NOTE: When IceAgent is done with collecting candidates,
+ * RtcOnIceCandidate will be called with NULL.
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in] UINT64 User customData that will be passed along when RtcOnIceCandidate is called
+ * @param[in] RtcOnIceCandidate User callback when new local candidate is found
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS peerConnectionOnIceCandidate(PRtcPeerConnection pRtcPeerConnection, UINT64 customData, RtcOnIceCandidate rtcOnIceCandidate)
 {
     ENTERS();
@@ -957,7 +968,17 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief Instructs the RtcPeerConnection to apply
+ * the supplied RtcSessionDescriptionInit as the remote description.
+ *
+ * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-setremotedescription
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in,out] PRtcSessionDescriptionInit IN/RtcSessionDescriptionInit that becomes our new remote description
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionInit pSessionDescriptionInit)
 {
     ENTERS();
@@ -1021,18 +1042,6 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     /** if the ufrag and pwd of remote ice agent is not null, we need to latch it and restart local ice agent. 
      * #YC_TBD, need to check it.
     */
-    if(pKvsPeerConnection->remoteIceUfrag!=NULL){
-        DLOGD("pKvsPeerConnection->remoteIceUfrag: %s", pKvsPeerConnection->remoteIceUfrag);
-    }
-    if(remoteIceUfrag!=NULL){
-        DLOGD("remoteIceUfrag: %s", remoteIceUfrag);
-    }
-    if(pKvsPeerConnection->remoteIcePwd!=NULL){
-        DLOGD("pKvsPeerConnection->remoteIcePwd: %s", pKvsPeerConnection->remoteIcePwd);
-    }
-    if(remoteIcePwd!=NULL){
-        DLOGD("remoteIcePwd: %s", remoteIcePwd);
-    }
     if (!IS_EMPTY_STRING(pKvsPeerConnection->remoteIceUfrag) && 
         !IS_EMPTY_STRING(pKvsPeerConnection->remoteIcePwd) &&
         STRNCMP(pKvsPeerConnection->remoteIceUfrag, remoteIceUfrag, MAX_ICE_UFRAG_LEN) != 0 &&
@@ -1168,8 +1177,8 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection,
     DepayRtpPayloadFunc depayFunc;
     UINT32 clockRate = 0;
     UINT32 ssrc = (UINT32) RAND(), rtxSsrc = (UINT32) RAND();
-    //RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
-    RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+    RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    //RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
 
     if (pRtcRtpTransceiverInit != NULL) {
         direction = pRtcRtpTransceiverInit->direction;
@@ -1269,7 +1278,22 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief Provides a remote candidate to the ICE Agent.
+ *
+ * This method can also be used to indicate the end of remote candidates
+ * when called with an empty string for the candidate member.
+ *
+ * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-addicecandidate
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in] PCHAR New remote ICE candidate to add
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+/**
+ * retrieving the information of ice candidates from wss messages, and adding it into ice agent.
+*/
 STATUS addIceCandidate(PRtcPeerConnection pPeerConnection, PCHAR pIceCandidate)
 {
     ENTERS();

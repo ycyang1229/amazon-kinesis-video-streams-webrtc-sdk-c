@@ -1,22 +1,26 @@
 #define LOG_CLASS "SignalingClient"
 #include "../Include_i.h"
 
-STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo, PSignalingClientCallbacks pCallbacks,
-                                 PAwsCredentialProvider pCredentialProvider, PSIGNALING_CLIENT_HANDLE pSignalingHandle)
+
+STATUS createSignalingClient(PSignalingClientInfo pClientInfo, 
+                                PChannelInfo pChannelInfo, 
+                                PSignalingClientCallbacks pCallbacks,
+                                PAwsCredentialProvider pCredentialProvider, 
+                                PSIGNALING_CLIENT_HANDLE pSignalingHandle)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = NULL;
-    SignalingClientInfoInternal signalingClientInfoInternal;
+    PSignalingClientInfoInternal signalingClientInfoInternal = MEMALLOC(sizeof(SignalingClientInfoInternal));
 
     DLOGI("Creating Signaling Client Sync");
     CHK(pSignalingHandle != NULL && pClientInfo != NULL, STATUS_NULL_ARG);
 
     // Convert the client info to the internal structure with empty values
-    MEMSET(&signalingClientInfoInternal, 0x00, SIZEOF(signalingClientInfoInternal));
-    signalingClientInfoInternal.signalingClientInfo = *pClientInfo;
+    MEMSET(signalingClientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
+    signalingClientInfoInternal->signalingClientInfo = *pClientInfo;
 
-    CHK_STATUS(createSignalingSync(&signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient));
+    CHK_STATUS(createSignaling(signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient));
 
     *pSignalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
 
@@ -25,7 +29,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         freeSignaling(&pSignalingClient);
     }
-
+    MEMFREE(signalingClientInfoInternal);
     LEAVES();
     return retStatus;
 }
@@ -52,7 +56,20 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief Send a message through a Signaling client.
+ *
+ * NOTE: The call will fail if the client is not in the CONNECTED state.
+ * NOTE: This is a synchronous call. It will block and wait for sending the data and await for the ACK from the service.
+ *
+ * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
+ * @param[in] PSignalingMessage Message to send.
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+/**
+ * Basically, we only use this to send offer, answer, and ice candidates.
+*/
 STATUS signalingClientSendMessage(SIGNALING_CLIENT_HANDLE signalingClientHandle, PSignalingMessage pSignalingMessage)
 {
     ENTERS();
@@ -70,7 +87,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
+STATUS signalingClientConnect(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -78,7 +95,7 @@ STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 
     DLOGI("Signaling Client Connect Sync");
 
-    CHK_STATUS(signalingConnectSync(pSignalingClient));
+    CHK_STATUS(signalingConnect(pSignalingClient));
 
 CleanUp:
 

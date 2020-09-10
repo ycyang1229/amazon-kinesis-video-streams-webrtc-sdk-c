@@ -313,13 +313,13 @@ typedef struct {
 #define TO_SIGNALING_CLIENT_HANDLE(p)   ((SIGNALING_CLIENT_HANDLE)(p))
 #define FROM_SIGNALING_CLIENT_HANDLE(h) (IS_VALID_SIGNALING_CLIENT_HANDLE(h) ? (PSignalingClient)(h) : NULL)
 
-STATUS createSignalingSync(PSignalingClientInfoInternal, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
+STATUS createSignaling(PSignalingClientInfoInternal, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
 STATUS freeSignaling(PSignalingClient*);
 
 STATUS signalingSendMessage(PSignalingClient, PSignalingMessage);
 STATUS signalingGetIceConfigInfoCout(PSignalingClient, PUINT32);
 STATUS signalingGetIceConfigInfo(PSignalingClient, UINT32, PIceConfigInfo*);
-STATUS signalingConnectSync(PSignalingClient);
+STATUS signalingConnect(PSignalingClient);
 STATUS signalingDisconnect(PSignalingClient);
 STATUS signalingDeleteSync(PSignalingClient);
 

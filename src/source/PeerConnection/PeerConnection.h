@@ -99,6 +99,9 @@ typedef struct {
     RtcOnDataChannel onDataChannel;
 
     UINT64 onIceCandidateCustomData;
+    /**
+     * https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-onicecandidate
+    */
     RtcOnIceCandidate onIceCandidate;
 
     UINT64 onConnectionStateChangeCustomData;

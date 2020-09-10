@@ -4,6 +4,23 @@
 #define LOG_CLASS "SocketConnection"
 #include "../Include_i.h"
 
+
+/**
+ * Create a SocketConnection object and store it in PSocketConnection. creates a socket based on KVS_SOCKET_PROTOCOL
+ * specified, and bind it to the host ip address. If the protocol is tcp, then peer ip address is required and it will
+ * try to establish the tcp connection.
+ *
+ * @param - KVS_IP_FAMILY_TYPE - IN - Family for the socket. Must be one of KVS_IP_FAMILY_TYPE
+ * @param - KVS_SOCKET_PROTOCOL - IN - socket protocol. TCP or UDP
+ * @param - PKvsIpAddress - IN - host ip address to bind to (OPTIONAL)
+ * @param - PKvsIpAddress - IN - peer ip address to connect in case of TCP (OPTIONAL)
+ * @param - UINT64 - IN - data available callback custom data
+ * @param - ConnectionDataAvailableFunc - IN - data available callback (OPTIONAL)
+ * @param - UINT32 - IN - send buffer size in bytes
+ * @param - PSocketConnection* - OUT - the resulting SocketConnection struct
+ *
+ * @return - STATUS - status of execution
+ */
 STATUS createSocketConnection(KVS_IP_FAMILY_TYPE familyType, 
                               KVS_SOCKET_PROTOCOL protocol, 
                               PKvsIpAddress pBindAddr, 
@@ -197,7 +214,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pSocketConnection->lock);
     }
-    SHOW_LOG_ERR(retStatus);
+    CHK_LOG_ERR(retStatus);
     //LEAVES();
     return retStatus;
 }
@@ -405,7 +422,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         DLOGD("Warning: Send data failed with 0x%08x", retStatus);
     }
-    SHOW_LOG_ERR(retStatus);
+    CHK_LOG_ERR(retStatus);
     //LEAVES();
     return retStatus;
 }

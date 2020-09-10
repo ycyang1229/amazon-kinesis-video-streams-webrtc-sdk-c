@@ -4,6 +4,11 @@
 #define LOG_CLASS "IceUtils"
 #include "../Include_i.h"
 
+/**
+ * @brief ring buffer for storing transactions.
+ * @param[in]
+ * @param[out]
+*/
 STATUS createTransactionIdStore(UINT32 maxIdCount, PTransactionIdStore* ppTransactionIdStore)
 {
     ENTERS();

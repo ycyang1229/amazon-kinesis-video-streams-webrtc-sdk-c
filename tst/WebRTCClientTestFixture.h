@@ -106,7 +106,7 @@ class WebRtcClientTestBase : public ::testing::Test {
             channelInfo.pRegion = (PCHAR) TEST_DEFAULT_REGION;
         }
 
-        retStatus = createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
+        retStatus = createSignalingClient(&clientInfo, &channelInfo, &signalingClientCallbacks,
                                               pCredentialProvider != NULL ? pCredentialProvider : mTestCredentialProvider, &mSignalingClientHandle);
 
         if (mAccessKeyIdSet) {

@@ -414,18 +414,18 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     strcpy(pSampleConfiguration->clientInfo.clientId, SAMPLE_MASTER_CLIENT_ID);
 
-    retStatus = createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
+    retStatus = createSignalingClient(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                           &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
                                           &pSampleConfiguration->signalingClientHandle);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS GStreamer Master] createSignalingClientSync(): operation returned status code: 0x%08x \n", retStatus);
+        printf("[KVS GStreamer Master] createSignalingClient(): operation returned status code: 0x%08x \n", retStatus);
     }
     printf("[KVS GStreamer Master] Signaling client created successfully\n");
 
     // Enable the processing of the messages
-    retStatus = signalingClientConnectSync(pSampleConfiguration->signalingClientHandle);
+    retStatus = signalingClientConnect(pSampleConfiguration->signalingClientHandle);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS GStreamer Master] signalingClientConnectSync(): operation returned status code: 0x%08x \n", retStatus);
+        printf("[KVS GStreamer Master] signalingClientConnect(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
     printf("[KVS GStreamer Master] Signaling client connection to socket established\n");

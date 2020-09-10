@@ -302,6 +302,7 @@ STATUS iceAgentReportNewLocalCandidate(PIceAgent pIceAgent, PIceCandidate pIceCa
     CHK_WARN(!ATOMIC_LOAD_BOOL(&pIceAgent->candidateGatheringFinished), retStatus,
              "Cannot report new ice candidate because candidate gathering is already finished");
     CHK_STATUS(iceCandidateSerialize(pIceCandidate, serializedIceCandidateBuf, &serializedIceCandidateBufLen));
+
     pIceAgent->iceAgentCallbacks.newLocalCandidateFn(pIceAgent->iceAgentCallbacks.customData, serializedIceCandidateBuf);
 
 CleanUp:
@@ -311,7 +312,19 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * if PIceCandidate doesnt exist already in remoteCandidates, create a copy and add to remoteCandidates
+ *
+ * @param - PIceAgent - IN - IceAgent object
+ * @param - PIceCandidate - IN - new remote candidate to add
+ *
+ * @return - STATUS - status of execution
+ */
+/**
+ * based on the code flow, 
+ * there are two way to retrieve the information of remote ice candidate, one is from remote description, another is from wss messages.
+ * 
+*/
 STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString)
 {
     ENTERS();
@@ -322,14 +335,16 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     UINT32 tokenLen, portValue, remoteCandidateCount, len;
     BOOL freeIceCandidateIfFail = TRUE;
     BOOL foundIp = FALSE, foundPort = FALSE;
+    /** #memory, #ip */
     CHAR ipBuf[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
     KvsIpAddress candidateIpAddr;
     PDoubleListNode pCurNode = NULL;
 
     CHK(pIceAgent != NULL && pIceCandidateString != NULL, STATUS_NULL_ARG);
     CHK(!IS_EMPTY_STRING(pIceCandidateString), STATUS_INVALID_ARG);
+
     if(pIceCandidateString!=NULL){
-        printf("%s\n", pIceCandidateString);
+        //printf("%s\n", pIceCandidateString);
         DLOGD("%s\n", pIceCandidateString);
     }
     MEMSET(&candidateIpAddr, 0x00, SIZEOF(KvsIpAddress));
@@ -358,11 +373,13 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
      * the raddr and rport are set to 0.0.0.0 and 0 respectively in order to avoid information leaks when iceTransports is set to relay
      * the generation is 0. This is a Jingle extension of vanilla ICE that allows detecting ice restarts
      * 
+     * #YC_TBD, this is one temp solution here.
     */
     BOOL protocol = FALSE;
     BOOL priority = FALSE;
     while ((next = STRNCHR(curr, tail - curr, ' ')) != NULL && !(foundIp && foundPort)) {
         tokenLen = (UINT32)(next - curr);
+        /** #tcp. */
         CHK(STRNCMPI("tcp", curr, tokenLen) != 0, STATUS_ICE_CANDIDATE_STRING_IS_TCP);
 
         if(!protocol){
@@ -379,7 +396,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
         }
         /** find port. */
         if (foundIp) {
-            DLOGD("found port:%d, %s", tokenLen, curr);
+            //DLOGD("found port:%d, %s", tokenLen, curr);
             CHK_STATUS(STRTOUI32(curr, curr + tokenLen, 10, &portValue));
 
             candidateIpAddr.port = htons(portValue);
@@ -388,11 +405,11 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
         /** find ip */
         else
         {
-            DLOGD("found ip:%d, %s", tokenLen, curr);
+            //DLOGD("found ip:%d, %s", tokenLen, curr);
             len = MIN(next - curr, KVS_IP_ADDRESS_STRING_BUFFER_LEN - 1);
             STRNCPY(ipBuf, curr, len);
             ipBuf[len] = '\0';
-            DLOGD("ipBuf: %s", ipBuf);
+            //DLOGD("ipBuf: %s", ipBuf);
             if ((foundIp = inet_pton(AF_INET, ipBuf, candidateIpAddr.address) == 1 ? TRUE : FALSE)) {
                 candidateIpAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
             } else if ((foundIp = inet_pton(AF_INET6, ipBuf, candidateIpAddr.address) == 1 ? TRUE : FALSE)) {
@@ -407,9 +424,11 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     CHK(foundIp, STATUS_ICE_CANDIDATE_STRING_MISSING_IP);
 
     CHK_STATUS(findCandidateWithIp(&candidateIpAddr, pIceAgent->remoteCandidates, &pDuplicatedIceCandidate));
+    /** if it is one duplicate ice candidate, we do not do anything. */
     CHK(pDuplicatedIceCandidate == NULL, retStatus);
-
+    /** #memory. */
     CHK((pIceCandidate = MEMCALLOC(1, SIZEOF(IceCandidate))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    /** generate the id randomly. */
     generateJSONSafeString(pIceCandidate->id, ARRAY_SIZE(pIceCandidate->id));
     pIceCandidate->isRemote = TRUE;
     pIceCandidate->ipAddress = candidateIpAddr;
@@ -422,6 +441,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     iceAgentLogNewCandidate(pIceCandidate);
 
     /* pass remote candidate to each turnConnection */
+    /** #turn. */
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->localCandidates, &pCurNode));
     while (pCurNode != NULL) {
         pLocalIceCandidate = (PIceCandidate) pCurNode->data;
@@ -612,7 +632,7 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
     CHK_STATUS(connectionListenerStart(pIceAgent->pConnectionListener));
 
     pIceAgent->candidateGatheringEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceLocalCandidateGatheringTimeout;
-
+    /** this is one one-shot timer. #periodic */
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
                                   KVS_ICE_DEFAULT_TIMER_START_DELAY,
                                   KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL,
@@ -1024,6 +1044,13 @@ CleanUp:
 /*
  * Need to acquire pIceAgent->lock first
  */
+/**
+ * @brief base on the given ice candidate(local or remote), create every combination of existed candidates(remote or local)
+ * 
+ * @param[in] pIceAgent
+ * @param[in] pIceCandidate
+ * @param[in] isRemoteCandidate remote or local
+*/
 STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate, BOOL isRemoteCandidate)
 {
     ENTERS();
@@ -1051,9 +1078,12 @@ STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate,
 
         // https://tools.ietf.org/html/rfc8445#section-6.1.2.2
         // pair local and remote candidates with the same family
+        /**
+         * ipv4 or ipv6.
+        */
         if (pCurrentIceCandidate->state == ICE_CANDIDATE_STATE_VALID && 
             pCurrentIceCandidate->ipAddress.family == pIceCandidate->ipAddress.family) {
-
+            /** #memory. */
             pIceCandidatePair = (PIceCandidatePair) MEMCALLOC(1, SIZEOF(IceCandidatePair));
             CHK(pIceCandidatePair != NULL, STATUS_ICE_NOT_ENOUGH_MEMORY);
 
@@ -1116,7 +1146,13 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief insert one ice candidate pair into the ice agent.
+ *        insert new candidate pair ordered by priority from max to min.
+ * 
+ * @param[in] the list of ice agent.
+ * @param[in] the ice candidate pair are going to be stored into the  list of ice agent.
+*/
 STATUS insertIceCandidatePair(PDoubleList iceCandidatePairs, PIceCandidatePair pIceCandidatePair)
 {
     ENTERS();
@@ -1494,11 +1530,15 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief this is one callback for one-shot timer, and it will re-trigger itself everytime.
+ * #timer
+*/
 STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerId);
     STATUS retStatus = STATUS_SUCCESS;
+    /** #memory. */
     IceCandidate newLocalCandidates[KVS_ICE_MAX_NEW_LOCAL_CANDIDATES_TO_REPORT_AT_ONCE];
     UINT32 newLocalCandidateCount = 0;
     PIceAgent pIceAgent = (PIceAgent) customData;
@@ -1804,6 +1844,7 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
 
     /* add existing remote candidates to turn. Need to acquire lock because remoteCandidates can be mutated by
      * iceAgentAddRemoteCandidate calls. */
+    /** #turn. */
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->remoteCandidates, &pCurNode));
     while (pCurNode != NULL) {
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
@@ -1821,7 +1862,7 @@ STATUS iceAgentInitRelayCandidate(PIceAgent pIceAgent, UINT32 iceServerIndex, KV
 
     MUTEX_UNLOCK(pIceAgent->lock);
     locked = FALSE;
-
+    /** #turn. */
     CHK_STATUS(turnConnectionStart(pTurnConnection));
 
 CleanUp:
@@ -2231,8 +2272,21 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
-STATUS incomingRelayedDataHandler(UINT64 customData, PSocketConnection pSocketConnection, PBYTE pBuffer, UINT32 bufferLen, PKvsIpAddress pSrc,
+/**
+ * @brief the callback of turn socket connection.
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+*/
+STATUS incomingRelayedDataHandler(UINT64 customData,
+                                  PSocketConnection pSocketConnection,
+                                  PBYTE pBuffer,
+                                  UINT32 bufferLen,
+                                  PKvsIpAddress pSrc,
                                   PKvsIpAddress pDest)
 {
     ENTERS();
@@ -2588,7 +2642,9 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief #stat.
+*/
 VOID iceAgentLogNewCandidate(PIceCandidate pIceCandidate)
 {
     CHAR ipAddr[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
@@ -2596,10 +2652,12 @@ VOID iceAgentLogNewCandidate(PIceCandidate pIceCandidate)
 
     if (pIceCandidate != NULL) {
         getIpAddrStr(&pIceCandidate->ipAddress, ipAddr, ARRAY_SIZE(ipAddr));
-        if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && pIceCandidate->pTurnConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
+        if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && 
+            pIceCandidate->pTurnConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
             protocol = "TCP";
         }
-        DLOGD("New %s ice candidate discovered. Id: %s. Ip: %s:%u. Type: %s. Protocol: %s.", pIceCandidate->isRemote ? "remote" : "local",
+        DLOGD("New %s ice candidate discovered. Id: %s. Ip: %s:%u. Type: %s. Protocol: %s.", 
+              pIceCandidate->isRemote ? "remote" : "local",
               pIceCandidate->id, ipAddr, (UINT16) getInt16(pIceCandidate->ipAddress.port),
               iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType), protocol);
     }

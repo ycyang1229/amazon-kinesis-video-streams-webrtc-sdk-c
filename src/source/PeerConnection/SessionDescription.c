@@ -816,7 +816,15 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+/**
+ * @brief Parses a JSON string and populates a PRtcIceCandidateInit
 
+ * @param[in] PCHAR JSON String of a PRtcIceCandidateInit
+ * @param[in] UINT32 Length of JSON String
+ * @param[out] PRtcIceCandidateInit PRtcIceCandidateInit populated from JSON String
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS deserializeRtcIceCandidateInit(PCHAR pJson, UINT32 jsonLen, PRtcIceCandidateInit pRtcIceCandidateInit)
 {
     ENTERS();
@@ -827,11 +835,15 @@ STATUS deserializeRtcIceCandidateInit(PCHAR pJson, UINT32 jsonLen, PRtcIceCandid
     INT8 i;
     INT32 tokenCount;
 
-    CHK(pRtcIceCandidateInit != NULL && pJson != NULL, STATUS_SDP_NULL_ARG);
+    CHK(pRtcIceCandidateInit != NULL && pJson != NULL, STATUS_SDP_ICE_CANDIDATE_NULL_ARG);
     MEMSET(pRtcIceCandidateInit->candidate, 0x00, MAX_ICE_CANDIDATE_INIT_CANDIDATE_LEN + 1);
 
     jsmn_init(&parser);
-
+    /**
+     * {"candidate":"candidate:0 1 udp 2130706431 192.168.193.201 50271 typ host raddr 0.0.0.0 rport 0 generation 0 network-cost 999",
+     *  "sdpMid":"0",
+     *  "sdpMLineIndex":0}
+    */
     tokenCount = jsmn_parse(&parser, pJson, jsonLen, tokens, MAX_JSON_TOKEN_COUNT*sizeof(jsmntok_t));
     CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
     CHK(tokens[0].type == JSMN_OBJECT, STATUS_ICE_CANDIDATE_INIT_MALFORMED);

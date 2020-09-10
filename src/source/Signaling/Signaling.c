@@ -4,24 +4,30 @@
 extern StateMachineState SIGNALING_STATE_MACHINE_STATES[];
 extern UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT;
 
-STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInfo pChannelInfo, PSignalingClientCallbacks pCallbacks,
-                           PAwsCredentialProvider pCredentialProvider, PSignalingClient* ppSignalingClient)
+STATUS createSignaling(PSignalingClientInfoInternal pClientInfo,
+                        PChannelInfo pChannelInfo,
+                        PSignalingClientCallbacks pCallbacks,
+                        PAwsCredentialProvider pCredentialProvider,
+                        PSignalingClient* ppSignalingClient)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = NULL;
     PCHAR userLogLevelStr = NULL;
     UINT32 userLogLevel;
+    /** #memory. */
     struct lws_context_creation_info creationInfo;
     PStateMachineState pStateMachineState;
     BOOL cacheFound = FALSE;
-    SignalingFileCacheEntry fileCacheEntry;
+    /** #memory. */
+    PSignalingFileCacheEntry fileCacheEntry = MEMALLOC(sizeof(SignalingFileCacheEntry));
+
     CHK(pClientInfo != NULL && pChannelInfo != NULL && pCallbacks != NULL && pCredentialProvider != NULL && ppSignalingClient != NULL,
         STATUS_NULL_ARG);
     CHK(pChannelInfo->version <= CHANNEL_INFO_CURRENT_VERSION, STATUS_SIGNALING_INVALID_CHANNEL_INFO_VERSION);
 
     // Allocate enough storage
-    uint32_t num = (uint32_t)sizeof(SignalingClient);
+    /** #memory. */
     CHK(NULL != (pSignalingClient = (PSignalingClient) MEMCALLOC(1, SIZEOF(SignalingClient))), STATUS_NOT_ENOUGH_MEMORY);
 
     // Initialize the listener and restarter thread trackers
@@ -43,14 +49,17 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
         // Signaling channel name can be NULL in case of pre-created channels in which case we use ARN as the name
         if (STATUS_FAILED(signalingCacheLoadFromFile(pChannelInfo->pChannelName != NULL ? pChannelInfo->pChannelName : pChannelInfo->pChannelArn,
-                                                     pChannelInfo->pRegion, pChannelInfo->channelRoleType, &fileCacheEntry, &cacheFound))) {
+                                                     pChannelInfo->pRegion,
+                                                     pChannelInfo->channelRoleType,
+                                                     fileCacheEntry,
+                                                     &cacheFound))) {
             DLOGW("Failed to load signaling cache from file");
         } else if (cacheFound) {
-            STRCPY(pSignalingClient->channelDescription.channelArn, fileCacheEntry.channelArn);
-            STRCPY(pSignalingClient->channelEndpointHttps, fileCacheEntry.httpsEndpoint);
-            STRCPY(pSignalingClient->channelEndpointWss, fileCacheEntry.wssEndpoint);
-            pSignalingClient->describeTime = fileCacheEntry.creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
-            pSignalingClient->getEndpointTime = fileCacheEntry.creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
+            STRCPY(pSignalingClient->channelDescription.channelArn, fileCacheEntry->channelArn);
+            STRCPY(pSignalingClient->channelEndpointHttps, fileCacheEntry->httpsEndpoint);
+            STRCPY(pSignalingClient->channelEndpointWss, fileCacheEntry->wssEndpoint);
+            pSignalingClient->describeTime = fileCacheEntry->creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
+            pSignalingClient->getEndpointTime = fileCacheEntry->creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
         }
     }
 
@@ -67,9 +76,12 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
     pSignalingClient->pCredentialProvider = pCredentialProvider;
 
     // Create the state machine
-    CHK_STATUS(createStateMachine(SIGNALING_STATE_MACHINE_STATES, SIGNALING_STATE_MACHINE_STATE_COUNT,
-                                  CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient), signalingGetCurrentTime,
-                                  CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient), &pSignalingClient->pStateMachine));
+    CHK_STATUS(createStateMachine(SIGNALING_STATE_MACHINE_STATES,
+                                  SIGNALING_STATE_MACHINE_STATE_COUNT,
+                                  CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient),
+                                  signalingGetCurrentTime,
+                                  CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient),
+                                  &pSignalingClient->pStateMachine));
 
     // Prepare the signaling channel protocols array
     pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS].name = HTTPS_SCHEME_NAME;
@@ -176,7 +188,7 @@ CleanUp:
     if (ppSignalingClient != NULL) {
         *ppSignalingClient = pSignalingClient;
     }
-
+    MEMFREE(fileCacheEntry);
     LEAVES();
     return retStatus;
 }
@@ -420,7 +432,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingConnectSync(PSignalingClient pSignalingClient)
+STATUS signalingConnect(PSignalingClient pSignalingClient)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -669,7 +681,12 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief 
+ * 
+ * @param[in]
+ * @param[in]
+*/
 STATUS signalingStoreMessage(PSignalingClient pSignalingClient, PSignalingMessage pSignalingMessage)
 {
     ENTERS();

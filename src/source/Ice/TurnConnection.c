@@ -607,7 +607,12 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief 
+ * 
+ * @param[in]
+ * @param[in]
+*/
 STATUS turnConnectionAddPeer(PTurnConnection pTurnConnection, PKvsIpAddress pPeerAddress)
 {
     ENTERS();
@@ -731,7 +736,11 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief start the turn connection.
+ * 
+ * @param[]
+*/
 STATUS turnConnectionStart(PTurnConnection pTurnConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -755,8 +764,13 @@ STATUS turnConnectionStart(PTurnConnection pTurnConnection)
     }
 
     /* schedule the timer, which will drive the state machine. */
-    CHK_STATUS(timerQueueAddTimer(pTurnConnection->timerQueueHandle, KVS_ICE_DEFAULT_TIMER_START_DELAY, pTurnConnection->currentTimerCallingPeriod,
-                                  turnConnectionTimerCallback, (UINT64) pTurnConnection, (PUINT32) &timerCallbackId));
+    /** #timer. */
+    CHK_STATUS(timerQueueAddTimer(pTurnConnection->timerQueueHandle,
+                                  KVS_ICE_DEFAULT_TIMER_START_DELAY,
+                                  pTurnConnection->currentTimerCallingPeriod,
+                                  turnConnectionTimerCallback,
+                                  (UINT64) pTurnConnection,
+                                  (PUINT32) &timerCallbackId));
 
     ATOMIC_STORE(&pTurnConnection->timerCallbackId, timerCallbackId);
 
@@ -1211,7 +1225,13 @@ BOOL turnConnectionGetRelayAddress(PTurnConnection pTurnConnection, PKvsIpAddres
 
     return FALSE;
 }
-
+/**
+ * @brief the callback of turn connection timer.
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+*/
 STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerId);
