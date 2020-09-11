@@ -4,6 +4,16 @@
 #define LOG_CLASS "Network"
 #include "../Include_i.h"
 
+/**
+ * @param - PKvsIpAddress - IN/OUT - array for getLocalhostIpAddresses to store any local ips it found. The ip address and port
+ *                                   will be in network byte order.
+ * @param - UINT32 - IN/OUT - length of the array, upon return it will be updated to the actual number of ips in the array
+ *
+ *@param - IceSetInterfaceFilterFunc - IN - set to custom interface filter callback
+ *
+ *@param - UINT64 - IN - Set to custom data that can be used in the callback later
+ * @return - STATUS status of execution
+ */
 STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen, IceSetInterfaceFilterFunc filter, UINT64 customData)
 {
     ENTERS();

@@ -104,7 +104,37 @@ CleanUp:
     return retStatus;
 }
 /**
- * the decryption of srtp packets.
+ * @brief the decryption of srtp packets.
+ *          https://tools.ietf.org/html/rfc3711#section-3.1
+ * 
+ *    0                   1                   2                   3
+ *    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+<+
+ *   |V=2|P|X|  CC   |M|     PT      |       sequence number         | |
+ *   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
+ *   |                           timestamp                           | |
+ *   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
+ *   |           synchronization source (SSRC) identifier            | |
+ *   +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ |
+ *   |            contributing source (CSRC) identifiers             | |
+ *   |                               ....                            | |
+ *   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
+ *   |                   RTP extension (OPTIONAL)                    | |
+ * +>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
+ * | |                          payload  ...                         | |
+ * | |                               +-------------------------------+ |
+ * | |                               | RTP padding   | RTP pad count | |
+ * +>+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+<+
+ * | ~                     SRTP MKI (OPTIONAL)                       ~ |
+ * | +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
+ * | :                 authentication tag (RECOMMENDED)              : |
+ * | +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
+ * |                                                                   |
+ * +- Encrypted Portion*                      Authenticated Portion ---+
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
 */
 STATUS decryptSrtpPacket(PSrtpSession pSrtpSession, PVOID encryptedMessage, PINT32 len)
 {

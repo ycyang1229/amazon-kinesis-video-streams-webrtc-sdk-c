@@ -2,6 +2,14 @@
 
 #include "../Include_i.h"
 
+/**
+ * @brief create the jitter buffer, setup the callback of frameready, framedrop, and depayRTPPayload.
+ * 
+ * @param[in] onFrameReadyFunc
+ * @param[in] onFrameDroppedFunc
+ * @param[in] depayRtpPayloadFunc
+ * 
+*/
 STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc,
                           FrameDroppedFunc onFrameDroppedFunc,
                           DepayRtpPayloadFunc depayRtpPayloadFunc,
@@ -16,6 +24,7 @@ STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc,
 
     CHK(ppJitterBuffer != NULL && onFrameReadyFunc != NULL && onFrameDroppedFunc != NULL && depayRtpPayloadFunc != NULL, STATUS_NULL_ARG);
     CHK(clockRate != 0, STATUS_INVALID_ARG);
+
     /** #memory. */
     pJitterBuffer = (PJitterBuffer) MEMALLOC(SIZEOF(JitterBuffer));
     CHK(pJitterBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY);
@@ -53,7 +62,11 @@ CleanUp:
     //LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief free the jitter buffer, and set the buffer pointer as null.
+ * 
+ * @param[in/out] the buffer pointer.
+*/
 STATUS freeJitterBuffer(PJitterBuffer* ppJitterBuffer)
 {
     //ENTERS();
@@ -78,7 +91,13 @@ CleanUp:
     //LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief push the packet into jitter buffer.
+ * 
+ * @param[in]
+ * @param[in]
+ * @param[out] pPacketDiscarded the flag indicates the packet is dropped or not.
+*/
 STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOOL pPacketDiscarded)
 {
     //ENTERS();
@@ -94,7 +113,7 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOO
         pJitterBuffer->started = TRUE;
         pJitterBuffer->lastRemovedSequenceNumber = UINT16_DEC(pRtpPacket->header.sequenceNumber);
     }
-
+    /** update the timestap */
     if (pJitterBuffer->lastPushTimestamp < pRtpPacket->header.timestamp) {
         pJitterBuffer->lastPushTimestamp = pRtpPacket->header.timestamp;
     }
@@ -102,12 +121,14 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOO
     if ((pRtpPacket->header.timestamp < pJitterBuffer->maxLatency && pJitterBuffer->lastPushTimestamp <= pJitterBuffer->maxLatency) ||
         pRtpPacket->header.timestamp >= pJitterBuffer->lastPushTimestamp - pJitterBuffer->maxLatency) {
         pCurPacket = pJitterBuffer->pktBuffer[pRtpPacket->header.sequenceNumber];
+        /** error handler, free the previous packet with the same sequence number. */
         if (pCurPacket != NULL) {
             freeRtpPacket(&pCurPacket);
             pJitterBuffer->pktBuffer[pRtpPacket->header.sequenceNumber] = NULL;
         }
         pJitterBuffer->pktBuffer[pRtpPacket->header.sequenceNumber] = pRtpPacket;
         pJitterBuffer->lastPopTimestamp = MIN(pJitterBuffer->lastPopTimestamp, pRtpPacket->header.timestamp);
+
         DLOGS("jitterBufferPush get packet timestamp %lu seqNum %lu", pRtpPacket->header.timestamp, pRtpPacket->header.sequenceNumber);
     } else {
         // Free the packet if it is out of range, jitter buffer need to own the packet and do free
@@ -126,7 +147,12 @@ CleanUp:
     //LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief pop the packet out of jitter buffer.
+ * 
+ * @param[]
+ * @param[in] bufferClosed
+*/
 STATUS jitterBufferPop(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
 {
     //ENTERS();
@@ -142,8 +168,10 @@ STATUS jitterBufferPop(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
     BOOL isStart = FALSE, containStartForEarliestFrame = FALSE;
     UINT16 lastNonNullIndex = 0;
 
-    CHK(pJitterBuffer != NULL && pJitterBuffer->pktBuffer != NULL && pJitterBuffer->onFrameDroppedFn != NULL && pJitterBuffer->onFrameReadyFn != NULL,
-        STATUS_NULL_ARG);
+    CHK(pJitterBuffer != NULL &&
+        pJitterBuffer->pktBuffer != NULL &&
+        pJitterBuffer->onFrameDroppedFn != NULL &&
+        pJitterBuffer->onFrameReadyFn != NULL, STATUS_NULL_ARG);
     CHK(pJitterBuffer->lastPushTimestamp != 0, retStatus);
 
     if (pJitterBuffer->lastPushTimestamp > pJitterBuffer->maxLatency) {
@@ -154,13 +182,21 @@ STATUS jitterBufferPop(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
     index = pJitterBuffer->lastRemovedSequenceNumber + 1;
     startDropIndex = index;
     for (; index != lastIndex; index++) {
+        /** empty packet. */
         if (pJitterBuffer->pktBuffer[index] == NULL) {
             isFrameDataContinuous = FALSE;
             CHK(pJitterBuffer->lastPopTimestamp < earliestTimestamp || bufferClosed, retStatus);
-        } else {
+        }
+        /** non-empty packet. */ 
+        else 
+        {
             lastNonNullIndex = index;
             curTimestamp = pJitterBuffer->pktBuffer[index]->header.timestamp;
             if (curTimestamp != pJitterBuffer->lastPopTimestamp) {
+                /** 
+                 * the timestamp of this packet is eariler than the expected timestamp(which is calculated by the max. latency). 
+                 * it means we may need to drop this pakcet.
+                 */
                 if (pJitterBuffer->lastPopTimestamp < earliestTimestamp || bufferClosed) {
                     if (containStartForEarliestFrame && isFrameDataContinuous) {
                         // TODO: if switch to curBuffer, need to carefully calculate ptr of UINT16_DEC(index) as it is a circulate buffer
@@ -169,12 +205,14 @@ STATUS jitterBufferPop(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
                         curFrameSize = 0;
                         containStartForEarliestFrame = FALSE;
                     } else {
+                        /** drop this packet. */
                         CHK_STATUS(pJitterBuffer->onFrameDroppedFn(pJitterBuffer->customData, startDropIndex, UINT16_DEC(index),
                                                                    pJitterBuffer->lastPopTimestamp));
                         CHK_STATUS(jitterBufferDropBufferData(pJitterBuffer, startDropIndex, UINT16_DEC(index), curTimestamp));
                         curFrameSize = 0;
                         isFrameDataContinuous = TRUE;
                     }
+                    /** update the drop index. */
                     startDropIndex = index;
                 } else {
                     if (containStartForEarliestFrame) {
@@ -191,8 +229,11 @@ STATUS jitterBufferPop(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
                 }
             }
 
-            CHK_STATUS(pJitterBuffer->depayPayloadFn(pJitterBuffer->pktBuffer[index]->payload, pJitterBuffer->pktBuffer[index]->payloadLength, NULL,
-                                                     &partialFrameSize, &isStart));
+            CHK_STATUS(pJitterBuffer->depayPayloadFn(pJitterBuffer->pktBuffer[index]->payload,
+                                                     pJitterBuffer->pktBuffer[index]->payloadLength,
+                                                     NULL,
+                                                     &partialFrameSize,
+                                                     &isStart));
             curFrameSize += partialFrameSize;
             if (isStart && pJitterBuffer->lastPopTimestamp == curTimestamp) {
                 containStartForEarliestFrame = TRUE;
@@ -204,18 +245,27 @@ STATUS jitterBufferPop(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
     if (bufferClosed && curFrameSize > 0) {
         curFrameSize = 0;
         for (index = startDropIndex; UINT16_DEC(index) != lastNonNullIndex && pJitterBuffer->pktBuffer[index] != NULL; index++) {
-            CHK_STATUS(pJitterBuffer->depayPayloadFn(pJitterBuffer->pktBuffer[index]->payload, pJitterBuffer->pktBuffer[index]->payloadLength, NULL,
-                                                     &partialFrameSize, NULL));
+            CHK_STATUS(pJitterBuffer->depayPayloadFn(pJitterBuffer->pktBuffer[index]->payload,
+                                                     pJitterBuffer->pktBuffer[index]->payloadLength,
+                                                     NULL,
+                                                     &partialFrameSize,
+                                                     NULL));
             curFrameSize += partialFrameSize;
         }
 
         // There is no NULL between startIndex and lastNonNullIndex
         if (UINT16_DEC(index) == lastNonNullIndex) {
-            CHK_STATUS(pJitterBuffer->onFrameReadyFn(pJitterBuffer->customData, startDropIndex, lastNonNullIndex, curFrameSize));
+            CHK_STATUS(pJitterBuffer->onFrameReadyFn(pJitterBuffer->customData,
+                                                    startDropIndex,
+                                                    lastNonNullIndex,
+                                                    curFrameSize));
+
             CHK_STATUS(jitterBufferDropBufferData(pJitterBuffer, startDropIndex, lastNonNullIndex, pJitterBuffer->lastPopTimestamp));
         } else {
-            CHK_STATUS(
-                pJitterBuffer->onFrameDroppedFn(pJitterBuffer->customData, startDropIndex, UINT16_DEC(index), pJitterBuffer->lastPopTimestamp));
+            CHK_STATUS(pJitterBuffer->onFrameDroppedFn(pJitterBuffer->customData,
+                                                      startDropIndex,
+                                                      UINT16_DEC(index),
+                                                      pJitterBuffer->lastPopTimestamp));
             CHK_STATUS(jitterBufferDropBufferData(pJitterBuffer, startDropIndex, lastNonNullIndex, pJitterBuffer->lastPopTimestamp));
         }
     }
@@ -226,7 +276,14 @@ CleanUp:
     //LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief free the packet buffer according to the successive indices.
+ * 
+ * @param[in/out] 
+ * @param[in]
+ * @param[in]
+ * @param[in]
+*/
 STATUS jitterBufferDropBufferData(PJitterBuffer pJitterBuffer, UINT16 startIndex, UINT16 endIndex, UINT32 nextTimestamp)
 {
     //ENTERS();

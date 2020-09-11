@@ -223,7 +223,15 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief decode the payload of rtp packet as h264 format.
+ * 
+ * @param[in] pRawPacket the payload of rtp packet.
+ * @param[in] packetLength the length of the payload.
+ * @param[] pNaluData
+ * @param[] pNaluLength
+ * @param[] pIsStart
+*/
 STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNaluData, PUINT32 pNaluLength, PBOOL pIsStart)
 {
     ENTERS();
@@ -292,6 +300,9 @@ STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNal
     }
 
     // Only return size if given buffer is NULL
+    /**
+     * 
+    */
     CHK(!sizeCalculationOnly, retStatus);
     CHK(naluLength <= *pNaluLength, STATUS_BUFFER_TOO_SMALL);
 

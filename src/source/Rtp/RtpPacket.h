@@ -117,9 +117,9 @@ typedef PayloadArray* PPayloadArray;
 typedef struct __RtpPacket RtpPacket;
 struct __RtpPacket {
     RtpPacketHeader header;
-    PBYTE payload;
+    PBYTE payload;//!< the buffer pointer of payload.
     UINT32 payloadLength;
-    PBYTE pRawPacket;
+    PBYTE pRawPacket;//!< the bufffer pointer of raw packet.
     UINT32 rawPacketLength;
     // used for jitterBufferDelay calculation
     UINT64 receivedTime;

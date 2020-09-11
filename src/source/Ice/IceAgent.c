@@ -468,6 +468,14 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ * gather local ip addresses and create a udp port. If port creation succeeded then create a new candidate
+ * and store it in localCandidates. Ips that are already a local candidate will not be added again.
+ *
+ * @param - PIceAgent - IN - IceAgent object
+ *
+ * @return - STATUS - status of execution
+ */
 STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
 {
     ENTERS();
@@ -605,6 +613,13 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ * Initiates candidate gathering
+ *
+ * @param[in] PIceAgent IceAgent object
+ *
+ * @return - STATUS - status of execution
+ */
 STATUS iceAgentStartGathering(PIceAgent pIceAgent)
 {
     ENTERS();
@@ -2301,7 +2316,10 @@ STATUS incomingRelayedDataHandler(UINT64 customData,
     CHK_STATUS(turnConnectionIncomingDataHandler(pRelayedCandidate->pTurnConnection, pBuffer, bufferLen, pSrc, pDest, turnChannelData,
                                                  &turnChannelDataCount));
     for (i = 0; i < turnChannelDataCount; ++i) {
-        incomingDataHandler((UINT64) pRelayedCandidate->pIceAgent, pSocketConnection, turnChannelData[i].data, turnChannelData[i].size,
+        incomingDataHandler((UINT64) pRelayedCandidate->pIceAgent,
+                            pSocketConnection,
+                            turnChannelData[i].data,
+                            turnChannelData[i].size,
                             &turnChannelData[i].senderAddr, NULL);
     }
 
@@ -2311,11 +2329,14 @@ CleanUp:
     return retStatus;
 }
 /**
+ * @brief the handler of incoming data.
  * 
- * @param 
- * @param 
- * @param 
- * @param 
+ * @param[] customData
+ * @param[] pSocketConnection
+ * @param[] pBuffer
+ * @param[] bufferLen
+ * @param[] pSrc
+ * @param[] pDest
 */
 
 STATUS incomingDataHandler(UINT64 customData, 

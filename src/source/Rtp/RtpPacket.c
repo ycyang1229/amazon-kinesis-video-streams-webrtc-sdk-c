@@ -28,7 +28,7 @@ CleanUp:
     return retStatus;
 }
 /**
- * setup the header of rtp packet. #YC_TBD. must be improved.
+ * @brief setup the header of rtp packet. #YC_TBD. must be improved.
 */
 STATUS setRtpPacket(UINT8 version, BOOL padding, BOOL extension, UINT8 csrcCount, BOOL marker, UINT8 payloadType, UINT16 sequenceNumber,
                     UINT32 timestamp, UINT32 ssrc, PUINT32 csrcArray, UINT16 extensionProfile, UINT32 extensionLength, PBYTE extensionPayload,
@@ -64,7 +64,11 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief   free the buffer, and set the pointer as null.
+ * 
+ * @param[in/out] ppRtpPacket the buffer pointer of rtp packet.
+*/
 STATUS freeRtpPacket(PRtpPacket* ppRtpPacket)
 {
     ENTERS();
@@ -72,7 +76,7 @@ STATUS freeRtpPacket(PRtpPacket* ppRtpPacket)
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(ppRtpPacket != NULL, STATUS_RTP_NULL_ARG);
-
+    /** #YC_TBD, need to review the payload part, may have memory leak. */
     if (*ppRtpPacket != NULL) {
         SAFE_MEMFREE((*ppRtpPacket)->pRawPacket);
     }
@@ -86,7 +90,11 @@ CleanUp:
     return retStatus;
 }
 /**
- * do condition check and call the setRtpPacketFromBytes()
+ * @brief do condition check and call the setRtpPacketFromBytes(). create the rtp packet linked with raw packet.
+ * 
+ * @param[in]
+ * @param[in]
+ * @param[out]
 */
 STATUS createRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket* ppRtpPacket)
 {
@@ -159,8 +167,8 @@ CleanUp:
     return retStatus;
 }
 /**
- * the endianness of packet header.
- * copy all the data of raw packet into rtppacket, and do the enidanness.
+ * @brief the endianness of packet header.
+ *          copy all the data of raw packet into rtppacket, and do the enidanness.
 */
 STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pRtpPacket)
 {

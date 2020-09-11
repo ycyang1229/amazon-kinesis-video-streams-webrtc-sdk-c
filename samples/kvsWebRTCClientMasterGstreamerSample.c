@@ -5,7 +5,9 @@
 extern PSampleConfiguration gSampleConfiguration;
 
 // #define VERBOSE
-
+/**
+ * @brief the handler of video/audio callback.
+*/
 GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
 {
     GstBuffer* buffer;
@@ -104,12 +106,19 @@ CleanUp:
 
     return ret;
 }
-
+/**
+ * @brief the frame-ready callback of video encoder.
+ * 
+ * 
+*/
 GstFlowReturn on_new_sample_video(GstElement* sink, gpointer data)
 {
     return on_new_sample(sink, data, DEFAULT_VIDEO_TRACK_ID);
 }
-
+/**
+ * @brief the frame-ready callback of audio encoder.
+ * 
+*/
 GstFlowReturn on_new_sample_audio(GstElement* sink, gpointer data)
 {
     return on_new_sample(sink, data, DEFAULT_AUDIO_TRACK_ID);

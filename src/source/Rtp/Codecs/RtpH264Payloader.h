@@ -10,15 +10,31 @@ H264 RTP Payloader include file
 extern "C" {
 #endif
 
+
+
+/**
+ * @brief NAL Unit Octet Usage
+ *       +---------------+
+ *       |0|1|2|3|4|5|6|7|
+ *       +-+-+-+-+-+-+-+-+
+ *       |F|NRI|  Type   |
+ *       +---------------+
+*/
 #define FU_A_HEADER_SIZE     2
 #define FU_B_HEADER_SIZE     4
 #define STAP_A_HEADER_SIZE   1
 #define STAP_B_HEADER_SIZE   3
 #define SINGLE_U_HEADER_SIZE 1
-#define FU_A_INDICATOR       28
-#define FU_B_INDICATOR       29
-#define STAP_A_INDICATOR     24
-#define STAP_B_INDICATOR     25
+/**
+ * https://tools.ietf.org/html/rfc3984#section-5.8
+*/
+#define FU_A_INDICATOR       28//!< Fragmentation unit
+#define FU_B_INDICATOR       29//!< Fragmentation unit
+/**
+ * https://tools.ietf.org/html/rfc3984#section-5.7.1
+*/
+#define STAP_A_INDICATOR     24//!< Single-time aggregation packet
+#define STAP_B_INDICATOR     25//!< Single-time aggregation packet
 #define NAL_TYPE_MASK        31
 
 /*

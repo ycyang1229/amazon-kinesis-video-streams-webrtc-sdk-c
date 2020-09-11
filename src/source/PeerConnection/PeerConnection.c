@@ -107,7 +107,13 @@ CleanUp:
 }
 
 #endif
-
+/**
+ * @brief the callback of inbound packet, and it is a packet arbitrator.
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+*/
 VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 {
     ENTERS();
@@ -172,7 +178,29 @@ CleanUp:
     LEAVES();
     CHK_LOG_ERR(retStatus);
 }
-
+/**
+ * @brief   receive the rtp packet and send it to rtp-receiver.
+ * 
+ *              https://tools.ietf.org/html/rfc3550#section-5
+ * 
+ *              0                   1                   2                   3
+ *              0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *              +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *              |V=2|P|X|  CC   |M|     PT      |       sequence number         |
+ *              +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *              |                           timestamp                           |
+ *              +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *              |           synchronization source (SSRC) identifier            |
+ *              +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+ *              |            contributing source (CSRC) identifiers             |
+ *              |                             ....                              |
+ *              +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * 
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+*/
 STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuffer, UINT32 bufferLen)
 {
     ENTERS();
@@ -184,20 +212,24 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
     PRtpPacket pRtpPacket = NULL;
     PBYTE pPayload = NULL;
     BOOL ownedByJitterBuffer = FALSE, discarded = FALSE;
+    /** #stat. */
     UINT64 packetsReceived = 0, packetsFailedDecryption = 0, lastPacketReceivedTimestamp = 0, headerBytesReceived = 0, bytesReceived = 0,
            packetsDiscarded = 0;
     INT64 arrival, r_ts, transit, delta;
 
     CHK(pKvsPeerConnection != NULL && pBuffer != NULL, STATUS_NULL_ARG);
     CHK(bufferLen >= MIN_HEADER_LENGTH, STATUS_INVALID_ARG);
+
     /** get the ssrc from the header. */
     ssrc = getInt32(*(PUINT32)(pBuffer + SSRC_OFFSET));
     /** get the head of transceievers. */
     CHK_STATUS(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
+    /** search the correct transceivers. */
     while (pCurNode != NULL) {
         /** get the data part of the current transceiever. */
         CHK_STATUS(doubleListGetNodeData(pCurNode, &item));
         pTransceiver = (PKvsRtpTransceiver) item;
+
         /** check the ssrc is correct or not. */
         if (pTransceiver->jitterBufferSsrc == ssrc) {
             packetsReceived++;
@@ -207,11 +239,17 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
                 CHK(FALSE, STATUS_SUCCESS);
             }
             now = GETTIME();
+
+            /** #memory. 
+             * #YC_TBD, can we save this buffer? need to review this part. 
+            */
             CHK(NULL != (pPayload = (PBYTE) MEMALLOC(bufferLen)), STATUS_NOT_ENOUGH_MEMORY);
             MEMCPY(pPayload, pBuffer, bufferLen);
+            /** get the header of rtp packets. */
             CHK_STATUS(createRtpPacketFromBytes(pPayload, bufferLen, &pRtpPacket));
             pRtpPacket->receivedTime = now;
 
+            /** Estimating the Interarrival Jitter */
             // https://tools.ietf.org/html/rfc3550#section-6.4.1
             // https://tools.ietf.org/html/rfc3550#appendix-A.8
             // interarrival jitter
@@ -223,11 +261,15 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
             delta = transit - pTransceiver->pJitterBuffer->transit;
             pTransceiver->pJitterBuffer->transit = transit;
             pTransceiver->pJitterBuffer->jitter += (1. / 16.) * ((DOUBLE) ABS(delta) - pTransceiver->pJitterBuffer->jitter);
+
             CHK_STATUS(jitterBufferPush(pTransceiver->pJitterBuffer, pRtpPacket, &discarded));
+
+            /** #stat. */
             if (discarded) {
                 packetsDiscarded++;
             }
             lastPacketReceivedTimestamp = KVS_CONVERT_TIMESCALE(now, HUNDREDS_OF_NANOS_IN_A_SECOND, 1000);
+            /** #YC_TBD, #BUG. need to fix it. */
             headerBytesReceived += RTP_HEADER_LEN(pRtpPacket);
             bytesReceived += pRtpPacket->rawPacketLength - RTP_HEADER_LEN(pRtpPacket);
             ownedByJitterBuffer = TRUE;
@@ -292,7 +334,12 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief 
+ * 
+ * @param[]
+ * @param[]
+*/
 STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, UINT32 frameSize)
 {
     ENTERS();
@@ -1129,7 +1176,17 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief Instructs the RtcPeerConnection to apply the supplied RtcSessionDescriptionInit
+ * as the local description.
+ *
+ * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-setlocaldescription
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param [in,out]PRtcSessionDescriptionInit IN/SessionDescriptionInit that becomes our new local description
+ *
+ * @return - STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS setLocalDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionInit pSessionDescriptionInit)
 {
     ENTERS();

@@ -97,7 +97,13 @@ CleanUp:
 
     return retStatus;
 }
-
+/** 
+ * @brief link the jitter buffer with transceiver. 
+ * 
+ * @param[in] pKvsRtpTransceiver
+ * @param[in] pJitterBuffer
+ * 
+ */
 STATUS kvsRtpTransceiverSetJitterBuffer(PKvsRtpTransceiver pKvsRtpTransceiver, PJitterBuffer pJitterBuffer)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -109,7 +115,15 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief Set a callback for transceiver frame
+ *
+ * @param[in] PRtcRtpTransceiver Populated RtcRtpTransceiver struct
+ * @param[in] UINT64 User customData that will be passed along when RtcOnFrame is called
+ * @param[in] RtcOnFrame User RtcOnFrame callback
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS transceiverOnFrame(PRtcRtpTransceiver pRtcRtpTransceiver, UINT64 customData, RtcOnFrame rtcOnFrame)
 {
     ENTERS();

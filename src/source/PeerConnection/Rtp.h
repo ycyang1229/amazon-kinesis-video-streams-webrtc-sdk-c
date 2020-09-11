@@ -55,8 +55,8 @@ typedef struct {
     UINT32 jitterBufferSsrc;
     PJitterBuffer pJitterBuffer;
 
-    UINT64 onFrameCustomData;
-    RtcOnFrame onFrame;
+    UINT64 onFrameCustomData;//!< the args for the onFrame callback.
+    RtcOnFrame onFrame;//!< the callback
 
     UINT64 onBandwidthEstimationCustomData;
     RtcOnBandwidthEstimation onBandwidthEstimation;
