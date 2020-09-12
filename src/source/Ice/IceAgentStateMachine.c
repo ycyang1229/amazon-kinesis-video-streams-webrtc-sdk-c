@@ -260,7 +260,17 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief 
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * 
+*/
 STATUS executeCheckConnectionIceAgentState(UINT64 customData, UINT64 time)
 {
     ENTERS();
@@ -420,7 +430,17 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief 
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * 
+*/
 STATUS executeNominatingIceAgentState(UINT64 customData, UINT64 time)
 {
     ENTERS();

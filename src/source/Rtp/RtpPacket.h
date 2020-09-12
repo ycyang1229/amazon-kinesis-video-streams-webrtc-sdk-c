@@ -102,14 +102,16 @@ struct __RtpPacketHeader {
 };
 typedef struct __RtpPacketHeader RtpPacketHeader;
 typedef RtpPacketHeader* PRtpPacketHeader;
-
+/**
+ * @brief we slice one payload into several subpayload according to mtu and the characteristic of video/audio encoding/decoding.
+*/
 struct __Payloads {
-    PBYTE payloadBuffer;
-    UINT32 payloadLength;
-    UINT32 maxPayloadLength;
-    PUINT32 payloadSubLength;
-    UINT32 payloadSubLenSize;
-    UINT32 maxPayloadSubLenSize;
+    PBYTE payloadBuffer;//!< the buffer pointer of payload.
+    UINT32 payloadLength;//!< the length of the payload buffer.
+    UINT32 maxPayloadLength;//!< the capacity of the payload buffer.
+    PUINT32 payloadSubLength;//!< the array of the length for each subpayload
+    UINT32 payloadSubLenSize;//!< the number of subpayload.
+    UINT32 maxPayloadSubLenSize;//!< the capacity of payloadSubLength.
 };
 typedef struct __Payloads PayloadArray;
 typedef PayloadArray* PPayloadArray;

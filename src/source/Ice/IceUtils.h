@@ -46,13 +46,13 @@ STATUS iceUtilsSendStunPacket(PStunPacket, PBYTE, UINT32, PKvsIpAddress, PSocket
 STATUS iceUtilsSendData(PBYTE, UINT32, PKvsIpAddress, PSocketConnection, struct __TurnConnection*, BOOL);
 
 typedef struct {
-    BOOL isTurn;
-    BOOL isSecure;
-    CHAR url[MAX_ICE_CONFIG_URI_LEN + 1];
+    BOOL isTurn;//!< turn or stun.
+    BOOL isSecure;//!< is secure protocol or not.
+    CHAR url[MAX_ICE_CONFIG_URI_LEN + 1];//!< the url address.
     KvsIpAddress ipAddress;
     CHAR username[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR credential[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
-    KVS_SOCKET_PROTOCOL transport;
+    KVS_SOCKET_PROTOCOL transport;//!< supported protocol, udp, tcp, or both. Rght now, only used for turn.
 } IceServer, *PIceServer;
 
 STATUS parseIceServer(PIceServer, PCHAR, PCHAR, PCHAR);

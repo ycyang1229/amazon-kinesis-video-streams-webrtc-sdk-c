@@ -138,7 +138,13 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief the handler of rtcp packet.
+ * 
+ * @param[in] pKvsPeerConnection the object of peer connection.
+ * @param[in] pBuff the buffer pointer of the packet.
+ * @param[in] buffLen the length of the packet.
+*/
 STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 buffLen)
 {
     STATUS retStatus = STATUS_SUCCESS;

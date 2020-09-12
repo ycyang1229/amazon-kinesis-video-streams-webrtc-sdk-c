@@ -78,22 +78,22 @@ CleanUp:
 STATUS getMappAddressAttribute(PStunPacket pBindingResponse, PStunAttributeAddress* ppStunAttributeAddress)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PStunAttributeAddress pStunAttributeAddress = NULL;
+    PStunAttributeAddress pStunAttrAddr = NULL;
 
     CHK(pBindingResponse != NULL && ppStunAttributeAddress != NULL, STATUS_NULL_ARG);
 
-    CHK_STATUS(getStunAttribute(pBindingResponse, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, (PStunAttributeHeader*) &pStunAttributeAddress));
-    if (pStunAttributeAddress == NULL) {
-        CHK_STATUS(getStunAttribute(pBindingResponse, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, (PStunAttributeHeader*) &pStunAttributeAddress));
+    CHK_STATUS(getStunAttribute(pBindingResponse, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, (PStunAttributeHeader*) &pStunAttrAddr));
+    if (pStunAttrAddr == NULL) {
+        CHK_STATUS(getStunAttribute(pBindingResponse, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, (PStunAttributeHeader*) &pStunAttrAddr));
     }
 
-    CHK_ERR(pStunAttributeAddress != NULL, STATUS_INVALID_OPERATION,
+    CHK_ERR(pStunAttrAddr != NULL, STATUS_INVALID_OPERATION,
             "Expect binding response to have mapped address or xor mapped address attribute");
 
 CleanUp:
 
     if (ppStunAttributeAddress != NULL) {
-        *ppStunAttributeAddress = pStunAttributeAddress;
+        *ppStunAttributeAddress = pStunAttrAddr;
     }
 
     CHK_LOG_ERR(retStatus);
@@ -199,7 +199,7 @@ STATUS discoverNatFilteringBehavior(PIceServer pStunServer, PNatTestData data, P
     STATUS retStatus = STATUS_SUCCESS;
     PStunPacket bindingRequest = NULL, bindingResponse = NULL;
     NAT_BEHAVIOR natFilteringBehavior = NAT_BEHAVIOR_NONE;
-    PStunAttributeChangeRequest pStunAttributeChangeRequest = NULL;
+    PStunAttributeChangeRequest pStunAttrChangeReq = NULL;
     UINT32 testIndex = 1, i = 0;
 
     CHK(pStunServer != NULL && data != NULL && pSocketConnection != NULL && pNatFilteringBehavior != NULL, STATUS_NULL_ARG);
@@ -227,8 +227,8 @@ STATUS discoverNatFilteringBehavior(PIceServer pStunServer, PNatTestData data, P
 
     /* execute test III */
     DLOGD("Running filtering behavior test III. Send binding request with change port flag");
-    CHK_STATUS(getStunAttribute(bindingRequest, STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST, (PStunAttributeHeader*) &pStunAttributeChangeRequest));
-    pStunAttributeChangeRequest->changeFlag = STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_CHANGE_PORT;
+    CHK_STATUS(getStunAttribute(bindingRequest, STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST, (PStunAttributeHeader*) &pStunAttrChangeReq));
+    pStunAttrChangeReq->changeFlag = STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_CHANGE_PORT;
 
     CHK_STATUS(executeNatTest(bindingRequest, &pStunServer->ipAddress, pSocketConnection, testIndex++, data, &bindingResponse));
 

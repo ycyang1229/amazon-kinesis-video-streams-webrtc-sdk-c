@@ -2,12 +2,29 @@
 
 #include "../../Include_i.h"
 
-STATUS createPayloadForH264(UINT32 mtu, PBYTE nalus, UINT32 nalusLength, PBYTE payloadBuffer, PUINT32 pPayloadLength, PUINT32 pPayloadSubLength,
+/**
+ * @brief 
+ * 
+ * @param[in] mtu
+ * @param[in] the 
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * 
+*/
+STATUS createPayloadForH264(UINT32 mtu,
+                            PBYTE nalus,
+                            UINT32 nalusLength,
+                            PBYTE payloadBuffer,
+                            PUINT32 pPayloadLength,
+                            PUINT32 pPayloadSubLength,
                             PUINT32 pPayloadSubLenSize)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PBYTE curPtrInNalus = nalus;
+    PBYTE curPtrInNalus = nalus;//!< input
     UINT32 remainNalusLength = nalusLength;
     UINT32 nextNaluLength = 0;
     UINT32 startIndex = 0;
@@ -32,7 +49,7 @@ STATUS createPayloadForH264(UINT32 mtu, PBYTE nalus, UINT32 nalusLength, PBYTE p
     }
     payloadArray.payloadBuffer = payloadBuffer;
     payloadArray.payloadSubLength = pPayloadSubLength;
-
+    /***/
     do {
         CHK_STATUS(getNextNaluLength(curPtrInNalus, remainNalusLength, &startIndex, &nextNaluLength));
 
@@ -129,7 +146,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief 
+*/
 STATUS createPayloadFromNalu(UINT32 mtu, PBYTE nalu, UINT32 naluLength, PPayloadArray pPayloadArray, PUINT32 filledLength, PUINT32 filledSubLenSize)
 {
     ENTERS();

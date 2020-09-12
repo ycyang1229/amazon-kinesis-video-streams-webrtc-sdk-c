@@ -10,6 +10,12 @@ IceAgent internal include file
 extern "C" {
 #endif
 
+/**
+ * https://tools.ietf.org/html/rfc5245
+ * https://tools.ietf.org/html/rfc8445
+ * 
+*/
+
 #define KVS_ICE_MAX_CANDIDATE_PAIR_COUNT                       1024
 #define KVS_ICE_MAX_REMOTE_CANDIDATE_COUNT                     100
 #define KVS_ICE_MAX_LOCAL_CANDIDATE_COUNT                      100
@@ -24,19 +30,19 @@ extern "C" {
 #define KVS_ICE_DEFAULT_TIMER_START_DELAY                      100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 
 // Ta in https://tools.ietf.org/html/rfc8445
-#define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL  150 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
-#define KVS_ICE_STATE_READY_TIMER_POLLING_INTERVAL 1 * HUNDREDS_OF_NANOS_IN_A_SECOND
+#define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL              150 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+#define KVS_ICE_STATE_READY_TIMER_POLLING_INTERVAL             1 * HUNDREDS_OF_NANOS_IN_A_SECOND
 /* Control the calling rate of iceCandidateGatheringTimerTask. Can affect STUN TURN candidate gathering time */
-#define KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL 50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+#define KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL        50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 
 /* ICE should've received at least one keep alive within this period. Since keep alives are send every 15s */
-#define KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD 2 * KVS_ICE_SEND_KEEP_ALIVE_INTERVAL
-#define KVS_ICE_ENTER_STATE_FAILED_GRACE_PERIOD        15 * HUNDREDS_OF_NANOS_IN_A_SECOND
+#define KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD         2 * KVS_ICE_SEND_KEEP_ALIVE_INTERVAL
+#define KVS_ICE_ENTER_STATE_FAILED_GRACE_PERIOD                15 * HUNDREDS_OF_NANOS_IN_A_SECOND
 
-#define STUN_HEADER_MAGIC_BYTE_OFFSET 4
+#define STUN_HEADER_MAGIC_BYTE_OFFSET                          4
 
-#define KVS_ICE_MAX_RELAY_CANDIDATE_COUNT                  4
-#define KVS_ICE_MAX_NEW_LOCAL_CANDIDATES_TO_REPORT_AT_ONCE 10
+#define KVS_ICE_MAX_RELAY_CANDIDATE_COUNT                      4
+#define KVS_ICE_MAX_NEW_LOCAL_CANDIDATES_TO_REPORT_AT_ONCE     10
 
 // https://tools.ietf.org/html/rfc5245#section-4.1.2.1
 #define ICE_PRIORITY_HOST_CANDIDATE_TYPE_PREFERENCE             126
@@ -112,12 +118,12 @@ typedef struct {
 
 typedef struct {
     ICE_CANDIDATE_TYPE iceCandidateType;
-    BOOL isRemote;
+    BOOL isRemote;//!< remote ice candidate or local ice candidate.
     KvsIpAddress ipAddress;
     PSocketConnection pSocketConnection;
     ICE_CANDIDATE_STATE state;
     UINT32 priority;
-    UINT32 iceServerIndex;
+    UINT32 iceServerIndex;//!< the index of ice servers this ice agent uses.
     UINT32 foundation;
     /* If candidate is local and relay, then store the
      * pTurnConnection this candidate is associated to */
@@ -141,6 +147,7 @@ typedef struct {
     UINT64 priority;
     ICE_CANDIDATE_PAIR_STATE state;
     PTransactionIdStore pTransactionIdStore;
+    /** the time of last*/
     UINT64 lastDataSentTime;
     PHashTable requestSentTime;
     UINT64 roundTripTime;
@@ -152,7 +159,7 @@ struct __IceAgent {
     volatile ATOMIC_BOOL candidateGatheringFinished;
     volatile ATOMIC_BOOL shutdown;
     volatile ATOMIC_BOOL restart;
-    volatile ATOMIC_BOOL processStun;///< the flag indicates we can handle stun packets(true).
+    volatile ATOMIC_BOOL processStun;///< the flag indicates we can handle stun packets(true). When restarting ice agent, we can not handle stun packets.
 
     CHAR localUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR localPassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
@@ -197,11 +204,10 @@ struct __IceAgent {
 
     IceAgentCallbacks iceAgentCallbacks;
 
-    IceServer iceServers[MAX_ICE_SERVERS_COUNT];
-    UINT32 iceServersCount;
-
-    KvsIpAddress localNetworkInterfaces[MAX_LOCAL_NETWORK_INTERFACE_COUNT];
-    UINT32 localNetworkInterfaceCount;
+    IceServer iceServers[MAX_ICE_SERVERS_COUNT];//!< the url of stun/turn servers.
+    UINT32 iceServersCount;//!< the number of stun/turn servers.
+    KvsIpAddress localNetworkInterfaces[MAX_LOCAL_NETWORK_INTERFACE_COUNT];//!< the local network interface.
+    UINT32 localNetworkInterfaceCount;//!< the number of the local network interfaces.
 
     UINT32 foundationCounter;
 

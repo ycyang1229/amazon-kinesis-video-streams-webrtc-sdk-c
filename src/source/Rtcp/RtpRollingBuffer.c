@@ -2,6 +2,12 @@
 
 #include "../Include_i.h"
 
+/**
+ * @brief create one rtp rolling buffer for the re-transmission of rtp packets.
+ * 
+ * @param[in] capacity the capacity of this rolling buffer.
+ * @param[out] ppRtpRollingBuffer
+*/
 STATUS createRtpRollingBuffer(UINT32 capacity, PRtpRollingBuffer* ppRtpRollingBuffer)
 {
     ENTERS();
@@ -9,7 +15,7 @@ STATUS createRtpRollingBuffer(UINT32 capacity, PRtpRollingBuffer* ppRtpRollingBu
     PRtpRollingBuffer pRtpRollingBuffer = NULL;
     CHK(capacity != 0, STATUS_INVALID_ARG);
     CHK(ppRtpRollingBuffer != NULL, STATUS_NULL_ARG);
-
+    /** #memory */
     pRtpRollingBuffer = (PRtpRollingBuffer) MEMALLOC(SIZEOF(RtpRollingBuffer));
     CHK(pRtpRollingBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(createRollingBuffer(capacity, freeRtpRollingBufferData, &pRtpRollingBuffer->pRollingBuffer));
@@ -21,7 +27,11 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief 
+ * 
+ * @param[in] capacity the capacity of this rtp rolling buffer.
+*/
 STATUS freeRtpRollingBuffer(PRtpRollingBuffer* ppRtpRollingBuffer)
 {
     ENTERS();
@@ -39,7 +49,11 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief the callback of freeDataFn for the rolling buffer.
+ * 
+ * @param[in] pData the buffer pointer of the rtp packet.
+*/
 STATUS freeRtpRollingBufferData(PUINT64 pData)
 {
     ENTERS();
@@ -50,7 +64,12 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief add the packet into this rolling buffer.
+ * 
+ * @param[in] pRollingBuffer the object of rolling buffer.
+ * @param[in] data the buffer pointer of this packet.
+*/
 STATUS rtpRollingBufferAddRtpPacket(PRtpRollingBuffer pRollingBuffer, PRtpPacket pRtpPacket)
 {
     ENTERS();
@@ -59,6 +78,7 @@ STATUS rtpRollingBufferAddRtpPacket(PRtpRollingBuffer pRollingBuffer, PRtpPacket
     PBYTE pRawPacketCopy = NULL;
     UINT64 index = 0;
     CHK(pRollingBuffer != NULL && pRtpPacket != NULL, STATUS_RTP_NULL_ARG);
+
     /** #memory. */
     pRawPacketCopy = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength);
     CHK(pRawPacketCopy != NULL, STATUS_RTP_NOT_ENOUGH_MEMORY);

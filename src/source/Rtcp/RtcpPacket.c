@@ -2,6 +2,13 @@
 
 #include "../Include_i.h"
 
+/**
+ * @brief copy the information of rtcp header from raw packet to rtcp packet.
+ * 
+ * @param[in] 
+ * @param[in]
+ * @param[in/out]
+*/
 STATUS setRtcpPacketFromBytes(PBYTE pRawPacket, UINT32 pRawPacketsLen, PRtcpPacket pRtcpPacket)
 {
     ENTERS();

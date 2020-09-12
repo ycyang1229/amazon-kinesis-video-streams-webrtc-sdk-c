@@ -168,7 +168,12 @@ CleanUp:
     return retStatus;
 }
 /**
- * the encryption of srtp packets.
+ * @brief the encryption of rtp packets. we do srtp encryption here.
+ * 
+ * @param[in] pSrtpSession the object of srtp session. 
+ * @param[in/out] message the buffer of rtp packet.
+ * @param[in] len not sure the lengthe is variable. #YC_TBD. 
+ * 
 */
 STATUS encryptRtpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len)
 {
@@ -186,7 +191,11 @@ CleanUp:
     return retStatus;
 }
 /**
- * the encryption of srtcp packets.
+ * @brief the encryption of rtcp packets. we do srtcp here.
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
 */
 STATUS encryptRtcpPacket(PSrtpSession pSrtpSession, PVOID message, PINT32 len)
 {

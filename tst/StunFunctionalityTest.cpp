@@ -42,7 +42,7 @@ TEST_F(StunFunctionalityTest, basicValidParseTest)
 
     PStunPacket pStunPacket = NULL;
     PStunAttributeHeader pAttribute;
-    PStunAttributeAddress pStunAttributeAddress = NULL;
+    PStunAttributeAddress pStunAttrAddr = NULL;
 
     //
     // Binding request
@@ -146,12 +146,12 @@ TEST_F(StunFunctionalityTest, basicValidParseTest)
     EXPECT_EQ(pStunPacket->header.stunMessageType, STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS);
     EXPECT_EQ(pStunPacket->attributesCount, 1);
     EXPECT_EQ(pStunPacket->attributeList[0]->type, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS);
-    pStunAttributeAddress = (PStunAttributeAddress) pStunPacket->attributeList[0];
+    pStunAttrAddr = (PStunAttributeAddress) pStunPacket->attributeList[0];
 
     const BYTE ip4Addr[] = {0x36, 0xF0, 0xC4, 0xAF};
     const UINT16 ip4Port = 15035;
-    EXPECT_EQ(0, MEMCMP(pStunAttributeAddress->address.address, ip4Addr, IPV4_ADDRESS_LENGTH));
-    EXPECT_EQ(ip4Port, (UINT16) getInt16(pStunAttributeAddress->address.port));
+    EXPECT_EQ(0, MEMCMP(pStunAttrAddr->address.address, ip4Addr, IPV4_ADDRESS_LENGTH));
+    EXPECT_EQ(ip4Port, (UINT16) getInt16(pStunAttrAddr->address.port));
 
     EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
     EXPECT_EQ(NULL, pStunPacket);
@@ -167,13 +167,13 @@ TEST_F(StunFunctionalityTest, basicValidParseTest)
     EXPECT_EQ(pStunPacket->header.stunMessageType, STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS);
     EXPECT_EQ(pStunPacket->attributesCount, 1);
     EXPECT_EQ(pStunPacket->attributeList[0]->type, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS);
-    pStunAttributeAddress = (PStunAttributeAddress) pStunPacket->attributeList[0];
+    pStunAttrAddr = (PStunAttributeAddress) pStunPacket->attributeList[0];
 
     // 2600:1700:6680:3d40:31e4:6514:f493:6339
     const BYTE ip6Addr[] = {0x26, 0x00, 0x17, 0x00, 0x66, 0x80, 0x3d, 0x40, 0x31, 0xe4, 0x65, 0x14, 0xf4, 0x93, 0x63, 0x39};
     const UINT16 ip6Port = 57464;
-    EXPECT_EQ(0, MEMCMP(pStunAttributeAddress->address.address, ip6Addr, IPV6_ADDRESS_LENGTH));
-    EXPECT_EQ(ip6Port, (UINT16) getInt16(pStunAttributeAddress->address.port));
+    EXPECT_EQ(0, MEMCMP(pStunAttrAddr->address.address, ip6Addr, IPV6_ADDRESS_LENGTH));
+    EXPECT_EQ(ip6Port, (UINT16) getInt16(pStunAttrAddr->address.port));
 
     EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
     EXPECT_EQ(NULL, pStunPacket);
@@ -553,8 +553,8 @@ TEST_F(StunFunctionalityTest, serializeDeserializeStunControlAttribute)
     PStunPacket pStunPacket, pDeserializedPacket;
     UINT32 stunPacketBufferSize = STUN_PACKET_ALLOCATION_SIZE, actualPacketSize = 0;
     BYTE stunPacketBuffer[STUN_PACKET_ALLOCATION_SIZE];
-    PStunAttributeHeader pStunAttributeHeader;
-    PStunAttributeIceControl pStunAttributeIceControl;
+    PStunAttributeHeader pStunAttrHdr;
+    PStunAttributeIceControl pStunAttrCtrl;
     UINT64 magicValue = 123;
 
     EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
@@ -565,10 +565,10 @@ TEST_F(StunFunctionalityTest, serializeDeserializeStunControlAttribute)
     EXPECT_TRUE(IS_STUN_PACKET(stunPacketBuffer));
 
     EXPECT_EQ(STATUS_SUCCESS, deserializeStunPacket(stunPacketBuffer, actualPacketSize, NULL, 0, &pDeserializedPacket));
-    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pDeserializedPacket, STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED, &pStunAttributeHeader));
-    EXPECT_TRUE(pStunAttributeHeader != NULL);
-    pStunAttributeIceControl = (PStunAttributeIceControl) pStunAttributeHeader;
-    EXPECT_EQ(pStunAttributeIceControl->tieBreaker, magicValue);
+    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pDeserializedPacket, STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED, &pStunAttrHdr));
+    EXPECT_TRUE(pStunAttrHdr != NULL);
+    pStunAttrCtrl = (PStunAttributeIceControl) pStunAttrHdr;
+    EXPECT_EQ(pStunAttrCtrl->tieBreaker, magicValue);
 
     EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
     EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pDeserializedPacket));
@@ -678,17 +678,17 @@ TEST_F(StunFunctionalityTest, deserializeStunErrorCode)
                               0x8f, 0xe9, 0xb6, 0x25, 0x58, 0xd6, 0x80, 0x28, 0x00, 0x04, 0x0d, 0xc7, 0xfe, 0x7a};
     BYTE turnKey[] = {0x69, 0xa8, 0xc7, 0xf7, 0x79, 0x72, 0x3c, 0x58, 0xae, 0xc4, 0xbd, 0xa3, 0x79, 0x1c, 0x02, 0xbd};
     PStunPacket pStunPacket = NULL;
-    PStunAttributeErrorCode pStunAttributeErrorCode = NULL;
+    PStunAttributeErrorCode pStunAttrErrCode = NULL;
     PStunAttributeHeader pStunAttr = NULL;
 
     EXPECT_EQ(STATUS_SUCCESS, deserializeStunPacket(stunErrorBuffer, ARRAY_SIZE(stunErrorBuffer), turnKey, KVS_MD5_DIGEST_LENGTH, &pStunPacket));
 
     EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_ERROR_CODE, &pStunAttr));
     EXPECT_TRUE(pStunAttr != NULL);
-    pStunAttributeErrorCode = (PStunAttributeErrorCode) pStunAttr;
+    pStunAttrErrCode = (PStunAttributeErrorCode) pStunAttr;
 
-    EXPECT_EQ(pStunAttributeErrorCode->errorCode, 403);
-    EXPECT_EQ(0, STRCMP(pStunAttributeErrorCode->errorPhrase, "Forbidden IP"));
+    EXPECT_EQ(pStunAttrErrCode->errorCode, 403);
+    EXPECT_EQ(0, STRCMP(pStunAttrErrCode->errorPhrase, "Forbidden IP"));
 
     EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
 }

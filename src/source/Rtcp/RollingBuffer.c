@@ -2,6 +2,13 @@
 
 #include "../Include_i.h"
 
+/**
+ * @brief   
+ * 
+ * @param[in] the capacity of this rolling buffer.
+ * @param[in] freeDataFunc the callback when the rolling buffer is overflow or when we free the object of this rolling buffer.
+ * @param[out] ppRollingBuffer return the object of this rolling buffer.
+*/
 STATUS createRollingBuffer(UINT32 capacity, FreeDataFunc freeDataFunc, PRollingBuffer* ppRollingBuffer)
 {
     ENTERS();
@@ -10,6 +17,7 @@ STATUS createRollingBuffer(UINT32 capacity, FreeDataFunc freeDataFunc, PRollingB
     CHK(capacity != 0, STATUS_INVALID_ARG);
 
     CHK(ppRollingBuffer != NULL, STATUS_NULL_ARG);
+    /** #memory. #YC_TBD. #BUG. */
     pRollingBuffer = (PRollingBuffer) MEMALLOC(SIZEOF(RollingBuffer) + SIZEOF(UINT64) * capacity);
     CHK(pRollingBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY);
     pRollingBuffer->capacity = capacity;
@@ -32,7 +40,11 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief free the rolling buffer.
+ * 
+ * @param[in] the object of this rolling buffer.
+*/
 STATUS freeRollingBuffer(PRollingBuffer* ppRollingBuffer)
 {
     ENTERS();
@@ -66,11 +78,11 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief 
+ * @brief add the buffer into this rolling buffer.
  * 
- * @param[]
- * @param[]
- * @param[]
+ * @param[in] pRollingBuffer the object of rolling buffer.
+ * @param[in] data the buffer pointer of this packet.
+ * @param[out] pIndex the index of this packet.
 */
 STATUS rollingBufferAppendData(PRollingBuffer pRollingBuffer, UINT64 data, PUINT64 pIndex)
 {
@@ -88,14 +100,16 @@ STATUS rollingBufferAppendData(PRollingBuffer pRollingBuffer, UINT64 data, PUINT
         pRollingBuffer->dataBuffer[ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->tailIndex)] = data;
         pRollingBuffer->headIndex = pRollingBuffer->tailIndex + 1;
     } else {
+        /** the rolling buffer may be overflow. need to see how to implement a better one. */
         if (pRollingBuffer->headIndex == pRollingBuffer->tailIndex + pRollingBuffer->capacity) {
+            DLOGW("rolling buffer may be overflow.");
             /** #YC_TBD, need to review. */
             if (pRollingBuffer->freeDataFn != NULL) {
-                CHK_STATUS(
-                    pRollingBuffer->freeDataFn(pRollingBuffer->dataBuffer + ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->tailIndex)));
+                CHK_STATUS(pRollingBuffer->freeDataFn(pRollingBuffer->dataBuffer + ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->tailIndex)));
             }
             pRollingBuffer->tailIndex++;
         }
+        /** append the buffer into this rolling buffer. */
         pRollingBuffer->dataBuffer[ROLLING_BUFFER_MAP_INDEX(pRollingBuffer, pRollingBuffer->headIndex)] = data;
         pRollingBuffer->headIndex++;
     }
@@ -112,7 +126,13 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief 
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+*/
 STATUS rollingBufferInsertData(PRollingBuffer pRollingBuffer, UINT64 index, UINT64 data)
 {
     ENTERS();

@@ -124,7 +124,15 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief pack the stun packet.
+ * 
+ * @param[]
+ * @param[in]
+ * @param[in]
+ * @param[in/out]
+ * @param[in/out]
+*/
 STATUS iceUtilsPackageStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen, PBYTE pBuffer, PUINT32 pBufferLen)
 {
     //ENTERS();
@@ -138,7 +146,7 @@ STATUS iceUtilsPackageStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32
     if (password != NULL) {
         addMessageIntegrity = TRUE;
     }
-
+    /** the size estimation of stun packet. */
     CHK_STATUS(serializeStunPacket(pStunPacket, password, passwordLen, addMessageIntegrity, TRUE, NULL, &stunPacketSize));
     CHK(stunPacketSize <= *pBufferLen, STATUS_BUFFER_TOO_SMALL);
     CHK_STATUS(serializeStunPacket(pStunPacket, password, passwordLen, addMessageIntegrity, TRUE, pBuffer, &stunPacketSize));
@@ -174,8 +182,22 @@ CleanUp:
     //LEAVES();
     return retStatus;
 }
-
-STATUS iceUtilsSendData(PBYTE buffer, UINT32 size, PKvsIpAddress pDest, PSocketConnection pSocketConnection, PTurnConnection pTurnConnection,
+/**
+ * @brief 
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * 
+*/
+STATUS iceUtilsSendData(PBYTE buffer,
+                        UINT32 size,
+                        PKvsIpAddress pDest,
+                        PSocketConnection pSocketConnection,
+                        PTurnConnection pTurnConnection,
                         BOOL useTurn)
 {
     //ENTERS();

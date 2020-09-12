@@ -124,7 +124,7 @@ struct __TurnConnection {
     BOOL credentialObtained;
     BOOL relayAddressReported;
 
-    PSocketConnection pControlChannel;
+    PSocketConnection pControlChannel;//!< the handler of the socket connection.
 
     TurnPeer turnPeerList[DEFAULT_TURN_MAX_PEER_COUNT];
     UINT32 turnPeerCount;

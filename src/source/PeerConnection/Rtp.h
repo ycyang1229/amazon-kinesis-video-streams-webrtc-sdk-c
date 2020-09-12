@@ -26,7 +26,7 @@ extern "C" {
 
 typedef struct {
     UINT8 payloadType;
-    UINT8 rtxPayloadType;
+    UINT8 rtxPayloadType;//!< the payload type of re-transmission.
     UINT16 sequenceNumber;
     UINT16 rtxSequenceNumber;
     UINT32 ssrc;
@@ -34,7 +34,7 @@ typedef struct {
     PayloadArray payloadArray;
 
     RtcMediaStreamTrack track;
-    PRtpRollingBuffer packetBuffer;
+    PRtpRollingBuffer packetBuffer;///!< the object of rolling buffer.
     PRetransmitter retransmitter;
 
     UINT64 rtpTimeOffset;

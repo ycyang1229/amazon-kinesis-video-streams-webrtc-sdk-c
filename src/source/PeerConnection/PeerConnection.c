@@ -625,7 +625,15 @@ CleanUp:
     //LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief the callback of one peridic timer. It trigger itself periodically.
+ *        Send the Sender Report RTCP Packet periodically after waiting for 2.5secs.
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+ * 
+*/
 STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     //ENTERS();
@@ -646,7 +654,8 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
 
     // check if ice agent is connected, reschedule in 200msec if not
     ready = pKvsPeerConnection->pSrtpSession != NULL &&
-        currentTime - pKvsRtpTransceiver->sender.firstFrameWallClockTime >= 2500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+            currentTime - pKvsRtpTransceiver->sender.firstFrameWallClockTime >= 2500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
+
     if (!ready) {
         DLOGV("sender report no frames sent %u", ssrc);
     } else {
@@ -655,17 +664,22 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
         ntpTime = convertTimestampToNTP(currentTime);
         rtpTime = pKvsRtpTransceiver->sender.rtpTimeOffset +
             CONVERT_TIMESTAMP_TO_RTP(pKvsRtpTransceiver->pJitterBuffer->clockRate, currentTime - pKvsRtpTransceiver->sender.firstFrameWallClockTime);
+
+        /** #stat */
         MUTEX_LOCK(pKvsRtpTransceiver->statsLock);
         packetCount = pKvsRtpTransceiver->outboundStats.sent.packetsSent;
         octetCount = pKvsRtpTransceiver->outboundStats.sent.bytesSent;
         MUTEX_UNLOCK(pKvsRtpTransceiver->statsLock);
+
         DLOGV("sender report %u %" PRIu64 " %" PRIu64 " : %u packets %u bytes", ssrc, ntpTime, rtpTime, packetCount, octetCount);
         packetLen = RTCP_PACKET_HEADER_LEN + 24;
 
         // srtp_protect_rtcp() in encryptRtcpPacket() assumes memory availability to write 10 bytes of authentication tag and
         // SRTP_MAX_TRAILER_LEN + 4 following the actual rtcp Packet payload
         allocSize = packetLen + SRTP_AUTH_TAG_OVERHEAD + SRTP_MAX_TRAILER_LEN + 4;
+        /** #memory. */
         CHK(NULL != (rawPacket = (PBYTE) MEMALLOC(allocSize)), STATUS_NOT_ENOUGH_MEMORY);
+        /** #YC_TBD, need to be implemented. */
         rawPacket[0] = RTCP_PACKET_VERSION_VAL << 6;
         rawPacket[RTCP_PACKET_TYPE_OFFSET] = RTCP_PACKET_TYPE_SENDER_REPORT;
         putUnalignedInt16BigEndian(rawPacket + RTCP_PACKET_LEN_OFFSET,
@@ -675,6 +689,8 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
         putUnalignedInt32BigEndian(rawPacket + 16, rtpTime);
         putUnalignedInt32BigEndian(rawPacket + 20, packetCount);
         putUnalignedInt32BigEndian(rawPacket + 24, octetCount);
+
+        /** the encryption of rtcp packet. */
         CHK_STATUS(encryptRtcpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
         CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen));
     }
@@ -682,8 +698,11 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
     delay = 100 + (RAND() % 200);
     DLOGS("next sender report %u in %" PRIu64 " msec", ssrc, delay);
     // reschedule timer with 200msec +- 100ms
-    CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle, delay * HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                                  TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, rtcpReportsCallback, (UINT64) pKvsRtpTransceiver,
+    CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle,
+                                  delay * HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                                  TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
+                                  rtcpReportsCallback,
+                                  (UINT64) pKvsRtpTransceiver,
                                   &pKvsRtpTransceiver->rtcpReportsTimerId));
 
 CleanUp:
@@ -1296,7 +1315,7 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection,
 
     CHK_STATUS(doubleListInsertItemHead(pKvsPeerConnection->pTransceievers, (UINT64) pKvsRtpTransceiver));
     *ppRtcRtpTransceiver = (PRtcRtpTransceiver) pKvsRtpTransceiver;
-
+    /** #timer periodic timer. */
     CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle,
                                   RTCP_FIRST_REPORT_DELAY,
                                   TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,

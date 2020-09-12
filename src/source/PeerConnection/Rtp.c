@@ -2,6 +2,15 @@
 
 #include "../Include_i.h"
 
+/**
+ * @brief 
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+*/
 typedef STATUS (*RtpPayloadFunc)(UINT32, PBYTE, UINT32, PBYTE, PUINT32, PUINT32, PUINT32);
 
 STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, 
@@ -202,6 +211,14 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ * @brief Packetizes and sends media via the configuration specified by the RtcRtpTransceiver
+ *
+ * @param[in] PRtcRtpTransceiver Configured and connected RtcRtpTransceiver to send media
+ * @param[in] PFrame Frame of media that will be sent
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -217,7 +234,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     UINT64 randomRtpTimeoffset = 0; // TODO: spec requires random rtp time offset
     UINT64 rtpTimestamp = 0;
     UINT64 now = GETTIME();
-    DLOGD("%u", now);
+    //DLOGD("%u", now);
     // stats updates
     DOUBLE fps = 0.0;
     UINT32 frames = 0, keyframes = 0, bytesSent = 0, packetsSent = 0, headerBytesSent = 0, framesSent = 0;
@@ -279,7 +296,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     }
 
     rtpTimestamp += randomRtpTimeoffset;
-
+    /** the calculation of buffer. */
     CHK_STATUS(rtpPayloadFunc(pKvsPeerConnection->MTU, 
                               (PBYTE) pFrame->frameData, 
                               pFrame->size, 
@@ -290,16 +307,18 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 
     if (pPayloadArray->payloadLength > pPayloadArray->maxPayloadLength) {
         SAFE_MEMFREE(pPayloadArray->payloadBuffer);
+        /** #memory. */
         pPayloadArray->payloadBuffer = (PBYTE) MEMALLOC(pPayloadArray->payloadLength);
         pPayloadArray->maxPayloadLength = pPayloadArray->payloadLength;
     }
 
     if (pPayloadArray->payloadSubLenSize > pPayloadArray->maxPayloadSubLenSize) {
         SAFE_MEMFREE(pPayloadArray->payloadSubLength);
+        /** #memory. */
         pPayloadArray->payloadSubLength = (PUINT32) MEMALLOC(pPayloadArray->payloadSubLenSize * SIZEOF(UINT32));
         pPayloadArray->maxPayloadSubLenSize = pPayloadArray->payloadSubLenSize;
     }
-
+    /** pack payload. */
     CHK_STATUS(rtpPayloadFunc(pKvsPeerConnection->MTU, 
                               (PBYTE) pFrame->frameData, 
                               pFrame->size, 
@@ -307,6 +326,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
                               &(pPayloadArray->payloadLength), 
                               pPayloadArray->payloadSubLength, 
                               &(pPayloadArray->payloadSubLenSize)));
+    /** #memory. */
     pPacketList = (PRtpPacket) MEMALLOC(pPayloadArray->payloadSubLenSize * SIZEOF(RtpPacket));
 
     CHK_STATUS(constructRtpPackets(pPayloadArray, 
@@ -316,7 +336,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
                                    pKvsRtpTransceiver->sender.ssrc, 
                                    pPacketList, 
                                    pPayloadArray->payloadSubLenSize));
-
+    /** udpate the sequence number.*/
     pKvsRtpTransceiver->sender.sequenceNumber = GET_UINT16_SEQ_NUM(pKvsRtpTransceiver->sender.sequenceNumber + pPayloadArray->payloadSubLenSize);
 
     bufferAfterEncrypt = (pKvsRtpTransceiver->sender.payloadType == pKvsRtpTransceiver->sender.rtxPayloadType);
@@ -329,6 +349,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 
         // Account for SRTP authentication tag
         allocSize = packetLen + SRTP_AUTH_TAG_OVERHEAD;
+        /** #memory. */
         CHK(NULL != (rawPacket = (PBYTE) MEMALLOC(allocSize)), STATUS_RTP_NOT_ENOUGH_MEMORY);
         CHK_STATUS(createBytesFromRtpPacket(pRtpPacket, rawPacket, &packetLen));
 
@@ -381,6 +402,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pKvsPeerConnection->pSrtpSessionLock);
     }
+    /** #stat. */
     MUTEX_LOCK(pKvsRtpTransceiver->statsLock);
     pKvsRtpTransceiver->outboundStats.totalEncodedBytesTarget += pFrame->size;
     pKvsRtpTransceiver->outboundStats.framesEncoded += frames;

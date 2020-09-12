@@ -30,9 +30,22 @@ CleanUp:
 /**
  * @brief setup the header of rtp packet. #YC_TBD. must be improved.
 */
-STATUS setRtpPacket(UINT8 version, BOOL padding, BOOL extension, UINT8 csrcCount, BOOL marker, UINT8 payloadType, UINT16 sequenceNumber,
-                    UINT32 timestamp, UINT32 ssrc, PUINT32 csrcArray, UINT16 extensionProfile, UINT32 extensionLength, PBYTE extensionPayload,
-                    PBYTE payload, UINT32 payloadLength, PRtpPacket pRtpPacket)
+STATUS setRtpPacket(UINT8 version, 
+                    BOOL padding, 
+                    BOOL extension, 
+                    UINT8 csrcCount, 
+                    BOOL marker, //!< the last one
+                    UINT8 payloadType, 
+                    UINT16 sequenceNumber,
+                    UINT32 timestamp, 
+                    UINT32 ssrc, 
+                    PUINT32 csrcArray, 
+                    UINT16 extensionProfile, 
+                    UINT32 extensionLength, 
+                    PBYTE extensionPayload,
+                    PBYTE payload, 
+                    UINT32 payloadLength, 
+                    PRtpPacket pRtpPacket)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -94,7 +107,7 @@ CleanUp:
  * 
  * @param[in]
  * @param[in]
- * @param[out]
+ * @param[out] ppRtpPacket return the buffer of new packet coping form raw packet.
 */
 STATUS createRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket* ppRtpPacket)
 {
@@ -339,6 +352,15 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ * @brief pack rtp packets according the array of payload.
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * 
+*/
 STATUS constructRtpPackets(PPayloadArray pPayloadArray, 
                            UINT8 payloadType, 
                            UINT16 startSequenceNumber, 
@@ -360,7 +382,7 @@ STATUS constructRtpPackets(PPayloadArray pPayloadArray,
 
     curPtrInPayload = pPayloadArray->payloadBuffer;
     for (i = 0, curPtrInPayloadSubLen = pPayloadArray->payloadSubLength; i < pPayloadArray->payloadSubLenSize; i++, curPtrInPayloadSubLen++) {
-
+        /** #YC_TBD, confirm version number. */
         CHK_STATUS(setRtpPacket(2, 
                                 FALSE, 
                                 FALSE, 
