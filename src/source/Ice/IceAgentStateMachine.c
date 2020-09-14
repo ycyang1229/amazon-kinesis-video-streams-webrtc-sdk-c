@@ -28,7 +28,11 @@ StateMachineState ICE_AGENT_STATE_MACHINE_STATES[] = {
 };
 
 UINT32 ICE_AGENT_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(ICE_AGENT_STATE_MACHINE_STATES);
-
+/**
+ * @brief advance the fsm of the ice agent.
+ * 
+ * @param[in] the object of the ice agent.
+*/
 STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 {
     ENTERS();
@@ -199,7 +203,12 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief move to another state from the state of ICE_AGENT_STATE_CHECK_CONNECTION.
+ * 
+ * @param[]
+ * @param[]
+*/
 STATUS fromCheckConnectionIceAgentState(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
@@ -263,10 +272,6 @@ CleanUp:
 /**
  * @brief 
  * 
- * @param[]
- * @param[]
- * @param[]
- * @param[]
  * @param[]
  * @param[]
  * 
@@ -433,10 +438,6 @@ CleanUp:
 /**
  * @brief 
  * 
- * @param[]
- * @param[]
- * @param[]
- * @param[]
  * @param[]
  * @param[]
  * 

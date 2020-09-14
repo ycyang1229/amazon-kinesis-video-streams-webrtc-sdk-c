@@ -31,9 +31,11 @@ extern "C" {
 
 // Ta in https://tools.ietf.org/html/rfc8445
 #define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL              150 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+//#define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL              3000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 #define KVS_ICE_STATE_READY_TIMER_POLLING_INTERVAL             1 * HUNDREDS_OF_NANOS_IN_A_SECOND
 /* Control the calling rate of iceCandidateGatheringTimerTask. Can affect STUN TURN candidate gathering time */
 #define KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL        50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+//#define KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL        200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 
 /* ICE should've received at least one keep alive within this period. Since keep alives are send every 15s */
 #define KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD         2 * KVS_ICE_SEND_KEEP_ALIVE_INTERVAL
@@ -120,7 +122,7 @@ typedef struct {
     ICE_CANDIDATE_TYPE iceCandidateType;
     BOOL isRemote;//!< remote ice candidate or local ice candidate.
     KvsIpAddress ipAddress;
-    PSocketConnection pSocketConnection;
+    PSocketConnection pSocketConnection;//!< the handler of the socket connection for this ice agent. 
     ICE_CANDIDATE_STATE state;
     UINT32 priority;
     UINT32 iceServerIndex;//!< the index of ice servers this ice agent uses.
@@ -182,7 +184,8 @@ struct __IceAgent {
     PDoubleList iceCandidatePairs;
 
     PConnectionListener pConnectionListener;
-    BOOL isControlling;
+    BOOL isControlling;//!< isControlling is controlling agent. do you create the offer by yourself. 
+                       //!< it means you are a client or not. true: give the offer, false: receive the offer.
     UINT64 tieBreaker;
 
     MUTEX lock;
@@ -389,7 +392,7 @@ STATUS iceAgentNominatingStateSetup(PIceAgent);
 STATUS iceAgentReadyStateSetup(PIceAgent);
 
 // timer callbacks. timer callbacks are interlocked by time queue lock.
-STATUS iceAgentStateTransitionTimerCallback(UINT32, UINT64, UINT64);
+STATUS iceAgentStepStateTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentSendKeepAliveTimerCallback(UINT32, UINT64, UINT64);
 STATUS iceAgentGatherCandidateTimerCallback(UINT32, UINT64, UINT64);
 

@@ -1121,7 +1121,9 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     STRNCPY(pKvsPeerConnection->remoteIceUfrag, remoteIceUfrag, MAX_ICE_UFRAG_LEN);
     STRNCPY(pKvsPeerConnection->remoteIcePwd, remoteIcePwd, MAX_ICE_PWD_LEN);
 
-    CHK_STATUS(iceAgentStartAgent(pKvsPeerConnection->pIceAgent, pKvsPeerConnection->remoteIceUfrag, pKvsPeerConnection->remoteIcePwd,
+    CHK_STATUS(iceAgentStartAgent(pKvsPeerConnection->pIceAgent,
+                                  pKvsPeerConnection->remoteIceUfrag,
+                                  pKvsPeerConnection->remoteIcePwd,
                                   pKvsPeerConnection->isOffer));
 
     if (!pKvsPeerConnection->isOffer) {

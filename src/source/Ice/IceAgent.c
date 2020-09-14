@@ -7,6 +7,17 @@
 extern StateMachineState ICE_AGENT_STATE_MACHINE_STATES[];
 extern UINT32 ICE_AGENT_STATE_MACHINE_STATE_COUNT;
 
+/**
+ * allocate the IceAgent struct and store username and password
+ *
+ * @param - PCHAR - IN - username
+ * @param - PCHAR - IN - password
+ * @param - PIceAgentCallbacks - IN - callback for inbound packets
+ * @param - PRtcConfiguration - IN - RtcConfig
+ * @param - PIceAgent* - OUT - the created IceAgent struct
+ *
+ * @return - STATUS - status of execution
+ */
 STATUS createIceAgent(PCHAR username, 
                       PCHAR password, 
                       PIceAgentCallbacks pIceAgentCallbacks, 
@@ -561,7 +572,17 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief Initiates stun communication with remote candidates.
+ *
+ * @param - PIceAgent - IN - IceAgent object
+ * @param - PCHAR - IN - remote username
+ * @param - PCHAR - IN - remote password
+ * @param[in] isControlling is controlling agent. do you create the offer by yourself. 
+ *                          it means you are a client or not. true: give the offer, false: receive the offer.
+ *
+ * @return - STATUS - status of execution
+ */
 STATUS iceAgentStartAgent(PIceAgent pIceAgent, PCHAR remoteUsername, PCHAR remotePassword, BOOL isControlling)
 {
     ENTERS();
@@ -572,8 +593,7 @@ STATUS iceAgentStartAgent(PIceAgent pIceAgent, PCHAR remoteUsername, PCHAR remot
     CHK(pIceAgent != NULL && remoteUsername != NULL && remotePassword != NULL, STATUS_NULL_ARG);
     CHK(!ATOMIC_LOAD_BOOL(&pIceAgent->remoteCredentialReceived), retStatus); // make iceAgentStartAgent idempotent
     CHK(STRNLEN(remoteUsername, MAX_ICE_CONFIG_USER_NAME_LEN + 1) <= MAX_ICE_CONFIG_USER_NAME_LEN &&
-            STRNLEN(remotePassword, MAX_ICE_CONFIG_CREDENTIAL_LEN + 1) <= MAX_ICE_CONFIG_CREDENTIAL_LEN,
-        STATUS_INVALID_ARG);
+        STRNLEN(remotePassword, MAX_ICE_CONFIG_CREDENTIAL_LEN + 1) <= MAX_ICE_CONFIG_CREDENTIAL_LEN, STATUS_INVALID_ARG);
 
     MUTEX_LOCK(pIceAgent->lock);
     locked = TRUE;
@@ -593,11 +613,11 @@ STATUS iceAgentStartAgent(PIceAgent pIceAgent, PCHAR remoteUsername, PCHAR remot
     DLOGD("%s, %s, %s", pIceAgent->combinedUserName, pIceAgent->remoteUsername, pIceAgent->remotePassword);
     MUTEX_UNLOCK(pIceAgent->lock);
     locked = FALSE;
-
+    DLOGD("set one timer to step StateMachine(%d)", pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval);
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, 
                                   KVS_ICE_DEFAULT_TIMER_START_DELAY,
                                   pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,
-                                  iceAgentStateTransitionTimerCallback,
+                                  iceAgentStepStateTimerCallback,
                                   (UINT64) pIceAgent, 
                                   &pIceAgent->iceAgentStateTimerTask));
 
@@ -997,6 +1017,10 @@ CleanUp:
 /**
  * @brief check the new candidate is existed or not according to the ip address.
  * 
+ * @param[in] the ip address we are looking for.
+ * @param[in] the list of the ice candidate.
+ * @param[out] the existed ice candidate.
+ * 
 */
 STATUS findCandidateWithIp(PKvsIpAddress pIpAddress, PDoubleList pCandidateList, PIceCandidate* ppIceCandidate)
 {
@@ -1033,7 +1057,13 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief search the candidate by using the hadler of the socket connection.
+ * 
+ * @param[in] pSocketConnection the handler of the socket connection.
+ * @param[in] pCandidateList the list of ice candidates.
+ * @param[out] ppIceCandidate the candidate with the same handler of the socket connection.
+*/
 STATUS findCandidateWithSocketConnection(PSocketConnection pSocketConnection, PDoubleList pCandidateList, PIceCandidate* ppIceCandidate)
 {
     ENTERS();
@@ -1212,9 +1242,20 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
-STATUS findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(PIceAgent pIceAgent, PSocketConnection pSocketConnection, PKvsIpAddress pRemoteAddr,
-                                                                  BOOL checkPort, PIceCandidatePair* ppIceCandidatePair)
+/**
+ * @brief   find the ice candidate pair with the same local candidate's socket connection and the ip adddress of remote ice candidate.
+ * 
+ * @param[in] pIceAgent the object of ice agent.
+ * @param[in] the handler of the local ice candidate's socket connecion.
+ * @param[in] pRemoteAddr the ip address of remote.
+ * @param[in] checkPort check the port of remote address is the same as the port of ice candidate pair or not.
+ * @param[out] ppIceCandidatePair
+*/
+STATUS findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(PIceAgent pIceAgent,
+                                                                  PSocketConnection pSocketConnection,
+                                                                  PKvsIpAddress pRemoteAddr,
+                                                                  BOOL checkPort,
+                                                                  PIceCandidatePair* ppIceCandidatePair)
 {
     ENTERS();
 
@@ -1232,7 +1273,8 @@ STATUS findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(PIceAgent pIce
         pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
         pCurNode = pCurNode->pNext;
 
-        if (pIceCandidatePair->state != ICE_CANDIDATE_PAIR_STATE_FAILED && pIceCandidatePair->local->pSocketConnection == pSocketConnection &&
+        if (pIceCandidatePair->state != ICE_CANDIDATE_PAIR_STATE_FAILED && 
+            pIceCandidatePair->local->pSocketConnection == pSocketConnection &&
             pIceCandidatePair->remote->ipAddress.family == pRemoteAddr->family &&
             MEMCMP(pIceCandidatePair->remote->ipAddress.address, pRemoteAddr->address, addrLen) == 0 &&
             (!checkPort || pIceCandidatePair->remote->ipAddress.port == pRemoteAddr->port)) {
@@ -1357,8 +1399,13 @@ STATUS iceAgentSendStunPacket(PStunPacket pStunPacket,
 
     CHK(pStunPacket != NULL && pIceAgent != NULL && pLocalCandidate != NULL && pDestAddr != NULL, STATUS_NULL_ARG);
 
-    retStatus = iceUtilsSendStunPacket(pStunPacket, password, passwordLen, pDestAddr, pLocalCandidate->pSocketConnection,
-                                       pLocalCandidate->pTurnConnection, pLocalCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED);
+    retStatus = iceUtilsSendStunPacket(pStunPacket,
+                                       password,
+                                       passwordLen,
+                                       pDestAddr,
+                                       pLocalCandidate->pSocketConnection,
+                                       pLocalCandidate->pTurnConnection,
+                                       pLocalCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED);
 
     if (STATUS_FAILED(retStatus)) {
         DLOGW("iceUtilsSendStunPacket failed with 0x%08x", retStatus);
@@ -1372,7 +1419,10 @@ STATUS iceAgentSendStunPacket(PStunPacket pStunPacket,
 
         /* Update iceCandidatePair state to failed.
          * pIceCandidatePair could no longer exist. */
-        CHK_STATUS(findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(pIceAgent, pLocalCandidate->pSocketConnection, pDestAddr, TRUE,
+        CHK_STATUS(findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(pIceAgent,
+                                                                              pLocalCandidate->pSocketConnection,
+                                                                              pDestAddr,
+                                                                              TRUE,
                                                                               &pIceCandidatePair));
 
         if (pIceCandidatePair != NULL) {
@@ -1396,7 +1446,7 @@ CleanUp:
  * @param customData - custom data passed to timer queue when task was added
  * @return
  */
-STATUS iceAgentStateTransitionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+STATUS iceAgentStepStateTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     ENTERS();
     UNUSED_PARAM(timerId);
@@ -1423,11 +1473,6 @@ CleanUp:
 /**
  * @brief 
  * 
- * @param[]
- * @param[]
- * @param[]
- * @param[]
- * @param[]
  * @param[]
  * 
 */
@@ -1976,7 +2021,7 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief
+ * @brief   the handler of fsm()
  * 
  * @param[] pIceAgent the object of the ice agent.
 */
@@ -2173,7 +2218,11 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief 
+ * 
+ * @param[in] the object of ice agent.
+*/
 STATUS iceAgentNominatingStateSetup(PIceAgent pIceAgent)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -2287,6 +2336,11 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ * @brief 
+ * 
+ * @param[in] the object of ice agent.
+*/
 STATUS iceAgentNominateCandidatePair(PIceAgent pIceAgent)
 {
     ENTERS();
@@ -2508,14 +2562,18 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief handle the stun packet received from the socket connections.
+ * @brief handle the stun packet received from the socket connections. 
+ *          there are three cases handled in this api.
+ *          case 1. binding request.
+ *          case 2. binding response.
+ *          case 3. binding indicator.
  * 
  * @param[in] the object of ice agent.
  * @param[in] the buffer of packet.
  * @param[in] the length of packet.
  * @param[in] the object of socket connection
- * @param[in]
- * @param[in]
+ * @param[in] the source address in this stun packet.
+ * @param[in] the destination address in this stun packet.
  * 
 */
 STATUS handleStunPacket(PIceAgent pIceAgent,
@@ -2546,6 +2604,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
 
     switch (stunPacketType) {
         case STUN_PACKET_TYPE_BINDING_REQUEST:
+            DLOGD("receive the stun binding req.");
             CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, (PBYTE) pIceAgent->localPassword,
                                              (UINT32) STRLEN(pIceAgent->localPassword) * SIZEOF(CHAR), &pStunPacket));
             CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS, pStunPacket->header.transactionId, &pStunResponse));
@@ -2565,7 +2624,11 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
 
             // return early if there is no candidate pair. This can happen when we get connectivity check from the peer
             // before we receive the answer.
-            CHK_STATUS(findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(pIceAgent, pSocketConnection, pSrcAddr, TRUE, &pIceCandidatePair));
+            CHK_STATUS(findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(pIceAgent,
+                                                                                  pSocketConnection,
+                                                                                  pSrcAddr,
+                                                                                  TRUE,
+                                                                                  &pIceCandidatePair));
             CHK(pIceCandidatePair != NULL, retStatus);
 
             if (!pIceCandidatePair->nominated) {
@@ -2578,7 +2641,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
             }
 
             // schedule a connectivity check for the pair
-            if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_FROZEN || pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_WAITING ||
+            if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_FROZEN || 
+                pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_WAITING ||
                 pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS) {
                 CHK_STATUS(stackQueueEnqueue(pIceAgent->triggeredCheckQueue, (UINT64) pIceCandidatePair));
             }
@@ -2586,7 +2650,10 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
             break;
 
         case STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS:
+            /** calculate the crc checksum of transaction id. */
+            DLOGD("receive the stun binding rsp.");
             checkSum = COMPUTE_CRC32(pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET, STUN_TRANSACTION_ID_LEN);
+
             // check if Binding Response is for finding srflx candidate
             if (transactionIdStoreHasId(pIceAgent->pStunBindingRequestTransactionIdStore, pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET)) {
                 CHK_STATUS(findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
@@ -2594,6 +2661,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
                          pSocketConnection->localSocket);
 
                 // Update round trip time for serial reflexive candidate
+                /** #stat. */
                 pIceAgent->rtcIceServerDiagnostics[pIceCandidate->iceServerIndex].totalResponsesReceived++;
                 retStatus = hashTableGet(pIceAgent->requestTimestampDiagnostics, checkSum, &requestSentTime);
                 if (retStatus != STATUS_SUCCESS) {
@@ -2601,17 +2669,22 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
                 } else {
                     pIceAgent->rtcIceServerDiagnostics[pIceCandidate->iceServerIndex].totalRoundTripTime += GETTIME() - requestSentTime;
                 }
-
+                /** de-serialize the stun packet, and retrieve the xor mapped address of stun attribute. */
                 CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, NULL, 0, &pStunPacket));
                 CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, &pStunAttr));
                 CHK_WARN(pStunAttr != NULL, retStatus, "No mapped address attribute found in STUN binding response. Dropping Packet");
 
                 pStunAttrAddr = (PStunAttributeAddress) pStunAttr;
                 CHK_STATUS(updateCandidateAddress(pIceCandidate, &pStunAttrAddr->address));
+                DLOGD("update the ip address of ice candidate(srflx) successfully.");
                 CHK(FALSE, retStatus);
             }
 
-            CHK_STATUS(findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(pIceAgent, pSocketConnection, pSrcAddr, TRUE, &pIceCandidatePair));
+            CHK_STATUS(findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(pIceAgent,
+                                                                                  pSocketConnection,
+                                                                                  pSrcAddr,
+                                                                                  TRUE,
+                                                                                  &pIceCandidatePair));
             if (pIceCandidatePair == NULL) {
                 CHK_STATUS(getIpAddrStr(pSrcAddr, ipAddrStr, ARRAY_SIZE(ipAddrStr)));
                 CHK_STATUS(getIpAddrStr(&pSocketConnection->hostIpAddr, ipAddrStr2, ARRAY_SIZE(ipAddrStr2)));
@@ -2624,6 +2697,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
                      "Dropping response packet because transaction id does not match");
 
             // Update round trip time and responses received only for relay candidates.
+            /** #stat */
             if (pIceCandidatePair->local->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
                 pIceAgent->rtcIceServerDiagnostics[pIceCandidatePair->local->iceServerIndex].totalResponsesReceived++;
                 retStatus = hashTableGet(pIceAgent->requestTimestampDiagnostics, checkSum, &requestSentTime);
@@ -2633,13 +2707,16 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
                     pIceAgent->rtcIceServerDiagnostics[pIceCandidatePair->local->iceServerIndex].totalRoundTripTime += GETTIME() - requestSentTime;
                 }
             }
-            CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, (PBYTE) pIceAgent->remotePassword,
+            /** retrieve the stun attribute. */
+            CHK_STATUS(deserializeStunPacket(pBuffer,
+                                             bufferLen,
+                                             (PBYTE) pIceAgent->remotePassword,
                                              (UINT32) STRLEN(pIceAgent->remotePassword) * SIZEOF(CHAR), &pStunPacket));
             CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, &pStunAttr));
             CHK_WARN(pStunAttr != NULL, retStatus, "No mapped address attribute found in STUN response. Dropping Packet");
 
             pStunAttrAddr = (PStunAttributeAddress) pStunAttr;
-
+            /** the ip inside stun packet is not the same as the ip of local ice candidate. */
             if (!isSameIpAddress(&pStunAttrAddr->address, &pIceCandidatePair->local->ipAddress, FALSE)) {
                 // this can happen for host and server reflexive candidates. If the peer
                 // is in the same subnet, server reflexive candidate's binding response's xor mapped ip address will be
@@ -2648,18 +2725,24 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
                 DLOGD("local candidate ip address does not match with xor mapped address in binding response");
 
                 // we have a peer reflexive local candidate
-                CHK_STATUS(iceAgentCheckPeerReflexiveCandidate(pIceAgent, &pStunAttrAddr->address, pIceCandidatePair->local->priority, FALSE,
+                CHK_STATUS(iceAgentCheckPeerReflexiveCandidate(pIceAgent,
+                                                               &pStunAttrAddr->address,
+                                                               pIceCandidatePair->local->priority,
+                                                               FALSE,
                                                                pSocketConnection));
 
                 CHK(FALSE, retStatus);
             }
-
+            DLOGD("pIceCandidatePair->state:%d", pIceCandidatePair->state);
             if (pIceCandidatePair->state != ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
                 CHK_STATUS(hashTableGet(pIceCandidatePair->requestSentTime, checkSum, &requestSentTime));
                 pIceCandidatePair->roundTripTime = GETTIME() - requestSentTime;
-                DLOGD("Ice candidate pair %s_%s is connected. Round trip time: %" PRIu64 "ms", pIceCandidatePair->local->id,
-                      pIceCandidatePair->remote->id, pIceCandidatePair->roundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
+                DLOGD("Ice candidate pair %s_%s is connected. Round trip time: %" PRIu64 "ms", 
+                      pIceCandidatePair->local->id,
+                      pIceCandidatePair->remote->id, 
+                      pIceCandidatePair->roundTripTime / HUNDREDS_OF_NANOS_IN_A_MILLISECOND);
                 pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_SUCCEEDED;
+                DLOGD("valid IceCandidatePair");
             }
 
             break;
@@ -2696,8 +2779,17 @@ CleanUp:
 /**
  * @brief looks like the handler of remote ice candidate. check it later.
  * 
+ * @param[in] pIceAgent the object of the ice agent.
+ * @param[] pIpAddress
+ * @param[in] priority
+ * @param[in] isRemote the remote candidate or not.
+ * @param[]
+ * 
 */
-STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent pIceAgent, PKvsIpAddress pIpAddress, UINT32 priority, BOOL isRemote,
+STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent pIceAgent,
+                                           PKvsIpAddress pIpAddress,
+                                           UINT32 priority,
+                                           BOOL isRemote,
                                            PSocketConnection pSocketConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -2708,6 +2800,7 @@ STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent pIceAgent, PKvsIpAddress pI
     // remote candidate dont have socketConnection
     CHK(pIceAgent != NULL && pIpAddress != NULL && (isRemote || pSocketConnection != NULL), STATUS_NULL_ARG);
 
+    /** for the local ice candidate. */
     if (!isRemote) {
         // local peer reflexive candidate replaces existing local candidate because the peer sees different address
         // for this local candidate.
@@ -2720,13 +2813,13 @@ STATUS iceAgentCheckPeerReflexiveCandidate(PIceAgent pIceAgent, PKvsIpAddress pI
         iceAgentLogNewCandidate(pLocalIceCandidate);
         CHK(FALSE, retStatus);
     }
-
+    /** for the remote ice candidate. */
     CHK_STATUS(doubleListGetNodeCount(pIceAgent->remoteCandidates, &candidateCount));
     CHK_WARN(candidateCount < KVS_ICE_MAX_REMOTE_CANDIDATE_COUNT, retStatus, "max remote candidate count exceeded"); // return early if limit exceeded
     CHK_STATUS(findCandidateWithIp(pIpAddress, pIceAgent->remoteCandidates, &pIceCandidate));
     CHK(pIceCandidate == NULL, retStatus); // return early if duplicated
     DLOGD("New remote peer reflexive candidate found");
-
+    /** #memory. */
     CHK((pIceCandidate = MEMCALLOC(1, SIZEOF(IceCandidate))) != NULL, STATUS_NOT_ENOUGH_MEMORY);
     generateJSONSafeString(pIceCandidate->id, ARRAY_SIZE(pIceCandidate->id));
     pIceCandidate->isRemote = TRUE;
@@ -2787,7 +2880,13 @@ VOID iceAgentLogNewCandidate(PIceCandidate pIceCandidate)
               iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType), protocol);
     }
 }
-
+/**
+ * @brief update the ip address of ice candidate.
+ * 
+ * @param[in] the object of ice candidate.
+ * @param[in] the ip address of this ice candidate.
+ * 
+*/
 STATUS updateCandidateAddress(PIceCandidate pIceCandidate, PKvsIpAddress pIpAddr)
 {
     STATUS retStatus = STATUS_SUCCESS;

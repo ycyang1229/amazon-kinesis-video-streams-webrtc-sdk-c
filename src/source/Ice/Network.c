@@ -395,7 +395,11 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief compare pAddr1 with pAddr2. 
+ * 
+ * @param[in] checkPort check the port of addr1 and addr2 are the same or not.
+*/
 BOOL isSameIpAddress(PKvsIpAddress pAddr1, PKvsIpAddress pAddr2, BOOL checkPort)
 {
     BOOL ret;

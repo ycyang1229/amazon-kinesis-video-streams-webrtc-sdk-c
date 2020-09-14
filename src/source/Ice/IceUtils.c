@@ -80,7 +80,14 @@ VOID transactionIdStoreInsert(PTransactionIdStore pTransactionIdStore, PBYTE tra
 
     pTransactionIdStore->transactionIdCount = MIN(pTransactionIdStore->transactionIdCount + 1, pTransactionIdStore->maxTransactionIdsCount);
 }
-
+/**
+ * @brief check the transaction id is recorded in this table.
+ * 
+ * @param[in]
+ * @param[in] transactionId transaction id 
+ * 
+ * @return true: existed.
+*/
 BOOL transactionIdStoreHasId(PTransactionIdStore pTransactionIdStore, PBYTE transactionId)
 {
     BOOL idFound = FALSE;
