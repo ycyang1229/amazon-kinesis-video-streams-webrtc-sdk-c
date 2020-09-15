@@ -7,24 +7,23 @@
 /**
  * Static definitions of the states
  */
+#define ICE_AGENT_STATE_UNLIMIT_RETRY         (INFINITE_RETRY_COUNT_SENTINEL)
+#define ICE_AGENT_STATE_NEW_REQUIRED          (ICE_AGENT_STATE_NONE | ICE_AGENT_STATE_NEW)
+#define ICE_AGENT_STATE_CHECK_CONN_REQUIRED   (ICE_AGENT_STATE_NEW | ICE_AGENT_STATE_CHECK_CONNECTION)
+#define ICE_AGENT_STATE_CONNECTED_REQUIRED    (ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED)
+#define ICE_AGENT_STATE_NOMINATING_REQUIRED   (ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING)
+#define ICE_AGENT_STATE_READY_REQUIRED        (ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_READY | ICE_AGENT_STATE_DISCONNECTED)
+#define ICE_AGENT_STATE_DISCONNECTED_REQUIRED (ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_READY | ICE_AGENT_STATE_DISCONNECTED)
+#define ICE_AGENT_STATE_FAILED_REQUIRED       (ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_READY | ICE_AGENT_STATE_DISCONNECTED | ICE_AGENT_STATE_FAILED)
+
 StateMachineState ICE_AGENT_STATE_MACHINE_STATES[] = {
-    {ICE_AGENT_STATE_NEW, ICE_AGENT_STATE_NONE | ICE_AGENT_STATE_NEW, fromNewIceAgentState, executeNewIceAgentState, INFINITE_RETRY_COUNT_SENTINEL,
-     STATUS_ICE_INVALID_STATE},
-    {ICE_AGENT_STATE_CHECK_CONNECTION, ICE_AGENT_STATE_NEW | ICE_AGENT_STATE_CHECK_CONNECTION, fromCheckConnectionIceAgentState,
-     executeCheckConnectionIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
-    {ICE_AGENT_STATE_CONNECTED, ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED, fromConnectedIceAgentState,
-     executeConnectedIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
-    {ICE_AGENT_STATE_NOMINATING, ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING, fromNominatingIceAgentState, executeNominatingIceAgentState,
-     INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
-    {ICE_AGENT_STATE_READY, ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_READY | ICE_AGENT_STATE_DISCONNECTED,
-     fromReadyIceAgentState, executeReadyIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
-    {ICE_AGENT_STATE_DISCONNECTED,
-     ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_READY | ICE_AGENT_STATE_DISCONNECTED,
-     fromDisconnectedIceAgentState, executeDisconnectedIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
-    {ICE_AGENT_STATE_FAILED,
-     ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_READY |
-         ICE_AGENT_STATE_DISCONNECTED | ICE_AGENT_STATE_FAILED,
-     fromFailedIceAgentState, executeFailedIceAgentState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_ICE_INVALID_STATE},
+    {ICE_AGENT_STATE_NEW,              ICE_AGENT_STATE_NEW_REQUIRED,        iceAgentFsmLeaveNew,             iceAgentFsmNew,             ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
+    {ICE_AGENT_STATE_CHECK_CONNECTION, ICE_AGENT_STATE_CHECK_CONN_REQUIRED, iceAgentFsmLeaveCheckConnection, iceAgentFsmCheckConnection, ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
+    {ICE_AGENT_STATE_CONNECTED,        ICE_AGENT_STATE_CONNECTED_REQUIRED,  iceAgentFsmLeaveConnected,       iceAgentFsmConnected,       ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
+    {ICE_AGENT_STATE_NOMINATING,       ICE_AGENT_STATE_NOMINATING_REQUIRED, iceAgentFsmLeaveNominating,      iceAgentFsmNominating,      ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
+    {ICE_AGENT_STATE_READY,            ICE_AGENT_STATE_READY_REQUIRED,      iceAgentFsmLeaveReady,           iceAgentFsmReady,           ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
+    {ICE_AGENT_STATE_DISCONNECTED,     ICE_AGENT_STATE_DISCONNECTED_REQUIRED, iceAgentFsmLeaveDisconnected,  iceAgentFsmDisconnected,    ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
+    {ICE_AGENT_STATE_FAILED,           ICE_AGENT_STATE_FAILED_REQUIRED,      iceAgentFsmLeaveFailed,         iceAgentFsmFailed,          ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
 };
 
 UINT32 ICE_AGENT_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(ICE_AGENT_STATE_MACHINE_STATES);
@@ -33,7 +32,7 @@ UINT32 ICE_AGENT_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(ICE_AGENT_STATE_MACHINE_
  * 
  * @param[in] the object of the ice agent.
 */
-STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
+STATUS iceAgentFsmAdvance(PIceAgent pIceAgent)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -128,7 +127,11 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief the transformation between state and string. #YC_TBD. 
+ * 
+ * @param[in] state 
+*/
 PCHAR iceAgentStateToString(UINT64 state)
 {
     PCHAR stateStr = NULL;
@@ -165,7 +168,7 @@ PCHAR iceAgentStateToString(UINT64 state)
 ///////////////////////////////////////////////////////////////////////////
 // State machine callback functions
 ///////////////////////////////////////////////////////////////////////////
-STATUS fromNewIceAgentState(UINT64 customData, PUINT64 pState)
+STATUS iceAgentFsmLeaveNew(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -185,7 +188,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS executeNewIceAgentState(UINT64 customData, UINT64 time)
+STATUS iceAgentFsmNew(UINT64 customData, UINT64 time)
 {
     ENTERS();
     UNUSED_PARAM(time);
@@ -206,10 +209,10 @@ CleanUp:
 /**
  * @brief move to another state from the state of ICE_AGENT_STATE_CHECK_CONNECTION.
  * 
- * @param[]
- * @param[]
+ * @param[in] the object of the ice agent.
+ * @param[out] pState the next state
 */
-STATUS fromCheckConnectionIceAgentState(UINT64 customData, PUINT64 pState)
+STATUS iceAgentFsmLeaveCheckConnection(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -233,6 +236,9 @@ STATUS fromCheckConnectionIceAgentState(UINT64 customData, PUINT64 pState)
     CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
 
     // connected pair found ? go to ICE_AGENT_STATE_CONNECTED : timeout ? go to error : remain in ICE_AGENT_STATE_CHECK_CONNECTION
+    /**
+     * search the first candidate pair with succeeded state.
+    */
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
     while (pCurNode != NULL && !connectedCandidatePairFound) {
         pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
@@ -270,13 +276,14 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief 
+ * @brief send the stun packet on all the valid candidate pair. 
+ *          make sure you already have candidate pair.
  * 
  * @param[]
  * @param[]
  * 
 */
-STATUS executeCheckConnectionIceAgentState(UINT64 customData, UINT64 time)
+STATUS iceAgentFsmCheckConnection(UINT64 customData, UINT64 time)
 {
     ENTERS();
     UNUSED_PARAM(time);
@@ -284,12 +291,16 @@ STATUS executeCheckConnectionIceAgentState(UINT64 customData, UINT64 time)
     PIceAgent pIceAgent = (PIceAgent) customData;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-
-    if (pIceAgent->iceAgentState != ICE_AGENT_STATE_CHECK_CONNECTION) {
+    MUTEX_LOCK(pIceAgent->lock);
+    UINT32 iceCandidatePairCount = 0;
+    CHK_STATUS(doubleListGetNodeCount(pIceAgent->iceCandidatePairs, &iceCandidatePairCount));
+    MUTEX_UNLOCK(pIceAgent->lock);
+    /** reduce the effort if we are already in the state of check_connection. */
+    if (pIceAgent->iceAgentState != ICE_AGENT_STATE_CHECK_CONNECTION || iceCandidatePairCount==0) {
         CHK_STATUS(iceAgentCheckConnectionStateSetup(pIceAgent));
         pIceAgent->iceAgentState = ICE_AGENT_STATE_CHECK_CONNECTION;
     }
-
+    /** send the stun packet to probe the ice candidate pair. */
     CHK_STATUS(iceAgentCheckCandidatePairConnection(pIceAgent));
 
 CleanUp:
@@ -305,7 +316,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS fromConnectedIceAgentState(UINT64 customData, PUINT64 pState)
+STATUS iceAgentFsmLeaveConnected(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -348,7 +359,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS executeConnectedIceAgentState(UINT64 customData, UINT64 time)
+STATUS iceAgentFsmConnected(UINT64 customData, UINT64 time)
 {
     ENTERS();
     UNUSED_PARAM(time);
@@ -374,7 +385,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS fromNominatingIceAgentState(UINT64 customData, PUINT64 pState)
+STATUS iceAgentFsmLeaveNominating(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -442,7 +453,7 @@ CleanUp:
  * @param[]
  * 
 */
-STATUS executeNominatingIceAgentState(UINT64 customData, UINT64 time)
+STATUS iceAgentFsmNominating(UINT64 customData, UINT64 time)
 {
     ENTERS();
     UNUSED_PARAM(time);
@@ -476,8 +487,13 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
-STATUS fromReadyIceAgentState(UINT64 customData, PUINT64 pState)
+/**
+ * @brief 
+ * 
+ * @param[]
+ * @param[]
+*/
+STATUS iceAgentFsmLeaveReady(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -518,7 +534,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS executeReadyIceAgentState(UINT64 customData, UINT64 time)
+STATUS iceAgentFsmReady(UINT64 customData, UINT64 time)
 {
     ENTERS();
     UNUSED_PARAM(time);
@@ -545,7 +561,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS fromDisconnectedIceAgentState(UINT64 customData, PUINT64 pState)
+STATUS iceAgentFsmLeaveDisconnected(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -581,8 +597,12 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
-STATUS executeDisconnectedIceAgentState(UINT64 customData, UINT64 time)
+/**
+ * @brief 
+ * @param[]
+ * @param[]
+*/
+STATUS iceAgentFsmDisconnected(UINT64 customData, UINT64 time)
 {
     ENTERS();
     UNUSED_PARAM(time);
@@ -622,7 +642,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS fromFailedIceAgentState(UINT64 customData, PUINT64 pState)
+STATUS iceAgentFsmLeaveFailed(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -639,7 +659,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS executeFailedIceAgentState(UINT64 customData, UINT64 time)
+STATUS iceAgentFsmFailed(UINT64 customData, UINT64 time)
 {
     ENTERS();
     UNUSED_PARAM(time);

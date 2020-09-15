@@ -114,7 +114,12 @@ VOID transactionIdStoreClear(PTransactionIdStore pTransactionIdStore)
     pTransactionIdStore->earliestTransactionIdIndex = 0;
     pTransactionIdStore->transactionIdCount = 0;
 }
-
+/**
+ * @brief generate the transaction id randomly.
+ * 
+ * @param[in/out] pBuffer the buffer of transaction id.
+ * @param[in]
+*/
 STATUS iceUtilsGenerateTransactionId(PBYTE pBuffer, UINT32 bufferLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -142,7 +147,7 @@ CleanUp:
 */
 STATUS iceUtilsPackageStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen, PBYTE pBuffer, PUINT32 pBufferLen)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 stunPacketSize = 0;
     BOOL addMessageIntegrity = FALSE;
@@ -162,14 +167,29 @@ STATUS iceUtilsPackageStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
-
-STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen, PKvsIpAddress pDest, PSocketConnection pSocketConnection,
-                              PTurnConnection pTurnConnection, BOOL useTurn)
+/**
+ * @brief pack the stun packet and send it out.
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+*/
+STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket,
+                              PBYTE password,
+                              UINT32 passwordLen,
+                              PKvsIpAddress pDest,
+                              PSocketConnection pSocketConnection,
+                              PTurnConnection pTurnConnection,
+                              BOOL useTurn)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 stunPacketSize = STUN_PACKET_ALLOCATION_SIZE;
     //BYTE stunPacketBuffer[STUN_PACKET_ALLOCATION_SIZE];
@@ -186,7 +206,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
     MEMFREE(stunPacketBuffer);
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -207,7 +227,7 @@ STATUS iceUtilsSendData(PBYTE buffer,
                         PTurnConnection pTurnConnection,
                         BOOL useTurn)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK((pSocketConnection != NULL && !useTurn) || (pTurnConnection != NULL && useTurn), STATUS_INVALID_ARG);
@@ -225,7 +245,7 @@ STATUS iceUtilsSendData(PBYTE buffer,
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**

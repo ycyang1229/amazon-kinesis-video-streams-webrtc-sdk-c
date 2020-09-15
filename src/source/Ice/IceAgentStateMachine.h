@@ -41,7 +41,7 @@ extern "C" {
 #define ICE_AGENT_STATE_FAILED_STR           (PCHAR) "ICE_AGENT_STATE_FAILED"
 
 // Whether to step the state machine
-STATUS stepIceAgentStateMachine(PIceAgent);
+STATUS iceAgentFsmAdvance(PIceAgent);
 STATUS acceptIceAgentMachineState(PIceAgent, UINT64);
 STATUS iceAgentStateMachineCheckDisconnection(PIceAgent, PUINT64);
 PCHAR iceAgentStateToString(UINT64);
@@ -49,20 +49,20 @@ PCHAR iceAgentStateToString(UINT64);
 /**
  * Signaling state machine callbacks
  */
-STATUS fromNewIceAgentState(UINT64, PUINT64);
-STATUS executeNewIceAgentState(UINT64, UINT64);
-STATUS fromCheckConnectionIceAgentState(UINT64, PUINT64);
-STATUS executeCheckConnectionIceAgentState(UINT64, UINT64);
-STATUS fromConnectedIceAgentState(UINT64, PUINT64);
-STATUS executeConnectedIceAgentState(UINT64, UINT64);
-STATUS fromNominatingIceAgentState(UINT64, PUINT64);
-STATUS executeNominatingIceAgentState(UINT64, UINT64);
-STATUS fromReadyIceAgentState(UINT64, PUINT64);
-STATUS executeReadyIceAgentState(UINT64, UINT64);
-STATUS fromDisconnectedIceAgentState(UINT64, PUINT64);
-STATUS executeDisconnectedIceAgentState(UINT64, UINT64);
-STATUS fromFailedIceAgentState(UINT64, PUINT64);
-STATUS executeFailedIceAgentState(UINT64, UINT64);
+STATUS iceAgentFsmLeaveNew(UINT64, PUINT64);
+STATUS iceAgentFsmNew(UINT64, UINT64);
+STATUS iceAgentFsmLeaveCheckConnection(UINT64, PUINT64);
+STATUS iceAgentFsmCheckConnection(UINT64, UINT64);
+STATUS iceAgentFsmLeaveConnected(UINT64, PUINT64);
+STATUS iceAgentFsmConnected(UINT64, UINT64);
+STATUS iceAgentFsmLeaveNominating(UINT64, PUINT64);
+STATUS iceAgentFsmNominating(UINT64, UINT64);
+STATUS iceAgentFsmLeaveReady(UINT64, PUINT64);
+STATUS iceAgentFsmReady(UINT64, UINT64);
+STATUS iceAgentFsmLeaveDisconnected(UINT64, PUINT64);
+STATUS iceAgentFsmDisconnected(UINT64, UINT64);
+STATUS iceAgentFsmLeaveFailed(UINT64, PUINT64);
+STATUS iceAgentFsmFailed(UINT64, UINT64);
 
 #ifdef __cplusplus
 }

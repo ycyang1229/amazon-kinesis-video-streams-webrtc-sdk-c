@@ -124,7 +124,7 @@ typedef struct {
     KvsIpAddress ipAddress;
     PSocketConnection pSocketConnection;//!< the handler of the socket connection for this ice agent. 
     ICE_CANDIDATE_STATE state;
-    UINT32 priority;
+    UINT32 priority;//!< will be put into the stun attribute. 
     UINT32 iceServerIndex;//!< the index of ice servers this ice agent uses.
     UINT32 foundation;
     /* If candidate is local and relay, then store the
@@ -167,7 +167,8 @@ struct __IceAgent {
     CHAR localPassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
     CHAR remoteUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR remotePassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
-    CHAR combinedUserName[MAX_ICE_CONFIG_USER_NAME_LEN*2 + 2];
+    CHAR combinedUserName[MAX_ICE_CONFIG_USER_NAME_LEN*2 + 2];//!< the combination of remote user name and local user name.
+                                                              //!< It is used by the stun attribute.
 
     RtcIceServerDiagnostics rtcIceServerDiagnostics[MAX_ICE_SERVERS_COUNT];
     RtcIceCandidateDiagnostics rtcSelectedLocalIceCandidateDiagnostics;
@@ -201,7 +202,7 @@ struct __IceAgent {
     /** the state machine of this ice agent. */
     PStateMachine pStateMachine;
     STATUS iceAgentStatus;
-    UINT64 stateEndTime;
+    UINT64 stateEndTime;//!< The end time for the dedicated state, and it is used for the mechansim of timeoue. 
     UINT64 candidateGatheringEndTime;
     PIceCandidatePair pDataSendingIceCandidatePair;
 
@@ -225,8 +226,8 @@ struct __IceAgent {
     KvsRtcConfiguration kvsRtcConfiguration;
 
     // Pre-allocated stun packets
-    PStunPacket pBindingIndication;
-    PStunPacket pBindingRequest;
+    PStunPacket pBindingIndication;//!< the pointer to the packet of STUN_PACKET_TYPE_BINDING_INDICATION
+    PStunPacket pBindingRequest;//!< the pointer to the packet of STUN_PACKET_TYPE_BINDING_REQUEST.
 
     // store transaction ids for stun binding request.
     PTransactionIdStore pStunBindingRequestTransactionIdStore;

@@ -610,7 +610,7 @@ VOID onDtlsStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE newDtlsState)
  */
 STATUS generateJSONSafeString(PCHAR pDst, UINT32 len)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i = 0;
 
@@ -622,7 +622,7 @@ STATUS generateJSONSafeString(PCHAR pDst, UINT32 len)
 
 CleanUp:
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -636,7 +636,7 @@ CleanUp:
 */
 STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
-    //ENTERS();
+    ENTERS();
     UNUSED_PARAM(timerId);
     STATUS retStatus = STATUS_SUCCESS;
     BOOL ready = FALSE;
@@ -708,7 +708,7 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
 CleanUp:
     CHK_LOG_ERR(retStatus);
     SAFE_MEMFREE(rawPacket);
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
@@ -1018,7 +1018,7 @@ STATUS peerConnectionGetCurrentLocalDescription(PRtcPeerConnection pRtcPeerConne
     CHK(pRtcPeerConnection != NULL && pRtcSessionDescriptionInit != NULL, STATUS_NULL_ARG);
     // do nothing if remote session description hasn't been received
     CHK(pKvsPeerConnection->remoteSessionDescription.sessionName[0] != '\0', retStatus);
-
+    /** #memory. */
     CHK(NULL != (pSessionDescription = (PSessionDescription) MEMCALLOC(1, SIZEOF(SessionDescription))), STATUS_NOT_ENOUGH_MEMORY);
 
     CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));

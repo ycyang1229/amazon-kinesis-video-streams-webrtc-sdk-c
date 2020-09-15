@@ -626,9 +626,12 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
         pKvsRtpTransceiver = (PKvsRtpTransceiver) data;
         if (pKvsRtpTransceiver != NULL) {
             CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
-            CHK_STATUS(populateSingleMediaSection(pKvsPeerConnection, pKvsRtpTransceiver,
+            CHK_STATUS(populateSingleMediaSection(pKvsPeerConnection,
+                                                  pKvsRtpTransceiver,
                                                   &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
-                                                  certificateFingerprint, pLocalSessionDescription->mediaCount, pDtlsRole));
+                                                  certificateFingerprint,
+                                                  pLocalSessionDescription->mediaCount,
+                                                  pDtlsRole));
             pLocalSessionDescription->mediaCount++;
         }
     }
@@ -637,7 +640,9 @@ STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PS
         CHK(pLocalSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_SESSION_DESCRIPTION_MAX_MEDIA_COUNT);
         CHK_STATUS(populateSessionDescriptionDataChannel(pKvsPeerConnection,
                                                          &(pLocalSessionDescription->mediaDescriptions[pLocalSessionDescription->mediaCount]),
-                                                         certificateFingerprint, pLocalSessionDescription->mediaCount, pDtlsRole));
+                                                         certificateFingerprint,
+                                                         pLocalSessionDescription->mediaCount,
+                                                         pDtlsRole));
         pLocalSessionDescription->mediaCount++;
     }
 

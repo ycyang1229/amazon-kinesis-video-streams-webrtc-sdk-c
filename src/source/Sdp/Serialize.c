@@ -3,7 +3,7 @@
 
 STATUS serializeVersion(UINT64 version, PCHAR* ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 currentWriteSize = 0;
 
@@ -18,13 +18,13 @@ STATUS serializeVersion(UINT64 version, PCHAR* ppOutputData, PUINT32 pTotalWritt
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS serializeOrigin(PSdpOrigin pSDPOrigin, PCHAR* ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 currentWriteSize = 0;
 
@@ -46,13 +46,13 @@ STATUS serializeOrigin(PSdpOrigin pSDPOrigin, PCHAR* ppOutputData, PUINT32 pTota
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS serializeSessionName(PCHAR sessionName, PCHAR* ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 currentWriteSize = 0;
 
@@ -69,13 +69,13 @@ STATUS serializeSessionName(PCHAR sessionName, PCHAR* ppOutputData, PUINT32 pTot
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS serializeTimeDescription(PSdpTimeDescription pSDPTimeDescription, PCHAR* ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 currentWriteSize = 0;
 
@@ -88,7 +88,7 @@ STATUS serializeTimeDescription(PSdpTimeDescription pSDPTimeDescription, PCHAR* 
         *ppOutputData += currentWriteSize;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -117,7 +117,7 @@ STATUS serializeAttribute(PSdpAttributes pSDPAttributes, PCHAR* ppOutputData, PU
 
 STATUS serializeMediaName(PCHAR pMediaName, PCHAR* ppOutputData, PUINT32 pTotalWritten, PUINT32 pBufferSize)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 currentWriteSize = 0;
 
@@ -134,14 +134,14 @@ STATUS serializeMediaName(PCHAR pMediaName, PCHAR* ppOutputData, PUINT32 pTotalW
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS serializeMediaConnectionInformation(PSdpConnectionInformation pSdpConnectionInformation, PCHAR* ppOutputData, PUINT32 pTotalWritten,
                                            PUINT32 pBufferSize)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 currentWriteSize = 0;
 
@@ -159,13 +159,13 @@ STATUS serializeMediaConnectionInformation(PSdpConnectionInformation pSdpConnect
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS serializeSessionDescription(PSessionDescription pSessionDescription, PCHAR sdpBytes, PUINT32 sdpBytesLength)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR curr = sdpBytes;
     UINT32 i, j, bufferSize = 0;
@@ -186,17 +186,25 @@ STATUS serializeSessionDescription(PSessionDescription pSessionDescription, PCHA
     }
 
     for (i = 0; i < pSessionDescription->mediaCount; i++) {
-        CHK_STATUS(serializeMediaName(pSessionDescription->mediaDescriptions[i].mediaName, &curr, sdpBytesLength, &bufferSize));
-        CHK_STATUS(serializeMediaConnectionInformation(&(pSessionDescription->mediaDescriptions[i].sdpConnectionInformation), &curr, sdpBytesLength,
-                                                       &bufferSize));
+        CHK_STATUS(serializeMediaName(pSessionDescription->mediaDescriptions[i].mediaName,
+                                      &curr,
+                                      sdpBytesLength,
+                                      &bufferSize));
+        CHK_STATUS(serializeMediaConnectionInformation(&(pSessionDescription->mediaDescriptions[i].sdpConnectionInformation),
+                                                        &curr,
+                                                        sdpBytesLength,
+                                                        &bufferSize));
         for (j = 0; j < pSessionDescription->mediaDescriptions[i].mediaAttributesCount; j++) {
-            CHK_STATUS(serializeAttribute(&pSessionDescription->mediaDescriptions[i].sdpAttributes[j], &curr, sdpBytesLength, &bufferSize));
+            CHK_STATUS(serializeAttribute(&pSessionDescription->mediaDescriptions[i].sdpAttributes[j],
+                                            &curr,
+                                            sdpBytesLength,
+                                            &bufferSize));
         }
     }
 
     *sdpBytesLength += 1; // NULL terminator
 
 CleanUp:
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }

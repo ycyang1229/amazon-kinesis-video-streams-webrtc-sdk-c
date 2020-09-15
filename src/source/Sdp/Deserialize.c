@@ -1,37 +1,55 @@
 #define LOG_CLASS "SDP"
 #include "../Include_i.h"
-
+/**
+ * @brief #define SDP_MEDIA_NAME_MARKER       "m="
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+*/
 STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR pch, UINT32 lineLen)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_BUFFER_TOO_SMALL);
 
-    STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount].mediaName, (pch + SDP_ATTRIBUTE_LENGTH),
-            MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
+    STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount].mediaName, 
+            (pch + SDP_ATTRIBUTE_LENGTH),
+            MIN(MAX_SDP_MEDIA_NAME_LENGTH, 
+            lineLen - SDP_ATTRIBUTE_LENGTH));
     pSessionDescription->mediaCount++;
 
 CleanUp:
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
+/**
+ * @brief #define SDP_ATTRIBUTE_MARKER              "a="
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+*/
 STATUS parseSessionAttributes(PSessionDescription pSessionDescription, PCHAR pch, UINT32 lineLen)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR search;
 
     CHK(pSessionDescription->sessionAttributesCount < MAX_SDP_ATTRIBUTES_COUNT, STATUS_SDP_ATTRIBUTE_MAX_EXCEEDED);
 
     if ((search = STRNCHR(pch, lineLen, ':')) == NULL) {
-        STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeName, pch + SDP_ATTRIBUTE_LENGTH,
+        STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeName,
+                pch + SDP_ATTRIBUTE_LENGTH,
                 MIN(MAX_SDP_ATTRIBUTE_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
     } else {
-        STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeName, pch + SDP_ATTRIBUTE_LENGTH,
+        STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeName,
+                pch + SDP_ATTRIBUTE_LENGTH,
                 (search - (pch + SDP_ATTRIBUTE_LENGTH)));
-        STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeValue, search + 1,
+        STRNCPY(pSessionDescription->sdpAttributes[pSessionDescription->sessionAttributesCount].attributeValue,
+                search + 1,
                 MIN(MAX_SDP_ATTRIBUTE_VALUE_LENGTH, lineLen - (search - pch + 1)));
     }
 
@@ -39,10 +57,12 @@ STATUS parseSessionAttributes(PSessionDescription pSessionDescription, PCHAR pch
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief #define SDP_ATTRIBUTE_MARKER              "a="
+*/
 STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pch, UINT32 lineLen)
 {
     //ENTERS();
@@ -56,12 +76,15 @@ STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pch, 
 
     if ((search = STRNCHR(pch, lineLen, ':')) == NULL) {
         STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].sdpAttributes[currentMediaAttributesCount].attributeName,
-                pch + SDP_ATTRIBUTE_LENGTH, MIN(MAX_SDP_ATTRIBUTE_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
+                pch + SDP_ATTRIBUTE_LENGTH,
+                MIN(MAX_SDP_ATTRIBUTE_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
     } else {
         STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].sdpAttributes[currentMediaAttributesCount].attributeName,
-                pch + SDP_ATTRIBUTE_LENGTH, (search - (pch + SDP_ATTRIBUTE_LENGTH)));
+                pch + SDP_ATTRIBUTE_LENGTH,
+                (search - (pch + SDP_ATTRIBUTE_LENGTH)));
         STRNCPY(pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].sdpAttributes[currentMediaAttributesCount].attributeValue,
-                search + 1, MIN(MAX_SDP_ATTRIBUTE_VALUE_LENGTH, lineLen - (search - pch + 1)));
+                search + 1,
+                MIN(MAX_SDP_ATTRIBUTE_VALUE_LENGTH, lineLen - (search - pch + 1)));
     }
     pSessionDescription->mediaDescriptions[pSessionDescription->mediaCount - 1].mediaAttributesCount++;
 
@@ -73,7 +96,7 @@ CleanUp:
 
 STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PCHAR sdpBytes)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR curr, tail, next;
     UINT32 lineLen;
@@ -147,6 +170,6 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }

@@ -3,7 +3,7 @@
 
 STATUS stunPackageIpAddr(PStunHeader pStunHeader, STUN_ATTRIBUTE_TYPE type, PKvsIpAddress pAddress, PBYTE pBuffer, PUINT32 pDataLen)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 dataLen = 0;
     UINT16 size;
@@ -63,7 +63,7 @@ CleanUp:
         *pDataLen = dataLen;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -525,7 +525,7 @@ CleanUp:
 
 STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE password, UINT32 passwordLen, PStunPacket* ppStunPacket)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 attributeCount = 0, allocationSize, attributeSize, i = 0, j, magicCookie, hmacLen, crc32, data;
     UINT32 stunMagicCookie = STUN_HEADER_MAGIC_COOKIE;
@@ -1065,7 +1065,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -1084,7 +1084,7 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief create one stun packet according to the stun message type.
+ * @brief create one basic stun packet according to the stun message type.
  * 
  * @param[in] stunPacketType stun message type.
  * @param[in] transactionId the transactino id. set it randonly if it is null.
@@ -1266,7 +1266,12 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief 
+ * 
+ * @param[]
+ * @param[]
+*/
 STATUS appendStunPriorityAttribute(PStunPacket pStunPacket, UINT32 priority)
 {
     //ENTERS();
@@ -1511,7 +1516,7 @@ CleanUp:
 
 STATUS updateStunNonceAttribute(PStunPacket pStunPacket, PBYTE nonce, UINT16 nonceLen)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributeNonce pAttribute = NULL;
     PStunAttributeHeader pAttributeHeader = NULL;
@@ -1533,13 +1538,13 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS appendStunErrorCodeAttribute(PStunPacket pStunPacket, PCHAR errorPhrase, UINT16 errorCode)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributeErrorCode pAttribute = NULL;
     PStunAttributeHeader pAttributeHeader = NULL;
@@ -1578,13 +1583,13 @@ STATUS appendStunErrorCodeAttribute(PStunPacket pStunPacket, PCHAR errorPhrase, 
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS appendStunIceControllAttribute(PStunPacket pStunPacket, STUN_ATTRIBUTE_TYPE attributeType, UINT64 tieBreaker)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributeIceControl pAttribute = NULL;
     PStunAttributeHeader pAttributeHeader = NULL;
@@ -1612,13 +1617,13 @@ STATUS appendStunIceControllAttribute(PStunPacket pStunPacket, STUN_ATTRIBUTE_TY
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS appendStunDataAttribute(PStunPacket pStunPacket, PBYTE data, UINT16 dataLen)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributeData pAttribute = NULL;
     PStunAttributeHeader pAttributeHeader = NULL;
@@ -1654,13 +1659,13 @@ STATUS appendStunDataAttribute(PStunPacket pStunPacket, PBYTE data, UINT16 dataL
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS appendStunChannelNumberAttribute(PStunPacket pStunPacket, UINT16 channelNumber)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributeChannelNumber pAttribute = NULL;
     PStunAttributeHeader pAttributeHeader = NULL;
@@ -1687,10 +1692,14 @@ STATUS appendStunChannelNumberAttribute(PStunPacket pStunPacket, UINT16 channelN
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief 
+ * 
+ * @param[]
+*/
 UINT16 getPackagedStunAttributeSize(PStunAttributeHeader pStunAttrHdr)
 {
     UINT16 length;
@@ -1750,6 +1759,12 @@ UINT16 getPackagedStunAttributeSize(PStunAttributeHeader pStunAttrHdr)
     return (UINT16) ROUND_UP(length, 8);
 }
 
+/**
+ * @brief 
+ * 
+ * @param[in] pStunPacket
+ * @param[out] ppStunAttribute
+*/
 STATUS getFirstAvailableStunAttribute(PStunPacket pStunPacket, PStunAttributeHeader* ppStunAttribute)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -1780,6 +1795,6 @@ STATUS getFirstAvailableStunAttribute(PStunPacket pStunPacket, PStunAttributeHea
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }

@@ -1646,7 +1646,7 @@ CleanUp:
 */
 STATUS receiveWssMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT32 messageLen)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     jsmn_parser parser;
     //jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
@@ -1876,7 +1876,7 @@ CleanUp:
         SAFE_MEMFREE(pSignalingMessageWrapper);
     }
     MEMFREE(tokens);
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
@@ -1910,7 +1910,7 @@ CleanUp:
 
 STATUS getMessageTypeFromString(PCHAR typeStr, UINT32 typeLen, SIGNALING_MESSAGE_TYPE* pMessageType)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 len;
 
@@ -1941,7 +1941,7 @@ STATUS getMessageTypeFromString(PCHAR typeStr, UINT32 typeLen, SIGNALING_MESSAGE
 
 CleanUp:
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 

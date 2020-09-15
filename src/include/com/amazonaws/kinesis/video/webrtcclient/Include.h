@@ -978,7 +978,7 @@ typedef struct {
     //!< smaller payloads. If unset DEFAULT_MTU_SIZE will be used
     UINT16 maximumTransmissionUnit;
 
-    //!< Maximum time ice will wait for gathering STUN and RELAY candidates. Once
+    //!< The maximum interval ice will wait for gathering STUN and RELAY candidates. Once
     //!< it's reached, ice will proceed with whatever candidate it current has. Use default value if 0.
     UINT32 iceLocalCandidateGatheringTimeout;
 

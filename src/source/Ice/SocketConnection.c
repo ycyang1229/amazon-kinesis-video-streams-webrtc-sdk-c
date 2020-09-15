@@ -178,7 +178,7 @@ CleanUp:
 
 STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf, UINT32 bufLen, PKvsIpAddress pDestIp)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     //DLOGD("bufLen:%d", bufLen);
@@ -215,7 +215,7 @@ CleanUp:
         MUTEX_UNLOCK(pSocketConnection->lock);
     }
     CHK_LOG_ERR(retStatus);
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
@@ -325,7 +325,7 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
 
 STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, UINT32 bufLen, PKvsIpAddress pDestIp, PUINT32 pBytesWritten)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     INT32 socketWriteAttempt = 0;
     SSIZE_T result = 0;
@@ -423,6 +423,6 @@ CleanUp:
         DLOGD("Warning: Send data failed with 0x%08x", retStatus);
     }
     CHK_LOG_ERR(retStatus);
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }

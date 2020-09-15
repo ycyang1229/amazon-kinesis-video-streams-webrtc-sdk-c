@@ -1325,14 +1325,11 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief 
+ * @brief   send the stun packet on the socket connection of the ice candidate pair.
  * 
- * @param[]
- * @param[]
- * @param[]
- * @param[]
- * @param[]
- * @param[]
+ * @param[in] pStunBindingRequest the pointer to the buffer of the stun packet.
+ * @param[in] pIceAgent the object of ice agent.
+ * @param[in] pIceCandidatePair the object of ice candidate pair.
  * 
 */
 STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgent pIceAgent, PIceCandidatePair pIceCandidatePair)
@@ -1356,6 +1353,7 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
     CHK_STATUS(hashTableUpsert(pIceCandidatePair->requestSentTime, checkSum, GETTIME()));
 
     if (pIceCandidatePair->local->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED) {
+        /** #stat. */
         pIceAgent->rtcIceServerDiagnostics[pIceCandidatePair->local->iceServerIndex].totalRequestsSent++;
         CHK_STATUS(hashTableUpsert(pIceAgent->requestTimestampDiagnostics, checkSum, GETTIME()));
     }
@@ -1374,7 +1372,8 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief 
+ * @brief send the stun packet on the specific socket connection. 
+ *          If we fail to send the data out, we will set this ice candidate pair as failed.
  * 
  * @param[]
  * @param[]
@@ -1439,7 +1438,9 @@ CleanUp:
 }
 
 /**
- * timer queue callbacks are interlocked by time queue lock.
+ * @brief timer queue callbacks are interlocked by time queue lock.
+ *          need to check the implementation of timer. STATUS_TIMER_QUEUE_STOP_SCHEDULING, timerQueueExecutor(). 
+ *          #YC_TBD, this coding is ambiguous.
  *
  * @param timerId - timer queue task id
  * @param currentTime
@@ -1456,9 +1457,9 @@ STATUS iceAgentStepStateTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
-    // Do not acquire lock because stepIceAgentStateMachine acquires lock.
+    // Do not acquire lock because iceAgentFsmAdvance acquires lock.
     // Drive the state machine
-    CHK_STATUS(stepIceAgentStateMachine(pIceAgent));
+    CHK_STATUS(iceAgentFsmAdvance(pIceAgent));
 
 CleanUp:
 
@@ -1535,7 +1536,9 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief 
+ * @brief there are two cases handled in this api.
+ *          case1. pop the triggered  check queue
+ *          case2. check all the ice candidate pairs.
  * 
  * @param[in] the object of the ice agent.
  * 
@@ -1575,6 +1578,7 @@ STATUS iceAgentCheckCandidatePairConnection(PIceAgent pIceAgent)
                     // NOTE: Explicit fall-through
                 case ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS:
                     CHK_STATUS(iceCandidatePairCheckConnection(pIceAgent->pBindingRequest, pIceAgent, pIceCandidatePair));
+                    DLOGD("send stun packet out.");
                     break;
                 default:
                     break;
@@ -1620,7 +1624,11 @@ STATUS iceAgentSendKeepAliveTimerCallback(UINT32 timerId, UINT64 currentTime, UI
         if (pIceCandidatePair->state == ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
             pIceCandidatePair->lastDataSentTime = currentTime;
             DLOGV("send keep alive");
-            CHK_STATUS(iceAgentSendStunPacket(pIceAgent->pBindingIndication, NULL, 0, pIceAgent, pIceCandidatePair->local,
+            CHK_STATUS(iceAgentSendStunPacket(pIceAgent->pBindingIndication,
+                                              NULL,
+                                              0,
+                                              pIceAgent,
+                                              pIceCandidatePair->local,
                                               &pIceCandidatePair->remote->ipAddress));
         }
     }
@@ -1676,8 +1684,9 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
             pendingCandidateCount++;
             if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE) {
                 pendingSrflxCandidateCount++;
-            } else if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && pIceCandidate->pTurnConnection != NULL &&
-                       turnConnectionGetRelayAddress(pIceCandidate->pTurnConnection, &relayAddress)) {
+            } else if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && 
+                        pIceCandidate->pTurnConnection != NULL &&
+                        turnConnectionGetRelayAddress(pIceCandidate->pTurnConnection, &relayAddress)) {
                 /* Check if any relay address has been obtained. */
                 CHK_STATUS(updateCandidateAddress(pIceCandidate, &relayAddress));
                 CHK_STATUS(createIceCandidatePairs(pIceAgent, pIceCandidate, FALSE));
@@ -2021,9 +2030,11 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief   the handler of fsm()
+ * @brief   set the state of all the ice candidate pair as ICE_CANDIDATE_PAIR_STATE_WAITING, 
+ *          create the stun packet of STUN_PACKET_TYPE_BINDING_REQUEST, and
+ *          set the end time fo the state.
  * 
- * @param[] pIceAgent the object of the ice agent.
+ * @param[in] pIceAgent the object of the ice agent.
 */
 STATUS iceAgentCheckConnectionStateSetup(PIceAgent pIceAgent)
 {
@@ -2048,7 +2059,7 @@ STATUS iceAgentCheckConnectionStateSetup(PIceAgent pIceAgent)
     while (pCurNode != NULL) {
         pIceCandidatePair = (PIceCandidatePair) pCurNode->data;
         pCurNode = pCurNode->pNext;
-
+        /** #YC_TBD, why we need to set here? When creating pair, we already set it.*/
         pIceCandidatePair->state = ICE_CANDIDATE_PAIR_STATE_WAITING;
     }
     /** free the previous the bind request stun packet. */
@@ -2605,13 +2616,15 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
     switch (stunPacketType) {
         case STUN_PACKET_TYPE_BINDING_REQUEST:
             DLOGD("receive the stun binding req.");
-            CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, (PBYTE) pIceAgent->localPassword,
+            CHK_STATUS(deserializeStunPacket(pBuffer,
+                                             bufferLen,
+                                             (PBYTE) pIceAgent->localPassword,
                                              (UINT32) STRLEN(pIceAgent->localPassword) * SIZEOF(CHAR), &pStunPacket));
             CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS, pStunPacket->header.transactionId, &pStunResponse));
             CHK_STATUS(appendStunAddressAttribute(pStunResponse, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, pSrcAddr));
-            CHK_STATUS(appendStunIceControllAttribute(
-                pStunResponse, pIceAgent->isControlling ? STUN_ATTRIBUTE_TYPE_ICE_CONTROLLING : STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED,
-                pIceAgent->tieBreaker));
+            CHK_STATUS(appendStunIceControllAttribute(pStunResponse, 
+                                                      pIceAgent->isControlling ? STUN_ATTRIBUTE_TYPE_ICE_CONTROLLING : STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED,
+                                                      pIceAgent->tieBreaker));
 
             CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_PRIORITY, (PStunAttributeHeader*) &pStunAttrPri));
             priority = pStunAttrPri == NULL ? 0 : pStunAttrPri->priority;
@@ -2619,7 +2632,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
 
             CHK_STATUS(findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
             CHK_WARN(pIceCandidate != NULL, retStatus, "Could not find local candidate to send STUN response");
-            CHK_STATUS(iceAgentSendStunPacket(pStunResponse, (PBYTE) pIceAgent->localPassword,
+            CHK_STATUS(iceAgentSendStunPacket(pStunResponse, 
+                                              (PBYTE) pIceAgent->localPassword,
                                               (UINT32) STRLEN(pIceAgent->localPassword) * SIZEOF(CHAR), pIceAgent, pIceCandidate, pSrcAddr));
 
             // return early if there is no candidate pair. This can happen when we get connectivity check from the peer
