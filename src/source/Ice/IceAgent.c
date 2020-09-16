@@ -502,7 +502,7 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
 
     for (i = 0; i < pIceAgent->localNetworkInterfaceCount; ++i) {
         pIpAddress = &pIceAgent->localNetworkInterfaces[i];
-        DLOGD("IpAddress: %s", pIpAddress);
+        //DLOGD("IpAddress: %s", pIpAddress);
         // make sure pIceAgent->localCandidates has no duplicates
         CHK_STATUS(findCandidateWithIp(pIpAddress, pIceAgent->localCandidates, &pDuplicatedIceCandidate));
         //DLOGD("create socket.");
@@ -611,10 +611,10 @@ STATUS iceAgentStartAgent(PIceAgent pIceAgent, PCHAR remoteUsername, PCHAR remot
         DLOGW("remoteUsername:localUsername will be truncated to stay within %u char limit", MAX_ICE_CONFIG_USER_NAME_LEN);
     }
     SNPRINTF(pIceAgent->combinedUserName, ARRAY_SIZE(pIceAgent->combinedUserName), "%s:%s", pIceAgent->remoteUsername, pIceAgent->localUsername);
-    DLOGD("%s, %s, %s", pIceAgent->combinedUserName, pIceAgent->remoteUsername, pIceAgent->remotePassword);
+    //DLOGD("%s, %s, %s", pIceAgent->combinedUserName, pIceAgent->remoteUsername, pIceAgent->remotePassword);
     MUTEX_UNLOCK(pIceAgent->lock);
     locked = FALSE;
-    DLOGD("set one timer to step StateMachine(%d)", pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval);
+    //DLOGD("set one timer to step StateMachine(%d)", pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval);
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, 
                                   KVS_ICE_DEFAULT_TIMER_START_DELAY,
                                   pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,

@@ -401,7 +401,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
                 STATUS_SIGNALING_RECEIVED_MESSAGE_LARGER_THAN_MAX_DATA_LEN);
             MEMCPY(&pLwsCallInfo->receiveBuffer[LWS_PRE + pLwsCallInfo->receiveBufferSize], pDataIn, dataSize);
             pLwsCallInfo->receiveBufferSize += (UINT32) dataSize;
-            DLOGD("%d/%d", dataSize, pLwsCallInfo->receiveBufferSize);
+            //DLOGD("%d/%d", dataSize, pLwsCallInfo->receiveBufferSize);
             // Flush on last
             if (lws_is_final_fragment(wsi)) {
                 CHK_STATUS(receiveWssMessage(pLwsCallInfo->pSignalingClient, 
