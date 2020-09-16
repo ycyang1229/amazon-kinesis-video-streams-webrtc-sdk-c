@@ -43,7 +43,7 @@ extern "C" {
 // Whether to step the state machine
 STATUS iceAgentFsmAdvance(PIceAgent);
 STATUS acceptIceAgentMachineState(PIceAgent, UINT64);
-STATUS iceAgentStateMachineCheckDisconnection(PIceAgent, PUINT64);
+STATUS iceAgentFsmCheckDisconnection(PIceAgent, PUINT64);
 PCHAR iceAgentStateToString(UINT64);
 
 /**

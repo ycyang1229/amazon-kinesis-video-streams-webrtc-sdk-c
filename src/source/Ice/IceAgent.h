@@ -27,7 +27,7 @@ extern "C" {
 #define KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT                   15 * HUNDREDS_OF_NANOS_IN_A_SECOND
 #define KVS_ICE_SEND_KEEP_ALIVE_INTERVAL                       15 * HUNDREDS_OF_NANOS_IN_A_SECOND
 #define KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT               1 * HUNDREDS_OF_NANOS_IN_A_SECOND
-#define KVS_ICE_DEFAULT_TIMER_START_DELAY                      100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+#define KVS_ICE_DEFAULT_TIMER_START_DELAY                      10 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 
 // Ta in https://tools.ietf.org/html/rfc8445
 #define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL              150 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
@@ -115,7 +115,7 @@ typedef struct {
     UINT64 customData;
     IceInboundPacketFunc inboundPacketFn;
     IceConnectionStateChangedFunc connectionStateChangedFn;
-    IceNewLocalCandidateFunc newLocalCandidateFn;
+    IceNewLocalCandidateFunc newLocalCandidateFn;//!< the callback of local ice candidate.
 } IceAgentCallbacks, *PIceAgentCallbacks;
 
 typedef struct {
@@ -393,9 +393,9 @@ STATUS iceAgentNominatingStateSetup(PIceAgent);
 STATUS iceAgentReadyStateSetup(PIceAgent);
 
 // timer callbacks. timer callbacks are interlocked by time queue lock.
-STATUS iceAgentStepStateTimerCallback(UINT32, UINT64, UINT64);
-STATUS iceAgentSendKeepAliveTimerCallback(UINT32, UINT64, UINT64);
-STATUS iceAgentGatherCandidateTimerCallback(UINT32, UINT64, UINT64);
+STATUS iceAgentTimerAdvanceFsm(UINT32, UINT64, UINT64);
+STATUS iceAgentTimerSendKeepAlive(UINT32, UINT64, UINT64);
+STATUS iceAgentTimerGatherCandidate(UINT32, UINT64, UINT64);
 
 // Default time callback for the state machine
 UINT64 iceAgentGetCurrentTime(UINT64);

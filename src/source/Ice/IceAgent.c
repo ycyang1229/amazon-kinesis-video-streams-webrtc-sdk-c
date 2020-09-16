@@ -64,6 +64,7 @@ STATUS createIceAgent(PCHAR username,
     pIceAgent->lock = MUTEX_CREATE(FALSE);
 
     // Create the state machine
+    /** create the fsm of ice agent. */
     CHK_STATUS(createStateMachine(ICE_AGENT_STATE_MACHINE_STATES,
                                   ICE_AGENT_STATE_MACHINE_STATE_COUNT,
                                   (UINT64) pIceAgent,
@@ -617,7 +618,7 @@ STATUS iceAgentStartAgent(PIceAgent pIceAgent, PCHAR remoteUsername, PCHAR remot
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, 
                                   KVS_ICE_DEFAULT_TIMER_START_DELAY,
                                   pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,
-                                  iceAgentStepStateTimerCallback,
+                                  iceAgentTimerAdvanceFsm,
                                   (UINT64) pIceAgent, 
                                   &pIceAgent->iceAgentStateTimerTask));
 
@@ -669,7 +670,7 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
                                   KVS_ICE_DEFAULT_TIMER_START_DELAY,
                                   KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL,
-                                  iceAgentGatherCandidateTimerCallback,
+                                  iceAgentTimerGatherCandidate,
                                   (UINT64) pIceAgent,
                                   &pIceAgent->iceCandidateGatheringTimerTask));
 
@@ -747,10 +748,22 @@ CleanUp:
 
     return retStatus;
 }
-
-STATUS iceAgentPopulateSdpMediaDescriptionCandidates(PIceAgent pIceAgent, PSdpMediaDescription pSdpMediaDescription, UINT32 attrBufferLen,
+/**
+ * Starting from given index, fillout PSdpMediaDescription->sdpAttributes with serialize local candidate strings.
+ *
+ * @param - PIceAgent - IN - IceAgent object
+ * @param - PSdpMediaDescription - IN - PSdpMediaDescription object whose sdpAttributes will be filled with local candidate strings
+ * @param - UINT32 - IN - buffer length of pSdpMediaDescription->sdpAttributes[index].attributeValue
+ * @param - PUINT32 - IN - starting index in sdpAttributes
+ *
+ * @return - STATUS - status of execution
+ */
+STATUS iceAgentPopulateSdpMediaDescriptionCandidates(PIceAgent pIceAgent,
+                                                     PSdpMediaDescription pSdpMediaDescription,
+                                                     UINT32 attrBufferLen,
                                                      PUINT32 pIndex)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 data;
     PDoubleListNode pCurNode = NULL;
@@ -781,7 +794,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
     }
-
+    LEAVES();
     return retStatus;
 }
 
@@ -1447,7 +1460,7 @@ CleanUp:
  * @param customData - custom data passed to timer queue when task was added
  * @return
  */
-STATUS iceAgentStepStateTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+STATUS iceAgentTimerAdvanceFsm(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     ENTERS();
     UNUSED_PARAM(timerId);
@@ -1601,7 +1614,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS iceAgentSendKeepAliveTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+STATUS iceAgentTimerSendKeepAlive(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     ENTERS();
     UNUSED_PARAM(timerId);
@@ -1651,7 +1664,7 @@ CleanUp:
  * @brief this is one callback for one-shot timer, and it will re-trigger itself everytime.
  * #timer
 */
-STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+STATUS iceAgentTimerGatherCandidate(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerId);
     STATUS retStatus = STATUS_SUCCESS;
@@ -1682,9 +1695,12 @@ STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, 
         totalCandidateCount++;
         if (pIceCandidate->state == ICE_CANDIDATE_STATE_NEW) {
             pendingCandidateCount++;
+            /** #p2p. */
             if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_SERVER_REFLEXIVE) {
                 pendingSrflxCandidateCount++;
-            } else if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && 
+            }
+            /** #relay. */
+            else if (pIceCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_RELAYED && 
                         pIceCandidate->pTurnConnection != NULL &&
                         turnConnectionGetRelayAddress(pIceCandidate->pTurnConnection, &relayAddress)) {
                 /* Check if any relay address has been obtained. */
@@ -2211,7 +2227,7 @@ STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
                                   KVS_ICE_DEFAULT_TIMER_START_DELAY,
                                   KVS_ICE_SEND_KEEP_ALIVE_INTERVAL,
-                                  iceAgentSendKeepAliveTimerCallback,
+                                  iceAgentTimerSendKeepAlive,
                                   (UINT64) pIceAgent,
                                   &pIceAgent->keepAliveTimerTask));
 
@@ -2531,7 +2547,15 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * Serialize a candidate for Trickle ICE or exchange via SDP
+ *
+ * @param - PIceAgent - IN - IceAgent object
+ * @param - PCHAR - OUT - Destination buffer
+ * @param - UINT32 - OUT - Size of destination buffer
+ *
+ * @return - STATUS - status of execution
+ */
 STATUS iceCandidateSerialize(PIceCandidate pIceCandidate, PCHAR pOutputData, PUINT32 pOutputLength)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -2541,22 +2565,42 @@ STATUS iceCandidateSerialize(PIceCandidate pIceCandidate, PCHAR pOutputData, PUI
 
     // TODO FIXME real source of randomness
     if (IS_IPV4_ADDR(&(pIceCandidate->ipAddress))) {
-        amountWritten = SNPRINTF(pOutputData, pOutputData == NULL ? 0 : *pOutputLength,
-                                 "%u 1 udp %u %d.%d.%d.%d %d typ %s raddr 0.0.0.0 rport 0 generation 0 network-cost 999", pIceCandidate->foundation,
-                                 pIceCandidate->priority, pIceCandidate->ipAddress.address[0], pIceCandidate->ipAddress.address[1],
-                                 pIceCandidate->ipAddress.address[2], pIceCandidate->ipAddress.address[3],
-                                 (UINT16) getInt16(pIceCandidate->ipAddress.port), iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType));
+        amountWritten = SNPRINTF(pOutputData,
+                                 pOutputData == NULL ? 0 : *pOutputLength,
+                                 "%u 1 udp %u %d.%d.%d.%d %d typ %s raddr 0.0.0.0 rport 0 generation 0 network-cost 999", 
+                                 pIceCandidate->foundation,
+                                 pIceCandidate->priority,
+                                 pIceCandidate->ipAddress.address[0],
+                                 pIceCandidate->ipAddress.address[1],
+                                 pIceCandidate->ipAddress.address[2],
+                                 pIceCandidate->ipAddress.address[3],
+                                 (UINT16) getInt16(pIceCandidate->ipAddress.port),
+                                 iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType));
     } else {
-        amountWritten = SNPRINTF(pOutputData, pOutputData == NULL ? 0 : *pOutputLength,
+        amountWritten = SNPRINTF(pOutputData,
+                                 pOutputData == NULL ? 0 : *pOutputLength,
                                  "%u 1 udp %u %02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X "
                                  "%d typ %s raddr ::/0 rport 0 generation 0 network-cost 999",
-                                 pIceCandidate->foundation, pIceCandidate->priority, pIceCandidate->ipAddress.address[0],
-                                 pIceCandidate->ipAddress.address[1], pIceCandidate->ipAddress.address[2], pIceCandidate->ipAddress.address[3],
-                                 pIceCandidate->ipAddress.address[4], pIceCandidate->ipAddress.address[5], pIceCandidate->ipAddress.address[6],
-                                 pIceCandidate->ipAddress.address[7], pIceCandidate->ipAddress.address[8], pIceCandidate->ipAddress.address[9],
-                                 pIceCandidate->ipAddress.address[10], pIceCandidate->ipAddress.address[11], pIceCandidate->ipAddress.address[12],
-                                 pIceCandidate->ipAddress.address[13], pIceCandidate->ipAddress.address[14], pIceCandidate->ipAddress.address[15],
-                                 (UINT16) getInt16(pIceCandidate->ipAddress.port), iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType));
+                                 pIceCandidate->foundation,
+                                 pIceCandidate->priority,
+                                 pIceCandidate->ipAddress.address[0],
+                                 pIceCandidate->ipAddress.address[1],
+                                 pIceCandidate->ipAddress.address[2],
+                                 pIceCandidate->ipAddress.address[3],
+                                 pIceCandidate->ipAddress.address[4],
+                                 pIceCandidate->ipAddress.address[5],
+                                 pIceCandidate->ipAddress.address[6],
+                                 pIceCandidate->ipAddress.address[7],
+                                 pIceCandidate->ipAddress.address[8],
+                                 pIceCandidate->ipAddress.address[9],
+                                 pIceCandidate->ipAddress.address[10],
+                                 pIceCandidate->ipAddress.address[11],
+                                 pIceCandidate->ipAddress.address[12],
+                                 pIceCandidate->ipAddress.address[13],
+                                 pIceCandidate->ipAddress.address[14],
+                                 pIceCandidate->ipAddress.address[15],
+                                 (UINT16) getInt16(pIceCandidate->ipAddress.port),
+                                 iceAgentGetCandidateTypeStr(pIceCandidate->iceCandidateType));
     }
 
     CHK_WARN(amountWritten > 0, STATUS_INTERNAL_ERROR, "SNPRINTF failed");
@@ -2634,7 +2678,10 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
             CHK_WARN(pIceCandidate != NULL, retStatus, "Could not find local candidate to send STUN response");
             CHK_STATUS(iceAgentSendStunPacket(pStunResponse, 
                                               (PBYTE) pIceAgent->localPassword,
-                                              (UINT32) STRLEN(pIceAgent->localPassword) * SIZEOF(CHAR), pIceAgent, pIceCandidate, pSrcAddr));
+                                              (UINT32) STRLEN(pIceAgent->localPassword) * SIZEOF(CHAR),
+                                              pIceAgent,
+                                              pIceCandidate,
+                                              pSrcAddr));
 
             // return early if there is no candidate pair. This can happen when we get connectivity check from the peer
             // before we receive the answer.

@@ -778,8 +778,11 @@ CleanUp:
     return retStatus;
 }
 /**
+ * @brief 
  * #ssl, md-sha256.
  * get the checksum of sha256 certificate and return it for the verification.
+ * @param[in]
+ * @param[out] pBuff the output buffer of fingerprint.
 */
 STATUS dtlsCertificateFingerprint(mbedtls_x509_crt* pCert, PCHAR pBuff)
 {

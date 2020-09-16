@@ -423,6 +423,7 @@ extern "C" {
 /**
  * Maximum length of SDP member in RtcSessionDescriptionInit
  */
+/** #memory. */
 #define MAX_SESSION_DESCRIPTION_INIT_SDP_LEN 15*1024
 
 /**
@@ -1052,6 +1053,7 @@ typedef struct {
  */
 typedef struct {
     SDP_TYPE type;                                      //!< Indicates an offer/anser SDP type
+    /** #memory.*/
     CHAR sdp[MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1]; //!< SDP Data containing media capabilities, transport addresses
                                                         //!< and related metadata in a transport agnostic manner
 } RtcSessionDescriptionInit, *PRtcSessionDescriptionInit;

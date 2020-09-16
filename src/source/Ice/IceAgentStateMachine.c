@@ -96,7 +96,7 @@ CleanUp:
 /*
  * This function is supposed to be called from within IceAgentStateMachine callbacks. Assume holding IceAgent->lock
  */
-STATUS iceAgentStateMachineCheckDisconnection(PIceAgent pIceAgent, PUINT64 pNextState)
+STATUS iceAgentFsmCheckDisconnection(PIceAgent pIceAgent, PUINT64 pNextState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -509,7 +509,7 @@ STATUS iceAgentFsmLeaveReady(UINT64 customData, PUINT64 pState)
     // move to failed state if any error happened.
     CHK_STATUS(pIceAgent->iceAgentStatus);
 
-    CHK_STATUS(iceAgentStateMachineCheckDisconnection(pIceAgent, &state));
+    CHK_STATUS(iceAgentFsmCheckDisconnection(pIceAgent, &state));
     // return early if changing to disconnected state
     CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
 

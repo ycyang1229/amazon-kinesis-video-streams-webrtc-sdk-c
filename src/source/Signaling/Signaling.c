@@ -315,6 +315,7 @@ STATUS signalingSendMessage(PSignalingClient pSignalingClient, PSignalingMessage
     CHK(pSignalingMessage->version <= SIGNALING_MESSAGE_CURRENT_VERSION, STATUS_SIGNALING_INVALID_SIGNALING_MESSAGE_VERSION);
 
     // Prepare the buffer to send
+    DLOGD("wss msg:%d", pSignalingMessage->messageType);
     switch (pSignalingMessage->messageType) {
         case SIGNALING_MESSAGE_TYPE_OFFER:
             pOfferType = (PCHAR) SIGNALING_SDP_TYPE_OFFER;
@@ -326,6 +327,7 @@ STATUS signalingSendMessage(PSignalingClient pSignalingClient, PSignalingMessage
             pOfferType = (PCHAR) SIGNALING_ICE_CANDIDATE;
             break;
         default:
+            DLOGW("should not have this msg.");
             CHK(FALSE, STATUS_INVALID_ARG);
     }
 

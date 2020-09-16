@@ -471,7 +471,14 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
     LEAVES();
 }
-
+/**
+ * @brief the callback of local new candidate.
+ *        example:
+ *          {"candidate":"candidate:1 1 udp 1694498815 118.165.101.11 51917 typ srflx raddr 0.0.0.0 rport 0 generation 0 network-cost 999","sdpM
+ * 
+ * @param[in] the object of kvs peerconnection.
+ * @param[in] 
+*/
 VOID onNewIceLocalCandidate(UINT64 customData, PCHAR candidateSdpStr)
 {
     ENTERS();
@@ -490,6 +497,7 @@ VOID onNewIceLocalCandidate(UINT64 customData, PCHAR candidateSdpStr)
     locked = TRUE;
 
     if (candidateSdpStr != NULL) {
+        /** ICE_CANDIDATE_JSON_TEMPLATE (PCHAR) "{\"candidate\":\"candidate:%s\",\"sdpMid\":\"0\",\"sdpMLineIndex\":0}" */
         strCompleteLen = SNPRINTF(jsonStrBuffer, ARRAY_SIZE(jsonStrBuffer), ICE_CANDIDATE_JSON_TEMPLATE, candidateSdpStr);
         CHK(strCompleteLen > 0, STATUS_INTERNAL_ERROR);
         CHK(strCompleteLen < (INT32) ARRAY_SIZE(jsonStrBuffer), STATUS_BUFFER_TOO_SMALL);
@@ -974,7 +982,14 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * Load the sdp field of PRtcSessionDescriptionInit with pending or current local session description
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in,out] PRtcSessionDescriptionInit IN/PRtcSessionDescriptionInit whose sdp field will be modified.
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS peerConnectionGetLocalDescription(PRtcPeerConnection pRtcPeerConnection, PRtcSessionDescriptionInit pRtcSessionDescriptionInit)
 {
     ENTERS();
@@ -1006,7 +1021,14 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * Load the sdp field of PRtcSessionDescriptionInit with current local session description
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in,out] PRtcSessionDescriptionInit IN/PRtcSessionDescriptionInit whose sdp field will be modified.
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS peerConnectionGetCurrentLocalDescription(PRtcPeerConnection pRtcPeerConnection, PRtcSessionDescriptionInit pRtcSessionDescriptionInit)
 {
     ENTERS();
@@ -1176,8 +1198,16 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief 
-*/
+ * @brief Populate the provided answer that contains an RFC 3264 answer
+ * with the supported configurations for the session.
+ *
+ * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-createanswer
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in,out] PRtcSessionDescriptionInit IN/answer that describes the supported configurations of the RtcPeerConnection
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS createAnswer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionInit pSessionDescriptionInit)
 {
     ENTERS();
