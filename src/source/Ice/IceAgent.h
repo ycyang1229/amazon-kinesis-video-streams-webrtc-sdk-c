@@ -34,7 +34,7 @@ extern "C" {
 //#define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL              3000 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 #define KVS_ICE_STATE_READY_TIMER_POLLING_INTERVAL             1 * HUNDREDS_OF_NANOS_IN_A_SECOND
 /* Control the calling rate of iceCandidateGatheringTimerTask. Can affect STUN TURN candidate gathering time */
-#define KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL        50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+#define KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL        500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 //#define KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL        200 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 
 /* ICE should've received at least one keep alive within this period. Since keep alives are send every 15s */

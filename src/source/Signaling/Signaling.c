@@ -332,7 +332,20 @@ STATUS signalingSendMessage(PSignalingClient pSignalingClient, PSignalingMessage
     }
 
     // Store the signaling message
-    CHK_STATUS(signalingStoreMessage(pSignalingClient, pSignalingMessage));
+    int counter = 3;
+    int success = STATUS_SUCCESS;
+    while(counter>0){
+        success = STATUS_SUCCESS;
+        if(signalingStoreMessage(pSignalingClient, pSignalingMessage)!=STATUS_SUCCESS){
+            success ++;
+            usleep(200000);
+        }
+        if(success == STATUS_SUCCESS){
+            break;
+        }
+        counter--;
+    }
+    CHK_STATUS(success);
     removeFromList = TRUE;
 
     // Perform the call

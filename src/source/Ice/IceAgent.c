@@ -1591,7 +1591,7 @@ STATUS iceAgentCheckCandidatePairConnection(PIceAgent pIceAgent)
                     // NOTE: Explicit fall-through
                 case ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS:
                     CHK_STATUS(iceCandidatePairCheckConnection(pIceAgent->pBindingRequest, pIceAgent, pIceCandidatePair));
-                    DLOGD("send stun packet out.");
+                    //DLOGD("send stun packet out.");
                     break;
                 default:
                     break;
