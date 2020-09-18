@@ -1970,16 +1970,18 @@ CleanUp:
 */
 PVOID wssReceptionThread(PVOID args)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingMessageWrapper pSignalingMessageWrapper;
     while(1)
     {
         BaseType_t err = xQueueReceive(tmpQ, &pSignalingMessageWrapper, 0xffffffffUL);
         if(err != pdPASS){
-            usleep(2000000);
+            //usleep(1000000);
             DLOGD("get no q");
         }else{
+            ENTERS();
+            DLOGD("handling wss");
             retStatus = STATUS_SUCCESS;
         
             PSignalingClient pSignalingClient = NULL;
@@ -1998,6 +2000,7 @@ PVOID wssReceptionThread(PVOID args)
                 CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                                         &pSignalingMessageWrapper->receivedSignalingMessage));
             }
+            LEAVES();
         }
         
     }

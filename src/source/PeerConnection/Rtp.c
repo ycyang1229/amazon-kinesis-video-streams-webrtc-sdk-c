@@ -360,7 +360,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
         }
 
         CHK_STATUS(encryptRtpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
-        DLOGD("packetLen:%d ", packetLen);
+        //DLOGD("packetLen:%d ", packetLen);
         sendStatus = iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen);
         if (sendStatus == STATUS_SEND_DATA_FAILED) {
             packetsDiscardedOnSend++;

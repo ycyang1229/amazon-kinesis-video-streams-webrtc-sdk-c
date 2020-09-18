@@ -30,7 +30,7 @@ STATUS createSocketConnection(KVS_IP_FAMILY_TYPE familyType,
                               UINT32 sendBufSize,
                               PSocketConnection* ppSocketConnection)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSocketConnection pSocketConnection = NULL;
 
@@ -74,13 +74,13 @@ CleanUp:
         *ppSocketConnection = pSocketConnection;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSocketConnection pSocketConnection = NULL;
 
@@ -105,7 +105,7 @@ STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -152,7 +152,7 @@ VOID socketConnectionTlsSessionOnStateChange(UINT64 customData, TLS_SESSION_STAT
 
 STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection, BOOL isServer)
 {
-    ENTERS();
+    //ENTERS();
     TlsSessionCallbacks callbacks;
     STATUS retStatus = STATUS_SUCCESS;
 
@@ -172,13 +172,13 @@ CleanUp:
         freeTlsSession(&pSocketConnection->pTlsSession);
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf, UINT32 bufLen, PKvsIpAddress pDestIp)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     //DLOGD("bufLen:%d", bufLen);
@@ -215,7 +215,7 @@ CleanUp:
         MUTEX_UNLOCK(pSocketConnection->lock);
     }
     CHK_LOG_ERR(retStatus);
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -325,7 +325,7 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
 
 STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, UINT32 bufLen, PKvsIpAddress pDestIp, PUINT32 pBytesWritten)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     INT32 socketWriteAttempt = 0;
     SSIZE_T result = 0;
@@ -423,6 +423,6 @@ CleanUp:
         DLOGD("Warning: Send data failed with 0x%08x", retStatus);
     }
     CHK_LOG_ERR(retStatus);
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }

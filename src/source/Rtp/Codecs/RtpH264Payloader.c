@@ -22,7 +22,7 @@ STATUS createPayloadForH264(UINT32 mtu,
                             PUINT32 pPayloadSubLength,
                             PUINT32 pPayloadSubLenSize)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PBYTE curPtrInNalus = nalus;//!< input
     UINT32 remainNalusLength = nalusLength;
@@ -86,13 +86,13 @@ CleanUp:
         *pPayloadSubLenSize = payloadArray.payloadSubLenSize;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS getNextNaluLength(PBYTE nalus, UINT32 nalusLength, PUINT32 pStart, PUINT32 pNaluLength)
 {
-    ENTERS();
+    //ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 zeroCount = 0, offset;
@@ -143,7 +143,7 @@ CleanUp:
         DLOGD("Warning: Failed to get the next NALu in H264 payload with 0x%08x", retStatus);
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -151,7 +151,7 @@ CleanUp:
 */
 STATUS createPayloadFromNalu(UINT32 mtu, PBYTE nalu, UINT32 naluLength, PPayloadArray pPayloadArray, PUINT32 filledLength, PUINT32 filledSubLenSize)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PBYTE pPayload = NULL;
     UINT8 naluType = 0;
@@ -239,7 +239,7 @@ CleanUp:
         *filledSubLenSize = payloadSubLenSize;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -253,7 +253,7 @@ CleanUp:
 */
 STATUS depayH264FromRtpPayload(PBYTE pRawPacket, UINT32 packetLength, PBYTE pNaluData, PUINT32 pNaluLength, PBOOL pIsStart)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 naluLength = 0;
     UINT8 naluType = 0;
@@ -401,6 +401,6 @@ CleanUp:
         *pIsStart = isStartingPacket;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }

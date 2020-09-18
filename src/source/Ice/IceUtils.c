@@ -189,7 +189,7 @@ STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket,
                               PTurnConnection pTurnConnection,
                               BOOL useTurn)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 stunPacketSize = STUN_PACKET_ALLOCATION_SIZE;
     //BYTE stunPacketBuffer[STUN_PACKET_ALLOCATION_SIZE];
@@ -206,7 +206,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
     MEMFREE(stunPacketBuffer);
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -227,7 +227,7 @@ STATUS iceUtilsSendData(PBYTE buffer,
                         PTurnConnection pTurnConnection,
                         BOOL useTurn)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK((pSocketConnection != NULL && !useTurn) || (pTurnConnection != NULL && useTurn), STATUS_INVALID_ARG);
@@ -245,7 +245,7 @@ STATUS iceUtilsSendData(PBYTE buffer,
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
