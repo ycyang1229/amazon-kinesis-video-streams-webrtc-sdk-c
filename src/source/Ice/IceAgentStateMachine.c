@@ -34,7 +34,7 @@ UINT32 ICE_AGENT_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(ICE_AGENT_STATE_MACHINE_
 */
 STATUS iceAgentFsmAdvance(PIceAgent pIceAgent)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 oldState;
 
@@ -65,13 +65,13 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS acceptIceAgentMachineState(PIceAgent pIceAgent, UINT64 state)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
@@ -89,7 +89,7 @@ CleanUp:
         MUTEX_UNLOCK(pIceAgent->lock);
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -98,7 +98,7 @@ CleanUp:
  */
 STATUS iceAgentFsmCheckDisconnection(PIceAgent pIceAgent, PUINT64 pNextState)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 currentTime;
 
@@ -124,7 +124,7 @@ STATUS iceAgentFsmCheckDisconnection(PIceAgent pIceAgent, PUINT64 pNextState)
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -170,7 +170,7 @@ PCHAR iceAgentStateToString(UINT64 state)
 ///////////////////////////////////////////////////////////////////////////
 STATUS iceAgentFsmLeaveNew(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state;
@@ -184,13 +184,13 @@ STATUS iceAgentFsmLeaveNew(UINT64 customData, PUINT64 pState)
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS iceAgentFsmNew(UINT64 customData, UINT64 time)
 {
-    ENTERS();
+    //ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
@@ -203,7 +203,7 @@ STATUS iceAgentFsmNew(UINT64 customData, UINT64 time)
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -214,7 +214,7 @@ CleanUp:
 */
 STATUS iceAgentFsmLeaveCheckConnection(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = ICE_AGENT_STATE_CHECK_CONNECTION; // original state
@@ -272,7 +272,7 @@ CleanUp:
         MUTEX_UNLOCK(pIceAgent->lock);
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -285,7 +285,7 @@ CleanUp:
 */
 STATUS iceAgentFsmCheckConnection(UINT64 customData, UINT64 time)
 {
-    ENTERS();
+    //ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
@@ -312,13 +312,13 @@ CleanUp:
         retStatus = STATUS_SUCCESS;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS iceAgentFsmLeaveConnected(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = ICE_AGENT_STATE_CONNECTED; // original state
@@ -355,13 +355,13 @@ CleanUp:
         MUTEX_UNLOCK(pIceAgent->lock);
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS iceAgentFsmConnected(UINT64 customData, UINT64 time)
 {
-    ENTERS();
+    //ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
@@ -381,13 +381,13 @@ CleanUp:
         retStatus = STATUS_SUCCESS;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS iceAgentFsmLeaveNominating(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = ICE_AGENT_STATE_NOMINATING; // original state
@@ -443,7 +443,7 @@ CleanUp:
         MUTEX_UNLOCK(pIceAgent->lock);
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -455,7 +455,7 @@ CleanUp:
 */
 STATUS iceAgentFsmNominating(UINT64 customData, UINT64 time)
 {
-    ENTERS();
+    //ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
@@ -484,7 +484,7 @@ CleanUp:
         retStatus = STATUS_SUCCESS;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -495,7 +495,7 @@ CleanUp:
 */
 STATUS iceAgentFsmLeaveReady(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = ICE_AGENT_STATE_READY; // original state
@@ -530,13 +530,13 @@ CleanUp:
         MUTEX_UNLOCK(pIceAgent->lock);
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS iceAgentFsmReady(UINT64 customData, UINT64 time)
 {
-    ENTERS();
+    //ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
@@ -557,13 +557,13 @@ CleanUp:
         retStatus = STATUS_SUCCESS;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS iceAgentFsmLeaveDisconnected(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = pIceAgent->iceAgentState; // state before ICE_AGENT_STATE_DISCONNECTED
@@ -594,7 +594,7 @@ CleanUp:
         MUTEX_UNLOCK(pIceAgent->lock);
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -604,7 +604,7 @@ CleanUp:
 */
 STATUS iceAgentFsmDisconnected(UINT64 customData, UINT64 time)
 {
-    ENTERS();
+    //ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
@@ -638,13 +638,13 @@ CleanUp:
         retStatus = STATUS_SUCCESS;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS iceAgentFsmLeaveFailed(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
 
@@ -655,13 +655,13 @@ STATUS iceAgentFsmLeaveFailed(UINT64 customData, PUINT64 pState)
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS iceAgentFsmFailed(UINT64 customData, UINT64 time)
 {
-    ENTERS();
+    //ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
@@ -684,6 +684,6 @@ STATUS iceAgentFsmFailed(UINT64 customData, UINT64 time)
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }

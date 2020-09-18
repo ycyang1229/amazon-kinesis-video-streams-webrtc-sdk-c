@@ -26,8 +26,8 @@ STATUS createTurnConnection(PIceServer pTurnServer,
                             PConnectionListener pConnectionListener,
                             PTurnConnection* ppTurnConnection)
 {
-    UNUSED_PARAM(dataTransferMode);
     ENTERS();
+    UNUSED_PARAM(dataTransferMode);
     STATUS retStatus = STATUS_SUCCESS;
     PTurnConnection pTurnConnection = NULL;
 
@@ -772,6 +772,7 @@ CleanUp:
 */
 STATUS turnConnectionStart(PTurnConnection pTurnConnection)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     SIZE_T timerCallbackId;
@@ -810,12 +811,13 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pTurnConnection->lock);
     }
-
+    LEAVES();
     return retStatus;
 }
 
 STATUS turnConnectionRefreshAllocation(PTurnConnection pTurnConnection)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 currTime = 0;
     PStunAttributeLifetime pStunAttrLifetime = NULL;
@@ -846,12 +848,13 @@ STATUS turnConnectionRefreshAllocation(PTurnConnection pTurnConnection)
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-
+    LEAVES();
     return retStatus;
 }
 
 STATUS turnConnectionRefreshPermission(PTurnConnection pTurnConnection, PBOOL pNeedRefresh)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 currTime = 0;
     PTurnPeer pTurnPeer = NULL;
@@ -879,11 +882,13 @@ CleanUp:
     }
 
     CHK_LOG_ERR(retStatus);
+    LEAVES();
     return retStatus;
 }
 
 STATUS turnConnectionFreePreAllocatedPackets(PTurnConnection pTurnConnection)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pTurnConnection != NULL, STATUS_NULL_ARG);
@@ -907,6 +912,7 @@ STATUS turnConnectionFreePreAllocatedPackets(PTurnConnection pTurnConnection)
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
+    LEAVES();
     return retStatus;
 }
 
@@ -1165,6 +1171,7 @@ CleanUp:
 
 STATUS turnConnectionUpdateNonce(PTurnConnection pTurnConnection)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     // assume holding pTurnConnection->lock
@@ -1189,11 +1196,13 @@ STATUS turnConnectionUpdateNonce(PTurnConnection pTurnConnection)
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
+    LEAVES();
     return retStatus;
 }
 
 STATUS turnConnectionShutdown(PTurnConnection pTurnConnection, UINT64 waitUntilAllocationFreedTimeout)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 currentTime = 0, timeoutTime = 0;
     BOOL locked = FALSE;
@@ -1228,7 +1237,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pTurnConnection->lock);
     }
-
+    LEAVES();
     return retStatus;
 }
 
@@ -1263,6 +1272,7 @@ BOOL turnConnectionGetRelayAddress(PTurnConnection pTurnConnection, PKvsIpAddres
 */
 STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
+    ENTERS();
     UNUSED_PARAM(timerId);
     UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS, sendStatus = STATUS_SUCCESS;
@@ -1391,12 +1401,13 @@ CleanUp:
             ATOMIC_STORE(&pTurnConnection->timerCallbackId, UINT32_MAX);
         }
     }
-
+    LEAVES();
     return retStatus;
 }
 
 STATUS turnConnectionGetLongTermKey(PCHAR username, PCHAR realm, PCHAR password, PBYTE pBuffer, UINT32 bufferLen)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     CHAR stringBuffer[STUN_MAX_USERNAME_LEN + MAX_ICE_CONFIG_CREDENTIAL_LEN + STUN_MAX_REALM_LEN + 2]; // 2 for two ":" between each value
 
@@ -1410,13 +1421,14 @@ STATUS turnConnectionGetLongTermKey(PCHAR username, PCHAR realm, PCHAR password,
     KVS_MD5_DIGEST((PBYTE) stringBuffer, STRLEN(stringBuffer), pBuffer);
 
 CleanUp:
-
+    LEAVES();
     return retStatus;
 }
 
 STATUS turnConnectionPackageTurnAllocationRequest(PCHAR username, PCHAR realm, PBYTE nonce, UINT16 nonceLen, UINT32 lifetime,
                                                   PStunPacket* ppStunPacket)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PStunPacket pTurnAllocateRequest = NULL;
 
@@ -1445,7 +1457,7 @@ CleanUp:
     if (pTurnAllocateRequest != NULL && ppStunPacket != NULL) {
         *ppStunPacket = pTurnAllocateRequest;
     }
-
+    LEAVES();
     return retStatus;
 }
 

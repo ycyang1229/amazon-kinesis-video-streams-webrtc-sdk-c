@@ -26,7 +26,7 @@ STATUS createIceAgent(PCHAR username,
                       PConnectionListener pConnectionListener, 
                       PIceAgent* ppIceAgent)
 {
-    ENTERS();
+    //ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = NULL;
@@ -134,7 +134,7 @@ CleanUp:
         *ppIceAgent = pIceAgent;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -145,7 +145,7 @@ CleanUp:
  */
 STATUS freeIceAgent(PIceAgent* ppIceAgent)
 {
-    ENTERS();
+    //ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = NULL;
@@ -257,7 +257,7 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -301,7 +301,7 @@ CleanUp:
 
 STATUS iceAgentReportNewLocalCandidate(PIceAgent pIceAgent, PIceCandidate pIceCandidate)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     CHAR serializedIceCandidateBuf[MAX_SDP_ATTRIBUTE_VALUE_LENGTH];
     UINT32 serializedIceCandidateBufLen = ARRAY_SIZE(serializedIceCandidateBuf);
@@ -321,7 +321,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -339,7 +339,7 @@ CleanUp:
 */
 STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     PIceCandidate pIceCandidate = NULL, pDuplicatedIceCandidate = NULL, pLocalIceCandidate = NULL;
@@ -476,7 +476,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -491,7 +491,7 @@ CleanUp:
  */
 STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
 {
-    ENTERS();
+    //ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     PKvsIpAddress pIpAddress = NULL;
@@ -570,7 +570,7 @@ CleanUp:
         iceAgentFatalError(pIceAgent, retStatus);
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -586,7 +586,7 @@ CleanUp:
  */
 STATUS iceAgentStartAgent(PIceAgent pIceAgent, PCHAR remoteUsername, PCHAR remotePassword, BOOL isControlling)
 {
-    ENTERS();
+    //ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
@@ -628,7 +628,7 @@ CleanUp:
         MUTEX_UNLOCK(pIceAgent->lock);
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -641,7 +641,7 @@ CleanUp:
  */
 STATUS iceAgentStartGathering(PIceAgent pIceAgent)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
@@ -681,7 +681,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -763,7 +763,7 @@ STATUS iceAgentPopulateSdpMediaDescriptionCandidates(PIceAgent pIceAgent,
                                                      UINT32 attrBufferLen,
                                                      PUINT32 pIndex)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 data;
     PDoubleListNode pCurNode = NULL;
@@ -794,7 +794,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
     }
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -882,7 +882,7 @@ CleanUp:
 
 STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIcePwd)
 {
-    ENTERS();
+    //ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
@@ -1020,7 +1020,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -1037,7 +1037,7 @@ CleanUp:
 */
 STATUS findCandidateWithIp(PKvsIpAddress pIpAddress, PDoubleList pCandidateList, PIceCandidate* ppIceCandidate)
 {
-    ENTERS();
+    //ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
@@ -1067,7 +1067,7 @@ CleanUp:
         *ppIceCandidate = pTargetIceCandidate;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -1079,7 +1079,7 @@ CleanUp:
 */
 STATUS findCandidateWithSocketConnection(PSocketConnection pSocketConnection, PDoubleList pCandidateList, PIceCandidate* ppIceCandidate)
 {
-    ENTERS();
+    //ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
@@ -1105,7 +1105,7 @@ CleanUp:
         *ppIceCandidate = pTargetIceCandidate;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -1121,7 +1121,7 @@ CleanUp:
 */
 STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate, BOOL isRemoteCandidate)
 {
-    ENTERS();
+    //ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 data;
@@ -1190,13 +1190,13 @@ CleanUp:
         freeIceCandidatePair(&pIceCandidatePair);
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS freeIceCandidatePair(PIceCandidatePair* ppIceCandidatePair)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidatePair pIceCandidatePair = NULL;
 
@@ -1211,7 +1211,7 @@ STATUS freeIceCandidatePair(PIceCandidatePair* ppIceCandidatePair)
 
 CleanUp:
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -1223,7 +1223,7 @@ CleanUp:
 */
 STATUS insertIceCandidatePair(PDoubleList iceCandidatePairs, PIceCandidatePair pIceCandidatePair)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     PIceCandidatePair pCurIceCandidatePair = NULL;
@@ -1252,7 +1252,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -1270,7 +1270,7 @@ STATUS findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(PIceAgent pIce
                                                                   BOOL checkPort,
                                                                   PIceCandidatePair* ppIceCandidatePair)
 {
-    ENTERS();
+    //ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 addrLen;
@@ -1301,13 +1301,13 @@ CleanUp:
         *ppIceCandidatePair = pTargetIceCandidatePair;
     }
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS pruneUnconnectedIceCandidatePair(PIceAgent pIceAgent)
 {
-    ENTERS();
+    //ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL, pNextNode = NULL;
@@ -1334,7 +1334,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -1347,7 +1347,7 @@ CleanUp:
 */
 STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgent pIceAgent, PIceCandidatePair pIceCandidatePair)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PStunAttributePriority pStunAttrPri = NULL;
     UINT32 checkSum = 0;
@@ -1381,7 +1381,7 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -1403,7 +1403,7 @@ STATUS iceAgentSendStunPacket(PStunPacket pStunPacket,
                               PIceCandidate pLocalCandidate,
                               PKvsIpAddress pDestAddr)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidatePair pIceCandidatePair = NULL;
 
@@ -1446,7 +1446,7 @@ STATUS iceAgentSendStunPacket(PStunPacket pStunPacket,
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -1462,7 +1462,7 @@ CleanUp:
  */
 STATUS iceAgentTimerAdvanceFsm(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
-    ENTERS();
+    //ENTERS();
     UNUSED_PARAM(timerId);
     UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS;
@@ -1481,7 +1481,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -1492,7 +1492,7 @@ CleanUp:
 */
 STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     UINT64 data;
@@ -1545,7 +1545,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -1558,7 +1558,7 @@ CleanUp:
 */
 STATUS iceAgentCheckCandidatePairConnection(PIceAgent pIceAgent)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL triggeredCheckQueueEmpty;
     UINT64 data;
@@ -1610,13 +1610,13 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS iceAgentTimerSendKeepAlive(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
-    ENTERS();
+    //ENTERS();
     UNUSED_PARAM(timerId);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
@@ -1657,7 +1657,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
     }
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -1826,7 +1826,7 @@ CleanUp:
 */
 STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     UINT64 data;
@@ -1910,7 +1910,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -2054,7 +2054,7 @@ CleanUp:
 */
 STATUS iceAgentCheckConnectionStateSetup(PIceAgent pIceAgent)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 iceCandidatePairCount = 0;
     PDoubleListNode pCurNode = NULL;
@@ -2102,7 +2102,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
@@ -2168,7 +2168,7 @@ CleanUp:
 
 STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     PIceCandidatePair pIceCandidatePair = NULL, pLastDataSendingIceCandidatePair = NULL;
@@ -2242,7 +2242,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -2370,7 +2370,7 @@ CleanUp:
 */
 STATUS iceAgentNominateCandidatePair(PIceAgent pIceAgent)
 {
-    ENTERS();
+    //ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidatePair pNominatedCandidatePair = NULL, pIceCandidatePair = NULL;
@@ -2423,13 +2423,13 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 
 STATUS iceAgentInvalidateCandidatePair(PIceAgent pIceAgent)
 {
-    ENTERS();
+    //ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidatePair pIceCandidatePair = NULL;
@@ -2452,7 +2452,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -2472,7 +2472,7 @@ STATUS incomingRelayedDataHandler(UINT64 customData,
                                   PKvsIpAddress pSrc,
                                   PKvsIpAddress pDest)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidate pRelayedCandidate = (PIceCandidate) customData;
     // this should be more than enough. Usually the number of channel data in each tcp message is around 4
@@ -2493,7 +2493,7 @@ STATUS incomingRelayedDataHandler(UINT64 customData,
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
@@ -2514,7 +2514,7 @@ STATUS incomingDataHandler(UINT64 customData,
                            PKvsIpAddress pSrc,
                            PKvsIpAddress pDest)
 {
-    ENTERS();
+    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     BOOL locked = FALSE;
@@ -2544,7 +2544,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
     }
-    LEAVES();
+    //LEAVES();
     return retStatus;
 }
 /**
