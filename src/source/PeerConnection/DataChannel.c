@@ -67,7 +67,15 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief Set a callback for data channel message
+ *
+ * @param[in] PRtcDataChannel Data channel struct created by createDataChannel()
+ * @param[in] UINT64 User customData that will be passed along when RtcOnMessage is called
+ * @param[in] RtcOnMessage User RtcOnMessage callback
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS dataChannelOnMessage(PRtcDataChannel pRtcDataChannel, UINT64 customData, RtcOnMessage rtcOnMessage)
 {
     ENTERS();

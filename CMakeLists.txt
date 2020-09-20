@@ -28,7 +28,7 @@ option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF
 option(KVS_PLAT_FREERTOS "Build for FreeRTOS" ON)
 option(BUILD_CLIENT "Build with UndefinedBehaviorSanitizer." ON)
 option(BUILD_SIGNALING_CLIENT "Build with UndefinedBehaviorSanitizer." ON)
-#option(ENABLE_DATA_CHANNEL "Enable support for data channel" OFF)
+option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
 
 
 CHECK_INCLUDE_FILES(ifaddrs.h       KVCWEBRTC_HAVE_IFADDRS_H)
@@ -257,7 +257,7 @@ endif()
 # add_definitions(-DLOG_STREAMING)
 
 if (ENABLE_DATA_CHANNEL)
-  #add_definitions(-DENABLE_DATA_CHANNEL)
+  add_definitions(-DENABLE_DATA_CHANNEL)
 endif()
 
 file(

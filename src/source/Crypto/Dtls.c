@@ -2,7 +2,10 @@
 #include "../Include_i.h"
 
 /** 
- * setup the callback of dtls outbound.
+ * @brief setup the callback of dtls outbound.
+ * 
+ * @param[]
+ * @param[]
 */
 STATUS dtlsSessionOnOutBoundData(PDtlsSession pDtlsSession, UINT64 customData, DtlsSessionOutboundPacketFunc callbackFn)
 {
@@ -60,7 +63,10 @@ CleanUp:
     return retStatus;
 }
 /**
- * the callback of the state of dtls session.
+ * @brief the callback of the state of dtls session.
+ * 
+ * @param[]
+ * @param[]
 */
 STATUS dtlsSessionChangeState(PDtlsSession pDtlsSession, RTC_DTLS_TRANSPORT_STATE newState)
 {

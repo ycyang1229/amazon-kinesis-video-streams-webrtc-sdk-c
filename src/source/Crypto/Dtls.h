@@ -52,10 +52,7 @@ typedef struct {
     UINT64 outBoundPacketFnCustomData;
     DtlsSessionOutboundPacketFunc outboundPacketFn;
     UINT64 stateChangeFnCustomData;
-    /**
-     * the callback of the state of dtls session.
-     * */
-    DtlsSessionOnStateChange stateChangeFn;
+    DtlsSessionOnStateChange stateChangeFn;//!< the callback of the state of dtls session.
 } DtlsSessionCallbacks, *PDtlsSessionCallbacks;
 
 // DtlsKeyingMaterial is information extracted via https://tools.ietf.org/html/rfc5705
@@ -103,8 +100,8 @@ typedef struct {
 
 typedef struct __DtlsSession DtlsSession, *PDtlsSession;
 struct __DtlsSession {
-    volatile ATOMIC_BOOL isStarted;///< the dtls session is started or not. not indicating the dtls session is ready.
-    volatile ATOMIC_BOOL shutdown;
+    volatile ATOMIC_BOOL isStarted;//!< the dtls session is started or not. not indicating the dtls session is ready.
+    volatile ATOMIC_BOOL shutdown;//!< the dtls session is shut down or not.
     UINT32 certificateCount;
     DtlsSessionCallbacks dtlsSessionCallbacks;
     TIMER_QUEUE_HANDLE timerQueueHandle;
@@ -124,7 +121,7 @@ struct __DtlsSession {
 #elif KVS_USE_MBEDTLS
     DtlsSessionTimer transmissionTimer;
     TlsKeys tlsKeys;
-    PIOBuffer pReadBuffer;
+    PIOBuffer pReadBuffer;//!< the buffer of dtls session's reception.
 
     mbedtls_entropy_context entropy;
     mbedtls_ctr_drbg_context ctrDrbg;

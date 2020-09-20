@@ -52,7 +52,7 @@ typedef struct {
     MUTEX pSrtpSessionLock;
     PSrtpSession pSrtpSession;
 #if (BUILD_CLIENT && ENABLE_DATA_CHANNEL)
-    PSctpSession pSctpSession;
+    PSctpSession pSctpSession;//!< the handler of the sctp session.
 #endif
     SessionDescription remoteSessionDescription;
     PDoubleList pTransceievers;
@@ -96,7 +96,7 @@ typedef struct {
     PHashTable pDataChannels;
 
     UINT64 onDataChannelCustomData;
-    RtcOnDataChannel onDataChannel;
+    RtcOnDataChannel onDataChannel;//!< the callback of data channel for external interface.
 
     UINT64 onIceCandidateCustomData;
     /**
@@ -114,7 +114,7 @@ typedef struct {
 } KvsPeerConnection, *PKvsPeerConnection;
 #if (ENABLE_DATA_CHANNEL)
 typedef struct {
-    UINT32 currentDataChannelId;
+    UINT32 currentDataChannelId;//!< indicate the role of dtls server.
     PKvsPeerConnection pKvsPeerConnection;
     PHashTable unkeyedDataChannels;
 } AllocateSctpSortDataChannelsData, *PAllocateSctpSortDataChannelsData;

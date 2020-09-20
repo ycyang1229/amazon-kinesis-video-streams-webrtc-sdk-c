@@ -3,8 +3,12 @@
 #define LOG_CLASS "SCTP"
 #include "../Include_i.h"
 
-
-
+/**
+ * @brief   setup the parameter of sctp socket.
+ * 
+ * @param[in] pSctpSession the sctp session.
+ * @param[in] sconn the parameter of the sctp socket.
+*/
 STATUS initSctpAddrConn(PSctpSession pSctpSession, struct sockaddr_conn* sconn)
 {
     ENTERS();
@@ -58,7 +62,10 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief the initilization of the sctp session. 
+ * 
+*/
 STATUS initSctpSession()
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -78,18 +85,24 @@ VOID deinitSctpSession()
         THREAD_SLEEP(DEFAULT_USRSCTP_TEARDOWN_POLLING_INTERVAL);
     }
 }
-
+/**
+ * @brief
+ * 
+ * @param[]
+ * @param[]
+*/
 STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSession* ppSctpSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSctpSession pSctpSession = NULL;
+    /** #memory. this should be fine. */
     struct sockaddr_conn localConn, remoteConn;
     struct sctp_paddrparams params;
     INT32 connectStatus = 0;
 
     CHK(ppSctpSession != NULL && pSctpSessionCallbacks != NULL, STATUS_NULL_ARG);
-
+    /** #memory. */
     pSctpSession = (PSctpSession) MEMALLOC(SIZEOF(SctpSession));
     CHK(pSctpSession != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
@@ -99,12 +112,17 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
 
     ATOMIC_STORE(&pSctpSession->shutdownStatus, SCTP_SESSION_ACTIVE);
     pSctpSession->sctpSessionCallbacks = *pSctpSessionCallbacks;
-
+    /** setup the parameter of sctp socket. */
     CHK_STATUS(initSctpAddrConn(pSctpSession, &localConn));
     CHK_STATUS(initSctpAddrConn(pSctpSession, &remoteConn));
 
-    CHK((pSctpSession->socket = usrsctp_socket(AF_CONN, SOCK_STREAM, IPPROTO_SCTP, onSctpInboundPacket, NULL, 0, pSctpSession)) != NULL,
-        STATUS_SCTP_SESSION_SETUP_FAILED);
+    CHK((pSctpSession->socket = usrsctp_socket(AF_CONN,
+                                               SOCK_STREAM,
+                                               IPPROTO_SCTP,
+                                               onSctpInboundPacket,
+                                               NULL,
+                                               0,
+                                               pSctpSession)) != NULL, STATUS_SCTP_SESSION_SETUP_FAILED);
     usrsctp_register_address(pSctpSession);
     CHK_STATUS(configureSctpSocket(pSctpSession->socket));
 
@@ -272,7 +290,15 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief the callback of outbound sctp packets for the libusrsctp.
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+*/
 INT32 onSctpOutboundPacket(PVOID addr, PVOID data, ULONG length, UINT8 tos, UINT8 set_df)
 {
     UNUSED_PARAM(tos);
@@ -280,7 +306,8 @@ INT32 onSctpOutboundPacket(PVOID addr, PVOID data, ULONG length, UINT8 tos, UINT
 
     PSctpSession pSctpSession = (PSctpSession) addr;
 
-    if (pSctpSession == NULL || ATOMIC_LOAD(&pSctpSession->shutdownStatus) == SCTP_SESSION_SHUTDOWN_INITIATED ||
+    if (pSctpSession == NULL || 
+        ATOMIC_LOAD(&pSctpSession->shutdownStatus) == SCTP_SESSION_SHUTDOWN_INITIATED ||
         pSctpSession->sctpSessionCallbacks.outboundPacketFunc == NULL) {
         if (pSctpSession != NULL) {
             ATOMIC_STORE(&pSctpSession->shutdownStatus, SCTP_SESSION_SHUTDOWN_COMPLETED);
@@ -303,7 +330,16 @@ STATUS putSctpPacket(PSctpSession pSctpSession, PBYTE buf, UINT32 bufLen)
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief the handler of inbound packets. 
+ *          Data Channel Establishment Protocol (DCEP)
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+ * 
+*/
 STATUS handleDcepPacket(PSctpSession pSctpSession, UINT32 streamId, PBYTE data, SIZE_T length)
 {
     ENTERS();
@@ -318,15 +354,26 @@ STATUS handleDcepPacket(PSctpSession pSctpSession, UINT32 streamId, PBYTE data, 
 
     CHK((labelLength + SCTP_DCEP_HEADER_LENGTH) >= length, STATUS_SCTP_INVALID_DCEP_PACKET);
 
-    pSctpSession->sctpSessionCallbacks.dataChannelOpenFunc(pSctpSession->sctpSessionCallbacks.customData, streamId, data + SCTP_DCEP_HEADER_LENGTH,
-                                                           labelLength);
+    pSctpSession->sctpSessionCallbacks.dataChannelOpenFunc(pSctpSession->sctpSessionCallbacks.customData,
+                                                            streamId,
+                                                            data + SCTP_DCEP_HEADER_LENGTH,
+                                                            labelLength);
 
 CleanUp:
     LEAVES();
     return retStatus;
 }
-
-INT32 onSctpInboundPacket(struct socket* sock, union sctp_sockstore addr, PVOID data, ULONG length, struct sctp_rcvinfo rcv, INT32 flags,
+/**
+ * @brief the callback for libusrsctp. the packet handler of sctp packets.
+ * 
+ * @param[]
+*/
+INT32 onSctpInboundPacket(struct socket* sock,
+                          union sctp_sockstore addr,
+                          PVOID data,
+                          ULONG length,
+                          struct sctp_rcvinfo rcv,
+                          INT32 flags,
                           PVOID ulp_info)
 {
     UNUSED_PARAM(sock);

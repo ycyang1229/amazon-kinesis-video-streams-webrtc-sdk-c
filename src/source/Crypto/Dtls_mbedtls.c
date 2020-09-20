@@ -125,7 +125,13 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+*/
 INT32 dtlsSessionSendCallback(PVOID customData, const unsigned char* pBuf, ULONG len)
 {
     ENTERS();
@@ -204,10 +210,12 @@ INT32 dtlsSessionGetTimerCallback(PVOID customData)
     LEAVES();
 }
 /**
- * @brief the callback on the software timer.
+ * @brief the callback on the software timer. check the state of dtls session periodically.
+ *          #YC_TBD, do we really need this, need to confirm this timer.
  * 
- * @param
- * @param
+ * @param[in] the handler of timer.
+ * @param[in] the current time
+ * @param[in] the object of the dtls session.
 */
 STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 customData)
 {
@@ -426,7 +434,7 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief the out-going packet handler of dtls session.
+ * @brief the out-going packet handler of dtls session for sctp.
  * @param pDtlsSession
  * @param pData
  * @param pDataLen

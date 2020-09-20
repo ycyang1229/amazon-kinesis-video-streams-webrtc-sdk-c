@@ -58,7 +58,9 @@ CleanUp:
     return retStatus;
 }
 /**
- * the initialization of sctp, after dtls session is done and receiving the srtp packets.
+ * @brief the initialization of sctp, after dtls session is done. Start receiving the srtp packets.
+ * 
+ * @param[in]
 */
 STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
 {
@@ -93,8 +95,11 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     for (; currentDataChannelId < data.currentDataChannelId; currentDataChannelId += 2) {
         CHK_STATUS(hashTableGet(pKvsPeerConnection->pDataChannels, currentDataChannelId, (PUINT64) &pKvsDataChannel));
         CHK(pKvsDataChannel != NULL, STATUS_INTERNAL_ERROR);
-        sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession, currentDataChannelId, pKvsDataChannel->dataChannel.name,
-                             STRLEN(pKvsDataChannel->dataChannel.name), &pKvsDataChannel->rtcDataChannelInit);
+        sctpSessionWriteDcep(pKvsPeerConnection->pSctpSession,
+                             currentDataChannelId,
+                             pKvsDataChannel->dataChannel.name,
+                             STRLEN(pKvsDataChannel->dataChannel.name),
+                             &pKvsDataChannel->rtcDataChannelInit);
 
         if (pKvsDataChannel->onOpen != NULL) {
             pKvsDataChannel->onOpen(pKvsDataChannel->onOpenCustomData, &pKvsDataChannel->dataChannel);
@@ -517,7 +522,13 @@ CleanUp:
 }
 
 #if (ENABLE_DATA_CHANNEL)
-
+/**
+ * @brief the callback of outbound sctp packets for webrtc client.
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+*/
 VOID onSctpSessionOutboundPacket(UINT64 customData, PBYTE pPacket, UINT32 packetLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -553,7 +564,14 @@ CleanUp:
         DLOGW("onSctpSessionDataChannelMessage failed with 0x%08x", retStatus);
     }
 }
-
+/**
+ * @brief the handler of inbound dcep packet.
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+ * @param[]
+*/
 VOID onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pName, UINT32 pNameLen)
 {
     ENTERS();
@@ -581,8 +599,11 @@ CleanUp:
 #endif
 
 /** 
- * #DTLS 
- * the callback of dtls outbound.
+ * @brief the callback of dtls outbound. #DTLS 
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
 */
 VOID onDtlsOutboundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
 {
@@ -719,7 +740,16 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief Initialize a RtcPeerConnection with the provided Configuration
+ *
+ * Reference: https://www.w3.org/TR/webrtc/#constructor
+ *
+ * @param[in] PConfiguration Configuration to initialize provided RtcPeerConnection
+ * @param[in,out] PRtcPeerConnection Uninitialized RtcPeerConnection
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection* ppPeerConnection)
 {
     ENTERS();
@@ -750,13 +780,13 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIcePwd, LOCAL_ICE_PWD_LEN));
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localCNAME, LOCAL_CNAME_LEN));
     /** #DTLS.*/
-    CHK_STATUS(createDtlsSession(
-        &dtlsSessionCallbacks, 
-        pKvsPeerConnection->timerQueueHandle, 
-        pConfiguration->kvsRtcConfiguration.generatedCertificateBits,
-        pConfiguration->kvsRtcConfiguration.generateRSACertificate, 
-        pConfiguration->certificates, 
-        &pKvsPeerConnection->pDtlsSession));
+    CHK_STATUS(createDtlsSession(&dtlsSessionCallbacks, 
+                                    pKvsPeerConnection->timerQueueHandle, 
+                                    pConfiguration->kvsRtcConfiguration.generatedCertificateBits,
+                                    pConfiguration->kvsRtcConfiguration.generateRSACertificate, 
+                                    pConfiguration->certificates, 
+                                    &pKvsPeerConnection->pDtlsSession));
+
     CHK_STATUS(dtlsSessionOnOutBoundData(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsOutboundPacket));
     CHK_STATUS(dtlsSessionOnStateChange(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsStateChange));
     /** #codec for rtp? */
@@ -931,7 +961,15 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * Set a callback for data channel
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in] UINT64 User customData that will be passed along when RtcOnDataChannel is called
+ * @param[in] RtcOnDataChannel User RtcOnDataChannel callback
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS peerConnectionOnDataChannel(PRtcPeerConnection pRtcPeerConnection, UINT64 customData, RtcOnDataChannel rtcOnDataChannel)
 {
     ENTERS();
