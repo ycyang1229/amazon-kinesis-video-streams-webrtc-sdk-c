@@ -173,10 +173,10 @@ endif()
 
 if(BUILD_CLIENT AND ENABLE_DATA_CHANNEL)
 # usrsctp dont support pkgconfig yet
-find_library(
-  Usrsctp
-  NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
-  PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib)
+#find_library(
+#  Usrsctp
+#  NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
+#  PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib)
 endif()
 
 set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS} 
@@ -292,6 +292,7 @@ include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/ice)
 include_directories(${LIBKVSWEBRTC_INCLUDE_DIRS})
 include_directories(${KVS_LIBSRTP_INCLUDE_DIRS})
+include_directories(${KVS_USRSCTP_INCLUDE_DIRS})
 
 if(BUILD_CLIENT)
 add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES})
