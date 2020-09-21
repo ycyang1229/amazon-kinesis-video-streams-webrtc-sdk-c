@@ -53,6 +53,7 @@ extern "C" {
 #define SCTP_ASSOCIATION_DEFAULT_PORT    5000
 /** https://tools.ietf.org/html/draft-ietf-mmusic-data-channel-sdpneg-28 */
 #define SCTP_DCEP_HEADER_LENGTH          12
+/** Label Length: 2 bytes (unsigned integer) */
 #define SCTP_DCEP_LABEL_LEN_OFFSET       8
 #define SCTP_DCEP_LABEL_OFFSET           12
 #define SCTP_MAX_ALLOWABLE_PACKET_LENGTH (SCTP_DCEP_HEADER_LENGTH + MAX_DATA_CHANNEL_NAME_LEN + MAX_DATA_CHANNEL_PROTOCOL_LEN + 2)
@@ -68,6 +69,22 @@ extern "C" {
  * @brief 
  *          https://yoshihisaonoue.wordpress.com/category/protocols/sctp/
  *          Payload Protocol Identifier (PPID): This must be 50 which is dedicated for WebRTC DCEP.
+ *          https://tools.ietf.org/html/rfc4960#section-14.4
+ *          https://tools.ietf.org/html/draft-ietf-rtcweb-data-channel-13#section-8
+ * 
+ *          +-------------------------------+----------+-----------+------------+
+ *          | Value                         | SCTP     | Reference | Date       |
+ *          |                               | PPID     |           |            |
+ *          +-------------------------------+----------+-----------+------------+
+ *          | WebRTC String                 | 51       | [RFCXXXX] | 2013-09-20 |
+ *          | WebRTC Binary Partial         | 52       | [RFCXXXX] | 2013-09-20 |
+ *          | (Deprecated)                  |          |           |            |
+ *          | WebRTC Binary                 | 53       | [RFCXXXX] | 2013-09-20 |
+ *          | WebRTC String Partial         | 54       | [RFCXXXX] | 2013-09-20 |
+ *          | (Deprecated)                  |          |           |            |
+ *          | WebRTC String Empty           | 56       | [RFCXXXX] | 2014-08-22 |
+ *          | WebRTC Binary Empty           | 57       | [RFCXXXX] | 2014-08-22 |
+ *          +-------------------------------+----------+-----------+------------+
 */
 enum { 
     SCTP_PPID_DCEP = 50,
@@ -76,16 +93,24 @@ enum {
     SCTP_PPID_STRING_EMPTY = 56,
     SCTP_PPID_BINARY_EMPTY = 57 
 };
-
+/**
+ * @brief https://tools.ietf.org/html/draft-ietf-rtcweb-data-protocol-09#section-5.1
+ * 
+*/
 enum {
     DCEP_DATA_CHANNEL_OPEN = 0x03,
 };
 
 typedef enum {
-    DCEP_DATA_CHANNEL_RELIABLE_ORDERED = (BYTE) 0x00,
-    DCEP_DATA_CHANNEL_RELIABLE_UNORDERED = (BYTE) 0x80,
-    DCEP_DATA_CHANNEL_REXMIT = (BYTE) 0x01,
-    DCEP_DATA_CHANNEL_TIMED = (BYTE) 0x02
+    DCEP_DATA_CHANNEL_RELIABLE_ORDERED = (BYTE) 0x00,//!< in-order bi-directional communication.
+    DCEP_DATA_CHANNEL_RELIABLE_UNORDERED = (BYTE) 0x80,//!< unordered bi-directional communication.
+    DCEP_DATA_CHANNEL_REXMIT = (BYTE) 0x01,//!< The Data Channel provides a partially-reliable in-order bi-directional communication. 
+                                            //!< User messages will not be retransmitted more times than specified in the Reliability Parameter
+    DCEP_DATA_CHANNEL_REXMIT_UNORDERED = (BYTE) 0x81,
+    DCEP_DATA_CHANNEL_TIMED = (BYTE) 0x02,//!< The Data Channel provides a partial reliable in-order bi-directional communication. 
+                                          //!<  User messages might not be transmitted or retransmitted after a specified life-time given in milliseconds in the Reliability Parameter. 
+                                          //!< This life-time starts when providing the user message to the protocol stack.
+    DCEP_DATA_CHANNEL_TIMED_UNORDERED = (BYTE) 0x82
 } DATA_CHANNEL_TYPE;
 
 // Callback that is fired when SCTP Association wishes to send packet
@@ -102,7 +127,7 @@ typedef VOID (*SctpSessionDataChannelMessageFunc)(UINT64, UINT32, BOOL, PBYTE, U
 typedef struct {
     UINT64 customData;
     SctpSessionOutboundPacketFunc outboundPacketFunc;//!< the callback of outbound sctp packets for webrtc client.
-    SctpSessionDataChannelOpenFunc dataChannelOpenFunc;//!< the callback of inboud dcep packets for internal interface.
+    SctpSessionDataChannelOpenFunc dataChannelOpenFunc;//!< the callback of inboud dcep packets for internal sctp interface.
     SctpSessionDataChannelMessageFunc dataChannelMessageFunc;
 } SctpSessionCallbacks, *PSctpSessionCallbacks;
 
@@ -110,6 +135,7 @@ typedef struct {
     /** https://tools.ietf.org/html/draft-ietf-rtcweb-data-channel-13#section-6.7 */
     volatile SIZE_T shutdownStatus;
     struct socket* socket;
+    /** [RFC 6458](https://tools.ietf.org/html/rfc6458) */
     struct sctp_sendv_spa spa;
     BYTE packet[SCTP_MAX_ALLOWABLE_PACKET_LENGTH];
     UINT32 packetSize;

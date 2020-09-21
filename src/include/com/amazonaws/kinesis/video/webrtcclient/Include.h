@@ -1306,7 +1306,7 @@ typedef struct {
  * Reference: https://www.w3.org/TR/webrtc/#dom-rtcdatachannelinit
  */
 typedef struct {
-    BOOL ordered;                                     //!< Decides the order in which data is sent. If true, data is sent in order
+    BOOL ordered;                                     //!< Decides the order in which data is sent. If true, data is sent in order. Or unordered.
     NullableUint16 maxPacketLifeTime;                 //!< Limits the time (in milliseconds) during which the channel will (re)transmit
                                                       //!< data if not acknowledged. This value may be clamped if it exceeds the maximum
                                                       //!< value supported by the user agent.

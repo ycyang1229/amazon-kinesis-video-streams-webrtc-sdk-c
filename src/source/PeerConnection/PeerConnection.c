@@ -545,7 +545,15 @@ CleanUp:
         DLOGW("onSctpSessionOutboundPacket failed with 0x%08x", retStatus);
     }
 }
-
+/**
+ * @brief the callback of the notification of receiving message over data channel for the internal sctp interface.
+ * 
+ * @param[in] the object of peer connection.
+ * @param[in] the channel id
+ * @param[in] isBinary 
+ * @param[in] pMessage the buffer of message.
+ * @param[in] the length of the message buffer.
+*/
 VOID onSctpSessionDataChannelMessage(UINT64 customData, UINT32 channelId, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -565,12 +573,12 @@ CleanUp:
     }
 }
 /**
- * @brief the handler of inbound dcep packet.
+ * @brief the callback of the notification of opening data channel for the internal sctp interface.
  * 
- * @param[]
- * @param[]
- * @param[]
- * @param[]
+ * @param[in] the object of peer connection.
+ * @param[in] the channel id
+ * @param[in] pName the buffer of channel name
+ * @param[in] the length of the channel name buffer.
 */
 VOID onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pName, UINT32 pNameLen)
 {
@@ -580,7 +588,7 @@ VOID onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pNa
     PKvsDataChannel pKvsDataChannel = NULL;
 
     CHK(pKvsPeerConnection != NULL && pKvsPeerConnection->onDataChannel != NULL, STATUS_NULL_ARG);
-
+    /** #memory. */
     pKvsDataChannel = (PKvsDataChannel) MEMCALLOC(1, SIZEOF(KvsDataChannel));
     CHK(pKvsDataChannel != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
@@ -962,7 +970,7 @@ CleanUp:
     return retStatus;
 }
 /**
- * Set a callback for data channel
+ * Set a callback for the notification of opening data channel
  *
  * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
  * @param[in] UINT64 User customData that will be passed along when RtcOnDataChannel is called

@@ -93,10 +93,10 @@ typedef struct {
     PHashTable pRtxTable;
 
     // DataChannels keyed by streamId
-    PHashTable pDataChannels;
+    PHashTable pDataChannels;//!< stores the information of data channel. streamid, channel name.
 
     UINT64 onDataChannelCustomData;
-    RtcOnDataChannel onDataChannel;//!< the callback of data channel for external interface.
+    RtcOnDataChannel onDataChannel;//!< the callback of data channel for the external interface of the peer connection.
 
     UINT64 onIceCandidateCustomData;
     /**

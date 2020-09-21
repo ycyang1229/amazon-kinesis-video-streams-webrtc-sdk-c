@@ -21,7 +21,11 @@ STATUS initSctpAddrConn(PSctpSession pSctpSession, struct sockaddr_conn* sconn)
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief   setup the sctp socket.
+ * 
+ * @param[in] the handler of socket.
+*/
 STATUS configureSctpSocket(struct socket* socket)
 {
     ENTERS();
@@ -30,8 +34,12 @@ STATUS configureSctpSocket(struct socket* socket)
     struct sctp_event event;
     UINT32 i;
     UINT32 valueOn = 1;
-    UINT16 event_types[] = {SCTP_ASSOC_CHANGE,   SCTP_PEER_ADDR_CHANGE,      SCTP_REMOTE_ERROR,
-                            SCTP_SHUTDOWN_EVENT, SCTP_ADAPTATION_INDICATION, SCTP_PARTIAL_DELIVERY_EVENT};
+    UINT16 event_types[] = {SCTP_ASSOC_CHANGE,
+                            SCTP_PEER_ADDR_CHANGE,
+                            SCTP_REMOTE_ERROR,
+                            SCTP_SHUTDOWN_EVENT,
+                            SCTP_ADAPTATION_INDICATION,
+                            SCTP_PARTIAL_DELIVERY_EVENT};
 
     CHK(usrsctp_set_non_blocking(socket, 1) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
 
@@ -43,7 +51,9 @@ STATUS configureSctpSocket(struct socket* socket)
     // packets are generally sent as soon as possible and no unnecessary
     // delays are introduced, at the cost of more packets in the network.
     CHK(usrsctp_setsockopt(socket, IPPROTO_SCTP, SCTP_NODELAY, &valueOn, SIZEOF(valueOn)) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
-
+    /**
+     * https://tools.ietf.org/html/rfc6458#section-6.2.2
+    */
     MEMSET(&event, 0, SIZEOF(event));
     event.se_assoc_id = SCTP_FUTURE_ASSOC;
     event.se_on = 1;
@@ -51,11 +61,23 @@ STATUS configureSctpSocket(struct socket* socket)
         event.se_type = event_types[i];
         CHK(usrsctp_setsockopt(socket, IPPROTO_SCTP, SCTP_EVENT, &event, SIZEOF(struct sctp_event)) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
     }
-
+    /**
+     * https://tools.ietf.org/html/rfc6458#section-5.3.1
+     * SCTP Initiation Structure (SCTP_INIT)
+     * +--------------+-----------+---------------------+
+     * | cmsg_level   | cmsg_type | cmsg_data[]         |
+     * +--------------+-----------+---------------------+
+     * | IPPROTO_SCTP | SCTP_INIT | struct sctp_initmsg |
+     * +--------------+-----------+---------------------+
+     * sinit_max_attempts:  This integer specifies how many attempts the SCTP endpoint should make at resending the INIT.
+     * sinit_max_init_timeo:  This value represents the largest timeout or retransmission timeout (RTO) value (in milliseconds) to use in attempting an INIT.
+     *                        A default value of 0 indicates the use of the endpoint's default value.  This is normally set to the system's 'RTO.Max' value (60 seconds).
+    */
     struct sctp_initmsg initmsg;
     MEMSET(&initmsg, 0, SIZEOF(struct sctp_initmsg));
-    initmsg.sinit_num_ostreams = 300;
-    initmsg.sinit_max_instreams = 300;
+    initmsg.sinit_num_ostreams = 300;//!< This is an integer representing the number of streams to which the application wishes to be able to send
+    initmsg.sinit_max_instreams = 300;//!< his value represents the maximum number of inbound streams the application is prepared to support.
+    
     CHK(usrsctp_setsockopt(socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, SIZEOF(struct sctp_initmsg)) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
 
 CleanUp:
@@ -86,7 +108,7 @@ VOID deinitSctpSession()
     }
 }
 /**
- * @brief
+ * @brief   create the sctp session including opening stcp socket.
  * 
  * @param[]
  * @param[]
@@ -134,8 +156,11 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
     memcpy(&params.spp_address, &remoteConn, SIZEOF(remoteConn));
     params.spp_flags = SPP_PMTUD_DISABLE;
     params.spp_pathmtu = SCTP_MTU;
-    CHK(usrsctp_setsockopt(pSctpSession->socket, IPPROTO_SCTP, SCTP_PEER_ADDR_PARAMS, &params, SIZEOF(params)) == 0,
-        STATUS_SCTP_SESSION_SETUP_FAILED);
+    CHK(usrsctp_setsockopt(pSctpSession->socket,
+                           IPPROTO_SCTP,
+                           SCTP_PEER_ADDR_PARAMS,
+                           &params,
+                           SIZEOF(params)) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
@@ -186,7 +211,15 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief send data over the sctp session.
+ * 
+ * @param[in] pSctpSession the object of sctp session.
+ * @param[in] streamId the stream id of sctp session.
+ * @param[in] isBinary binary or string.
+ * @param[in] pMessage the buffer of message.
+ * @param[in] pMessageLen the lengthe of the messgae buffer.
+*/
 STATUS sctpSessionWriteMessage(PSctpSession pSctpSession, UINT32 streamId, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
     ENTERS();
@@ -200,8 +233,20 @@ STATUS sctpSessionWriteMessage(PSctpSession pSctpSession, UINT32 streamId, BOOL 
     pSctpSession->spa.sendv_sndinfo.snd_sid = streamId;
 
     if ((pSctpSession->packet[1] & DCEP_DATA_CHANNEL_RELIABLE_UNORDERED) != 0) {
+        /** 
+         * This flag requests the unordered delivery of the message. 
+         * If this flag is clear, the datagram is considered an ordered send. 
+         */
         pSctpSession->spa.sendv_sndinfo.snd_flags |= SCTP_UNORDERED;
     }
+    /** https://tools.ietf.org/html/rfc6458#section-5.3.7 
+     * This cmsghdr structure specifies SCTP options for sendmsg().
+     * +--------------+-------------+--------------------+
+     * | cmsg_level   | cmsg_type   | cmsg_data[]        |
+     * +--------------+-------------+--------------------+
+     * | IPPROTO_SCTP | SCTP_PRINFO | struct sctp_prinfo |
+     * +--------------+-------------+--------------------+
+    */
     if ((pSctpSession->packet[1] & DCEP_DATA_CHANNEL_REXMIT) != 0) {
         pSctpSession->spa.sendv_prinfo.pr_policy = SCTP_PR_SCTP_RTX;
         pSctpSession->spa.sendv_prinfo.pr_value = getUnalignedInt32BigEndian((PINT32)(pSctpSession->packet + SIZEOF(UINT32)));
@@ -210,10 +255,17 @@ STATUS sctpSessionWriteMessage(PSctpSession pSctpSession, UINT32 streamId, BOOL 
         pSctpSession->spa.sendv_prinfo.pr_policy = SCTP_PR_SCTP_TTL;
         pSctpSession->spa.sendv_prinfo.pr_value = getUnalignedInt32BigEndian((PINT32)(pSctpSession->packet + SIZEOF(UINT32)));
     }
-
+    /** protocol identifier. */
     putInt32((PINT32) &pSctpSession->spa.sendv_sndinfo.snd_ppid, isBinary ? SCTP_PPID_BINARY : SCTP_PPID_STRING);
-    CHK(usrsctp_sendv(pSctpSession->socket, pMessage, pMessageLen, NULL, 0, &pSctpSession->spa, SIZEOF(pSctpSession->spa), SCTP_SENDV_SPA, 0) > 0,
-        STATUS_INTERNAL_ERROR);
+    CHK(usrsctp_sendv(pSctpSession->socket,
+                      pMessage,
+                      pMessageLen,
+                      NULL,
+                      0,
+                      &pSctpSession->spa,
+                      SIZEOF(pSctpSession->spa),
+                      SCTP_SENDV_SPA,
+                      0) > 0, STATUS_INTERNAL_ERROR);
 
 CleanUp:
     LEAVES();
@@ -238,7 +290,13 @@ CleanUp:
 //     |                            Protocol                           |
 //     |                                                               |
 //     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, UINT32 streamId, PCHAR pChannelName, UINT32 pChannelNameLen,
+/**
+ * @brief
+*/
+STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, 
+                            UINT32 streamId,
+                            PCHAR pChannelName,
+                            UINT32 pChannelNameLen,//!< #YC_TBD, code convention.
                             PRtcDataChannelInit pRtcDataChannelInit)
 {
     ENTERS();
@@ -250,7 +308,7 @@ STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, UINT32 streamId, PCHAR pC
     MEMSET(pSctpSession->packet, 0x00, SIZEOF(pSctpSession->packet));
     pSctpSession->packetSize = SCTP_DCEP_HEADER_LENGTH + pChannelNameLen;
     /* Setting the fields of DATA_CHANNEL_OPEN message */
-
+    /** #YC_TBD, need to improve. */
     pSctpSession->packet[0] = DCEP_DATA_CHANNEL_OPEN; // message type
 
     // Set Channel type based on supplied parameters
@@ -268,6 +326,20 @@ STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, UINT32 streamId, PCHAR pC
     if (!pRtcDataChannelInit->ordered) {
         pSctpSession->packet[1] |= DCEP_DATA_CHANNEL_RELIABLE_UNORDERED;
     }
+    /**
+     * Reliability Parameter: 4 bytes (unsigned integer)
+     * +------------------------------------------------+------------------+
+     * | Channel Type                                   | Reliability      |
+     * |                                                | Parameter        |
+     * +------------------------------------------------+------------------+
+     * | DATA_CHANNEL_RELIABLE                          | Ignored          |
+     * | DATA_CHANNEL_RELIABLE_UNORDERED                | Ignored          |
+     * | DATA_CHANNEL_PARTIAL_RELIABLE_REXMIT           | Number of RTX    |
+     * | DATA_CHANNEL_PARTIAL_RELIABLE_REXMIT_UNORDERED | Number of RTX    |
+     * | DATA_CHANNEL_PARTIAL_RELIABLE_TIMED            | Lifetime in ms   |
+     * | DATA_CHANNEL_PARTIAL_RELIABLE_TIMED_UNORDERED  | Lifetime in ms   |
+     * +------------------------------------------------+------------------+
+    */
     if (pRtcDataChannelInit->maxRetransmits.value >= 0 && pRtcDataChannelInit->maxRetransmits.isNull == FALSE) {
         pSctpSession->packet[1] |= DCEP_DATA_CHANNEL_REXMIT;
         putUnalignedInt32BigEndian(pSctpSession->packet + SIZEOF(UINT32), pRtcDataChannelInit->maxRetransmits.value);
@@ -275,16 +347,30 @@ STATUS sctpSessionWriteDcep(PSctpSession pSctpSession, UINT32 streamId, PCHAR pC
         pSctpSession->packet[1] |= DCEP_DATA_CHANNEL_TIMED;
         putUnalignedInt32BigEndian(pSctpSession->packet + SIZEOF(UINT32), pRtcDataChannelInit->maxPacketLifeTime.value);
     }
-
+    /** Label Length: 2 bytes (unsigned integer) */
     putUnalignedInt16BigEndian(pSctpSession->packet + SCTP_DCEP_LABEL_LEN_OFFSET, pChannelNameLen);
     MEMCPY(pSctpSession->packet + SCTP_DCEP_LABEL_OFFSET, pChannelName, pChannelNameLen);
+    /**
+     * @brief https://tools.ietf.org/html/rfc6458#section-5.3.4
+     * This cmsghdr structure specifies SCTP options for sendmsg().
+     * +--------------+--------------+---------------------+
+     * | cmsg_level   | cmsg_type    | cmsg_data[]         |
+     * +--------------+--------------+---------------------+
+     * | IPPROTO_SCTP | SCTP_SNDINFO | struct sctp_sndinfo |
+     * +--------------+--------------+---------------------+
+    */
     pSctpSession->spa.sendv_flags |= SCTP_SEND_SNDINFO_VALID;
     pSctpSession->spa.sendv_sndinfo.snd_sid = streamId;
 
     putInt32((PINT32) &pSctpSession->spa.sendv_sndinfo.snd_ppid, SCTP_PPID_DCEP);
-    CHK(usrsctp_sendv(pSctpSession->socket, pSctpSession->packet, pSctpSession->packetSize, NULL, 0, &pSctpSession->spa, SIZEOF(pSctpSession->spa),
-                      SCTP_SENDV_SPA, 0) > 0,
-        STATUS_INTERNAL_ERROR);
+    CHK(usrsctp_sendv(pSctpSession->socket,
+                      pSctpSession->packet,
+                      pSctpSession->packetSize,
+                      NULL,
+                      0,
+                      &pSctpSession->spa,
+                      SIZEOF(pSctpSession->spa),
+                      SCTP_SENDV_SPA, 0) > 0, STATUS_INTERNAL_ERROR);
 CleanUp:
 
     LEAVES();
@@ -319,7 +405,13 @@ INT32 onSctpOutboundPacket(PVOID addr, PVOID data, ULONG length, UINT8 tos, UINT
 
     return 0;
 }
-
+/**
+ * @brief the handler of sctp packets.
+ * 
+ * @param[]
+ * @param[]
+ * @param[]
+*/
 STATUS putSctpPacket(PSctpSession pSctpSession, PBYTE buf, UINT32 bufLen)
 {
     ENTERS();
@@ -331,14 +423,12 @@ STATUS putSctpPacket(PSctpSession pSctpSession, PBYTE buf, UINT32 bufLen)
     return retStatus;
 }
 /**
- * @brief the handler of inbound packets. 
- *          Data Channel Establishment Protocol (DCEP)
+ * @brief the handler of inbound packets for libusrsctp. Data Channel Establishment Protocol (DCEP)
  * 
- * @param[]
- * @param[]
- * @param[]
- * @param[]
- * 
+ * @param[in] pSctpSession 
+ * @param[in] streamId 
+ * @param[in] data 
+ * @param[in] length 
 */
 STATUS handleDcepPacket(PSctpSession pSctpSession, UINT32 streamId, PBYTE data, SIZE_T length)
 {
@@ -348,7 +438,7 @@ STATUS handleDcepPacket(PSctpSession pSctpSession, UINT32 streamId, PBYTE data, 
 
     // Assert that is DCEP of type DataChannelOpen
     CHK(length > SCTP_DCEP_HEADER_LENGTH && data[0] == DCEP_DATA_CHANNEL_OPEN, STATUS_SUCCESS);
-
+    /** retrieve the label*/
     MEMCPY(&labelLength, data + 8, SIZEOF(UINT16));
     putInt16((PINT16) &labelLength, labelLength);
 
@@ -366,6 +456,10 @@ CleanUp:
 /**
  * @brief the callback for libusrsctp. the packet handler of sctp packets.
  * 
+ * @param[] 
+ * @param[] 
+ * @param[] 
+ * @param[]
  * @param[]
 */
 INT32 onSctpInboundPacket(struct socket* sock,
