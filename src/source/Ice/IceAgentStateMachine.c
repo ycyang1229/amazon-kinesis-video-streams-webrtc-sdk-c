@@ -57,7 +57,7 @@ STATUS iceAgentFsmAdvance(PIceAgent pIceAgent)
     } else {
         // state machine retry is not used. resetStateMachineRetryCount just to avoid
         // state machine retry grace period overflow warning.
-        DLOGD("weird situation");
+        DLOGD("R");
         CHK_STATUS(resetStateMachineRetryCount(pIceAgent->pStateMachine));
     }
 

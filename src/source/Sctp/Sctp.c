@@ -92,7 +92,7 @@ STATUS initSctpSession()
 {
     STATUS retStatus = STATUS_SUCCESS;
 
-    usrsctp_init(0, &onSctpOutboundPacket, NULL);
+    usrsctp_init(0, &onSctpOutboundPacket, printf);
 
     // Disable Explicit Congestion Notification
     usrsctp_sysctl_set_sctp_ecn_enable(0);

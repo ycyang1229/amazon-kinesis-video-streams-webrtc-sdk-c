@@ -75,6 +75,20 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     PKvsDataChannel pKvsDataChannel = NULL;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
+    {
+
+    /** #memory. */
+    PDtlsKeyingMaterial dtlsKeyingMaterial = MEMALLOC(sizeof(DtlsKeyingMaterial));
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL locked = FALSE;
+
+    MEMSET(dtlsKeyingMaterial, 0, SIZEOF(DtlsKeyingMaterial));
+
+    CHK(pKvsPeerConnection != NULL, STATUS_SUCCESS);
+    CHK_STATUS(dtlsSessionVerifyRemoteCertificateFingerprint(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->remoteCertificateFingerprint));
+    CHK_STATUS(dtlsSessionPopulateKeyingMaterial(pKvsPeerConnection->pDtlsSession, dtlsKeyingMaterial));
+
+    }
     currentDataChannelId = (pKvsPeerConnection->dtlsIsServer) ? 1 : 0;
 
     // Re-sort DataChannel hashmap using proper streamIds if we are offerer or answerer

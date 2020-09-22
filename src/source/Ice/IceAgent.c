@@ -2659,7 +2659,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
 
     switch (stunPacketType) {
         case STUN_PACKET_TYPE_BINDING_REQUEST:
-            DLOGD("<stun binding req.");
+            DLOGD("<req");
             CHK_STATUS(deserializeStunPacket(pBuffer,
                                              bufferLen,
                                              (PBYTE) pIceAgent->localPassword,
@@ -2712,7 +2712,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
 
         case STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS:
             /** calculate the crc checksum of transaction id. */
-            DLOGD("<receive the >stun binding rsp.");
+            DLOGD("<rsp");
             checkSum = COMPUTE_CRC32(pBuffer + STUN_PACKET_TRANSACTION_ID_OFFSET, STUN_TRANSACTION_ID_LEN);
 
             // check if Binding Response is for finding srflx candidate
@@ -2808,7 +2808,7 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
 
             break;
         case STUN_PACKET_TYPE_BINDING_INDICATION:
-            DLOGD("<STUN binding indication");
+            DLOGD("<indi");
             break;
 
         default:
