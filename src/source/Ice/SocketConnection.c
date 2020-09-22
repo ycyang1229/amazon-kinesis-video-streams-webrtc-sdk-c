@@ -316,6 +316,7 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
 
     retVal = connect(pSocketConnection->localSocket, peerSockAddr, addrLen);
     if (retVal == 0 || errno == EISCONN) {
+        printf("%s(%d) failed\n", __func__, __LINE__);
         return TRUE;
     }
 
