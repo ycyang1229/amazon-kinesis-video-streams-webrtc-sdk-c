@@ -41,16 +41,16 @@ STATUS configureSctpSocket(struct socket* socket)
                             SCTP_ADAPTATION_INDICATION,
                             SCTP_PARTIAL_DELIVERY_EVENT};
 
-    CHK(usrsctp_set_non_blocking(socket, 1) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
+    CHK(usrsctp_set_non_blocking(socket, 1) == 0, STATUS_SCTP_SO_NON_BLOCKING_FAILED);
 
     // onSctpOutboundPacket must not be called after close
     linger_opt.l_onoff = 1;
     linger_opt.l_linger = 0;
-    CHK(usrsctp_setsockopt(socket, SOL_SOCKET, SO_LINGER, &linger_opt, SIZEOF(linger_opt)) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
+    CHK(usrsctp_setsockopt(socket, SOL_SOCKET, SO_LINGER, &linger_opt, SIZEOF(linger_opt)) == 0, STATUS_SCTP_SO_LINGER_FAILED);
 
     // packets are generally sent as soon as possible and no unnecessary
     // delays are introduced, at the cost of more packets in the network.
-    CHK(usrsctp_setsockopt(socket, IPPROTO_SCTP, SCTP_NODELAY, &valueOn, SIZEOF(valueOn)) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
+    CHK(usrsctp_setsockopt(socket, IPPROTO_SCTP, SCTP_NODELAY, &valueOn, SIZEOF(valueOn)) == 0, STATUS_SCTP_SO_NODELAY_FAILED);
     /**
      * https://tools.ietf.org/html/rfc6458#section-6.2.2
     */
@@ -59,7 +59,7 @@ STATUS configureSctpSocket(struct socket* socket)
     event.se_on = 1;
     for (i = 0; i < (UINT32)(SIZEOF(event_types) / SIZEOF(UINT16)); i++) {
         event.se_type = event_types[i];
-        CHK(usrsctp_setsockopt(socket, IPPROTO_SCTP, SCTP_EVENT, &event, SIZEOF(struct sctp_event)) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
+        CHK(usrsctp_setsockopt(socket, IPPROTO_SCTP, SCTP_EVENT, &event, SIZEOF(struct sctp_event)) == 0, STATUS_SCTP_EVENT_FAILED);
     }
     /**
      * https://tools.ietf.org/html/rfc6458#section-5.3.1
@@ -78,7 +78,7 @@ STATUS configureSctpSocket(struct socket* socket)
     initmsg.sinit_num_ostreams = 300;//!< This is an integer representing the number of streams to which the application wishes to be able to send
     initmsg.sinit_max_instreams = 300;//!< his value represents the maximum number of inbound streams the application is prepared to support.
     
-    CHK(usrsctp_setsockopt(socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, SIZEOF(struct sctp_initmsg)) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
+    CHK(usrsctp_setsockopt(socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, SIZEOF(struct sctp_initmsg)) == 0, STATUS_SCTP_INITMSG_FAILED);
 
 CleanUp:
     LEAVES();
@@ -144,14 +144,14 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
                                                onSctpInboundPacket,
                                                NULL,
                                                0,
-                                               pSctpSession)) != NULL, STATUS_SCTP_SESSION_SETUP_FAILED);
+                                               pSctpSession)) != NULL, STATUS_SCTP_SO_CREATE_FAILED);
     usrsctp_register_address(pSctpSession);
     CHK_STATUS(configureSctpSocket(pSctpSession->socket));
 
-    CHK(usrsctp_bind(pSctpSession->socket, (struct sockaddr*) &localConn, SIZEOF(localConn)) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
+    CHK(usrsctp_bind(pSctpSession->socket, (struct sockaddr*) &localConn, SIZEOF(localConn)) == 0, STATUS_SCTP_SO_BIND_FAILED);
 
     connectStatus = usrsctp_connect(pSctpSession->socket, (struct sockaddr*) &remoteConn, SIZEOF(remoteConn));
-    CHK(connectStatus >= 0 || errno == EINPROGRESS, STATUS_SCTP_SESSION_SETUP_FAILED);
+    CHK(connectStatus >= 0 || errno == EINPROGRESS, STATUS_SCTP_SO_CONNECT_FAILED);
 
     memcpy(&params.spp_address, &remoteConn, SIZEOF(remoteConn));
     params.spp_flags = SPP_PMTUD_DISABLE;
@@ -160,7 +160,7 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
                            IPPROTO_SCTP,
                            SCTP_PEER_ADDR_PARAMS,
                            &params,
-                           SIZEOF(params)) == 0, STATUS_SCTP_SESSION_SETUP_FAILED);
+                           SIZEOF(params)) == 0, STATUS_SCTP_PEER_ADDR_PARAMS_FAILED);
 
 CleanUp:
     if (STATUS_FAILED(retStatus)) {
