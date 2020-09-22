@@ -1,6 +1,8 @@
 #define LOG_CLASS "SRTP"
 #include "../Include_i.h"
 
+
+#if (ENABLE_STREAMING)
 /**
  * the initialization of srtp. 
  * 
@@ -212,3 +214,4 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+#endif

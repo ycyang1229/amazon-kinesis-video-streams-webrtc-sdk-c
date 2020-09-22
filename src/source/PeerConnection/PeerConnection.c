@@ -3,6 +3,8 @@
 #include "../Include_i.h"
 
 static volatile ATOMIC_BOOL gKvsWebRtcInitialized = (SIZE_T) FALSE;
+
+#if (ENABLE_STREAMING)
 /**
  * the initialization of srtp, after dtls session is done and receiving the srtp packets.
 */
@@ -10,22 +12,22 @@ STATUS allocateSrtp(PKvsPeerConnection pKvsPeerConnection)
 {
     ENTERS();
     /** #memory. */
-    DtlsKeyingMaterial dtlsKeyingMaterial;
+    PDtlsKeyingMaterial dtlsKeyingMaterial = MEMALLOC(sizeof(DtlsKeyingMaterial));
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
-    MEMSET(&dtlsKeyingMaterial, 0, SIZEOF(DtlsKeyingMaterial));
+    MEMSET(dtlsKeyingMaterial, 0, SIZEOF(DtlsKeyingMaterial));
 
     CHK(pKvsPeerConnection != NULL, STATUS_SUCCESS);
     CHK_STATUS(dtlsSessionVerifyRemoteCertificateFingerprint(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->remoteCertificateFingerprint));
-    CHK_STATUS(dtlsSessionPopulateKeyingMaterial(pKvsPeerConnection->pDtlsSession, &dtlsKeyingMaterial));
+    CHK_STATUS(dtlsSessionPopulateKeyingMaterial(pKvsPeerConnection->pDtlsSession, dtlsKeyingMaterial));
 
     MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
     locked = TRUE;
 
-    CHK_STATUS(initSrtpSession(pKvsPeerConnection->dtlsIsServer ? dtlsKeyingMaterial.clientWriteKey : dtlsKeyingMaterial.serverWriteKey,
-                               pKvsPeerConnection->dtlsIsServer ? dtlsKeyingMaterial.serverWriteKey : dtlsKeyingMaterial.clientWriteKey,
-                               dtlsKeyingMaterial.srtpProfile, &(pKvsPeerConnection->pSrtpSession)));
+    CHK_STATUS(initSrtpSession(pKvsPeerConnection->dtlsIsServer ? dtlsKeyingMaterial->clientWriteKey : dtlsKeyingMaterial->serverWriteKey,
+                               pKvsPeerConnection->dtlsIsServer ? dtlsKeyingMaterial->serverWriteKey : dtlsKeyingMaterial->clientWriteKey,
+                               dtlsKeyingMaterial->srtpProfile, &(pKvsPeerConnection->pSrtpSession)));
 
 CleanUp:
     if (locked) {
@@ -35,12 +37,13 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         DLOGW("dtlsSessionPopulateKeyingMaterial failed with 0x%08x", retStatus);
     }
+    MEMFREE(dtlsKeyingMaterial);
     LEAVES();
     return retStatus;
 }
+#endif
 
 #if (ENABLE_DATA_CHANNEL)
-
 STATUS allocateSctpSortDataChannelsDataCallback(UINT64 customData, PHashEntry pHashEntry)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -152,9 +155,11 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 
         CHK_STATUS(dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &isDtlsConnected));
         if (isDtlsConnected) {
+            #if (ENABLE_STREAMING)
             if (pKvsPeerConnection->pSrtpSession == NULL) {
                 CHK_STATUS(allocateSrtp(pKvsPeerConnection));
             }
+            #endif
             #if (ENABLE_DATA_CHANNEL)
             if (pKvsPeerConnection->pSctpSession == NULL) {
                 CHK_STATUS(allocateSctp(pKvsPeerConnection));
@@ -163,6 +168,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
         }
 
     } else if ((buff[0] > 127 && buff[0] < 192) && (pKvsPeerConnection->pSrtpSession != NULL)) {
+        #if (ENABLE_STREAMING)
         /** rtcp. */
         if (buff[1] >= 192 && buff[1] <= 223) {
             if (STATUS_FAILED(retStatus = decryptSrtcpPacket(pKvsPeerConnection->pSrtpSession, buff, &signedBuffLen))) {
@@ -177,12 +183,15 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
         {
             CHK_STATUS(sendPacketToRtpReceiver(pKvsPeerConnection, buff, signedBuffLen));
         }
+        #endif
     }
 
 CleanUp:
     LEAVES();
     CHK_LOG_ERR(retStatus);
 }
+
+#if (ENABLE_STREAMING)
 /**
  * @brief   receive the rtp packet and send it to rtp-receiver.
  * 
@@ -305,6 +314,7 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+#endif
 
 STATUS changePeerConnectionState(PKvsPeerConnection pKvsPeerConnection, RTC_PEER_CONNECTION_STATE newState)
 {
@@ -339,6 +349,8 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+
+#if (ENABLE_STREAMING)
 /**
  * @brief 
  * 
@@ -419,6 +431,7 @@ STATUS onFrameDroppedFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex,
 CleanUp:
     return retStatus;
 }
+#endif
 
 VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
 {
@@ -662,6 +675,8 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+
+#if (ENABLE_STREAMING)
 /**
  * @brief the callback of one peridic timer. It trigger itself periodically.
  *        Send the Sender Report RTCP Packet periodically after waiting for 2.5secs.
@@ -748,6 +763,7 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+#endif
 /**
  * @brief Initialize a RtcPeerConnection with the provided Configuration
  *
@@ -893,6 +909,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     #endif
     CHK_LOG_ERR(freeIceAgent(&pKvsPeerConnection->pIceAgent));
 
+    #if (ENABLE_STREAMING)
     // free transceivers
     CHK_LOG_ERR(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
     while (pCurNode != NULL) {
@@ -901,20 +918,29 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 
         pCurNode = pCurNode->pNext;
     }
+    #endif
 
+    #if (ENABLE_DATA_CHANNEL)
     // Free DataChannels
     CHK_LOG_ERR(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, 0, freeHashEntry));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pDataChannels));
+    #endif
 
     // free rest of structs
+    #if (ENABLE_STREAMING)
     CHK_LOG_ERR(freeSrtpSession(&pKvsPeerConnection->pSrtpSession));
+    #endif
+
     CHK_LOG_ERR(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
+
+    #if (ENABLE_STREAMING)
     CHK_LOG_ERR(doubleListFree(pKvsPeerConnection->pTransceievers));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pCodecTable));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pRtxTable));
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->pSrtpSessionLock)) {
         MUTEX_FREE(pKvsPeerConnection->pSrtpSessionLock);
     }
+    #endif
 
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->peerConnectionObjLock)) {
         MUTEX_FREE(pKvsPeerConnection->peerConnectionObjLock);
@@ -1194,12 +1220,13 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
                                   pKvsPeerConnection->remoteIceUfrag,
                                   pKvsPeerConnection->remoteIcePwd,
                                   pKvsPeerConnection->isOffer));
-
+    #if (ENABLE_STREAMING)
     if (!pKvsPeerConnection->isOffer) {
         CHK_STATUS(setPayloadTypesFromOffer(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pSessionDescription));
     }
     CHK_STATUS(setTransceiverPayloadTypes(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pKvsPeerConnection->pTransceievers));
     CHK_STATUS(setReceiversSsrc(pSessionDescription, pKvsPeerConnection->pTransceievers));
+    #endif
     #if 0
     if (NULL != getenv(DEBUG_LOG_SDP)) 
     {
@@ -1212,6 +1239,17 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ * @brief Populate the provided answer that contains an RFC 3264 offer
+ * with the supported configurations for the session.
+ *
+ * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-createoffer
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in,out] PRtcSessionDescriptionInit IN/answer that describes the supported configurations of the RtcPeerConnection
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionInit pSessionDescriptionInit)
 {
     ENTERS();
@@ -1229,7 +1267,9 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
     pKvsPeerConnection->isOffer = TRUE;
 
     pKvsPeerConnection->sctpIsEnabled = TRUE;
+    #if (ENABLE_STREAMING)
     CHK_STATUS(setPayloadTypesForOffer(pKvsPeerConnection->pCodecTable));
+    #endif
 
     CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
     CHK_STATUS(serializeSessionDescription(pSessionDescription, NULL, &serializeLen));
@@ -1306,6 +1346,8 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+
+#if (ENABLE_STREAMING)
 /**
  * @brief Create a new RtcRtpTransceiver and add it to the set of transceivers.
  *
@@ -1435,6 +1477,7 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+#endif
 /**
  * @brief Provides a remote candidate to the ICE Agent.
  *
@@ -1534,7 +1577,9 @@ STATUS initKvsWebRtc(VOID)
 
     SRAND(GETTIME());
 
+    #if (ENABLE_STREAMING)
     CHK(srtp_init() == srtp_err_status_ok, STATUS_SRTP_INIT_FAILED);
+    #endif
 
     // init endianness handling
     initializeEndianness();
@@ -1561,8 +1606,9 @@ STATUS deinitKvsWebRtc(VOID)
     #if (ENABLE_DATA_CHANNEL)
     deinitSctpSession();
     #endif
-
+    #if (ENABLE_STREAMING)
     srtp_shutdown();
+    #endif
 
     ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, FALSE);
 

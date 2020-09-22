@@ -146,7 +146,7 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+#if (ENABLE_STREAMING)
 /*
  * Populate map with PayloadTypes if we are offering
  */
@@ -164,6 +164,7 @@ STATUS setPayloadTypesForOffer(PHashTable codecTable)
 CleanUp:
     return retStatus;
 }
+
 
 /**
  * @brief Populate map with PayloadTypes for codecs a KvsPeerConnection has enabled.
@@ -277,6 +278,14 @@ CleanUp:
     return retStatus;
 }
 
+
+/**
+ * @brief 
+ * 
+ * @param[] codecTable 
+ * @param[] rtxTable 
+ * @param[] pTransceivers
+*/
 STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PDoubleList pTransceivers)
 {
     ENTERS();
@@ -316,6 +325,7 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+#endif
 
 PCHAR fmtpForPayloadType(UINT64 payloadType, PSessionDescription pSessionDescription)
 {

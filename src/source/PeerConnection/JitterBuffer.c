@@ -2,6 +2,7 @@
 
 #include "../Include_i.h"
 
+#if (ENABLE_STREAMING)
 /**
  * @brief create the jitter buffer, setup the callback of frameready, framedrop, and depayRTPPayload.
  * 
@@ -338,3 +339,4 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+#endif

@@ -2,6 +2,7 @@
 
 #include "../Include_i.h"
 
+#if (ENABLE_STREAMING)
 /**
  * @brief 
  * 
@@ -498,3 +499,4 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
     return retStatus;
 }
+#endif

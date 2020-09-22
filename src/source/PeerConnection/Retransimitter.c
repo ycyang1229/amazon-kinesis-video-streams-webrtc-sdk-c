@@ -2,6 +2,7 @@
 
 #include "../Include_i.h"
 
+#if (ENABLE_STREAMING)
 STATUS createRetransmitter(UINT32 seqNumListLen, UINT32 validIndexListLen, PRetransmitter* ppRetransmitter)
 {
     ENTERS();
@@ -142,3 +143,4 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+#endif

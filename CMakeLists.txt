@@ -28,6 +28,7 @@ option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF
 option(KVS_PLAT_FREERTOS "Build for FreeRTOS" ON)
 option(BUILD_CLIENT "Build with UndefinedBehaviorSanitizer." ON)
 option(BUILD_SIGNALING_CLIENT "Build with UndefinedBehaviorSanitizer." ON)
+option(ENABLE_STREAMING "Enable support for streaming" OFF)
 option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
 
 
@@ -60,6 +61,14 @@ if(USE_OPENSSL)
   add_definitions(-DKVS_USE_OPENSSL)
 elseif(USE_MBEDTLS)
   add_definitions(-DKVS_USE_MBEDTLS)
+endif()
+
+if (ENABLE_STREAMING)
+  add_definitions(-DENABLE_STREAMING)
+endif()
+
+if (ENABLE_DATA_CHANNEL)
+  add_definitions(-DENABLE_DATA_CHANNEL)
 endif()
 
 if(BUILD_DEPENDENCIES)
@@ -256,8 +265,21 @@ endif()
 # Uncomment below line for very verbose logging
 # add_definitions(-DLOG_STREAMING)
 
+if (ENABLE_STREAMING)
+file(
+  GLOB
+  WEBRTC_CLIENT_STREAMING_SRC
+  "src/source/Rtcp/*.c"
+  "src/source/Rtp/*.c"
+  "src/source/Rtp/Codecs/*.c"
+  "src/source/Srtp/*.c")
+endif()
+
 if (ENABLE_DATA_CHANNEL)
-  add_definitions(-DENABLE_DATA_CHANNEL)
+file(
+    GLOB
+    WEBRTC_CLIENT_DATA_CHANNEL_SRC
+    "src/source/Sctp/*.c")
 endif()
 
 file(
@@ -266,13 +288,8 @@ file(
   "src/source/Crypto/*.c"
   "src/source/Ice/*.c"
   "src/source/PeerConnection/*.c"
-  "src/source/Rtcp/*.c"
-  "src/source/Rtp/*.c"
-  "src/source/Rtp/Codecs/*.c"
   "src/source/Sdp/*.c"
-  "src/source/Srtp/*.c"
   "src/source/Stun/*.c"
-  "src/source/Sctp/*.c"
   "src/source/Metrics/*.c")
 
 if (USE_OPENSSL)
@@ -295,7 +312,7 @@ include_directories(${KVS_LIBSRTP_INCLUDE_DIRS})
 include_directories(${KVS_USRSCTP_INCLUDE_DIRS})
 
 if(BUILD_CLIENT)
-add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES})
+add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${WEBRTC_CLIENT_STREAMING_SRC} ${WEBRTC_CLIENT_DATA_CHANNEL_SRC})
 
 target_link_libraries(
   kvsWebrtcClient
