@@ -91,7 +91,10 @@ CleanUp:
 STATUS initSctpSession()
 {
     STATUS retStatus = STATUS_SUCCESS;
-
+    /** 
+     * this sctp will start one thread to handle sctp. 
+     * If you do not want to start another thread, you can use usrsctp_init_nothreads().
+     */
     usrsctp_init(0, &onSctpOutboundPacket, printf);
 
     // Disable Explicit Congestion Notification

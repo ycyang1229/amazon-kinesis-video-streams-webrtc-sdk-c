@@ -12,7 +12,12 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+/**
+ * https://tools.ietf.org/html/rfc4960
+ * https://tools.ietf.org/html/draft-ietf-rtcweb-data-channel-13    
+ * https://tools.ietf.org/html/draft-ietf-behave-sctpnat-09
+ * 
+*/
 /**
  * @brief https://tools.ietf.org/html/rfc4960#section-3
  * 
