@@ -94,6 +94,9 @@ STATUS initSctpSession()
     /** 
      * this sctp will start one thread to handle sctp. 
      * If you do not want to start another thread, you can use usrsctp_init_nothreads().
+     * 
+     *  This local UDP port is set with the parameter udp_port. The default value is 9899, the standard UDP encapsulation port. 
+     * If UDP encapsulation is not necessary, the UDP port has to be set to 0.
      */
     usrsctp_init(0, &onSctpOutboundPacket, printf);
 
@@ -141,13 +144,13 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
     CHK_STATUS(initSctpAddrConn(pSctpSession, &localConn));
     CHK_STATUS(initSctpAddrConn(pSctpSession, &remoteConn));
 
-    CHK((pSctpSession->socket = usrsctp_socket(AF_CONN,
-                                               SOCK_STREAM,
-                                               IPPROTO_SCTP,
-                                               onSctpInboundPacket,
-                                               NULL,
-                                               0,
-                                               pSctpSession)) != NULL, STATUS_SCTP_SO_CREATE_FAILED);
+    CHK((pSctpSession->socket = usrsctp_socket(AF_CONN,//!< domain
+                                               SOCK_STREAM,//!< type
+                                               IPPROTO_SCTP,//!< protocol
+                                               onSctpInboundPacket,//!< receive_cb
+                                               NULL,//!< send_cb
+                                               0,//!< sb_threshold
+                                               pSctpSession)) != NULL, STATUS_SCTP_SO_CREATE_FAILED);//!< ulp_info
     usrsctp_register_address(pSctpSession);
     CHK_STATUS(configureSctpSocket(pSctpSession->socket));
 
@@ -260,6 +263,12 @@ STATUS sctpSessionWriteMessage(PSctpSession pSctpSession, UINT32 streamId, BOOL 
     }
     /** protocol identifier. */
     putInt32((PINT32) &pSctpSession->spa.sendv_sndinfo.snd_ppid, isBinary ? SCTP_PPID_BINARY : SCTP_PPID_STRING);
+    /** 
+     * SCTP_SENDV_NOINFO
+     * SCTP_SENDV_SNDINFO
+     * SCTP_SENDV_PRINFO
+     * SCTP_SENDV_SPA (For additional information please refer to RFC 6458.)
+    */
     CHK(usrsctp_sendv(pSctpSession->socket,
                       pMessage,
                       pMessageLen,
@@ -267,7 +276,7 @@ STATUS sctpSessionWriteMessage(PSctpSession pSctpSession, UINT32 streamId, BOOL 
                       0,
                       &pSctpSession->spa,
                       SIZEOF(pSctpSession->spa),
-                      SCTP_SENDV_SPA,
+                      SCTP_SENDV_SPA, 
                       0) > 0, STATUS_INTERNAL_ERROR);
 
 CleanUp:
@@ -366,6 +375,12 @@ STATUS sctpSessionWriteDcep(PSctpSession pSctpSession,
     pSctpSession->spa.sendv_sndinfo.snd_sid = streamId;
 
     putInt32((PINT32) &pSctpSession->spa.sendv_sndinfo.snd_ppid, SCTP_PPID_DCEP);
+    /** 
+     * SCTP_SENDV_NOINFO
+     * SCTP_SENDV_SNDINFO
+     * SCTP_SENDV_PRINFO
+     * SCTP_SENDV_SPA (For additional information please refer to RFC 6458.)
+    */
     CHK(usrsctp_sendv(pSctpSession->socket,
                       pSctpSession->packet,
                       pSctpSession->packetSize,
@@ -373,7 +388,8 @@ STATUS sctpSessionWriteDcep(PSctpSession pSctpSession,
                       0,
                       &pSctpSession->spa,
                       SIZEOF(pSctpSession->spa),
-                      SCTP_SENDV_SPA, 0) > 0, STATUS_INTERNAL_ERROR);
+                      SCTP_SENDV_SPA, 
+                      0) > 0, STATUS_INTERNAL_ERROR);
 CleanUp:
 
     LEAVES();
@@ -409,7 +425,7 @@ INT32 onSctpOutboundPacket(PVOID addr, PVOID data, ULONG length, UINT8 tos, UINT
     return 0;
 }
 /**
- * @brief the handler of sctp packets.
+ * @brief the handler of receiving sctp packets.
  * 
  * @param[]
  * @param[]
@@ -419,7 +435,7 @@ STATUS putSctpPacket(PSctpSession pSctpSession, PBYTE buf, UINT32 bufLen)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-
+    //usrsctp_recvv
     usrsctp_conninput(pSctpSession, buf, bufLen, 0);
 
     LEAVES();

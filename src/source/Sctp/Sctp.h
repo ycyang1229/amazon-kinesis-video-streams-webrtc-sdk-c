@@ -14,8 +14,12 @@ extern "C" {
 #endif
 /**
  * https://tools.ietf.org/html/rfc4960
+ * https://tools.ietf.org/html/rfc6458
  * https://tools.ietf.org/html/draft-ietf-rtcweb-data-channel-13    
  * https://tools.ietf.org/html/draft-ietf-behave-sctpnat-09
+ * 
+ * 
+ * https://github.com/sctplab/usrsctp/blob/master/Manual.md
  * 
 */
 /**
