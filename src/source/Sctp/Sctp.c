@@ -17,7 +17,7 @@ STATUS initSctpAddrConn(PSctpSession pSctpSession, struct sockaddr_conn* sconn)
     sconn->sconn_family = AF_CONN;
     putInt16((PINT16) &sconn->sconn_port, SCTP_ASSOCIATION_DEFAULT_PORT);
     sconn->sconn_addr = pSctpSession;
-
+    printf("sconn->sconn_family:%d", sconn->sconn_family);
     LEAVES();
     return retStatus;
 }
