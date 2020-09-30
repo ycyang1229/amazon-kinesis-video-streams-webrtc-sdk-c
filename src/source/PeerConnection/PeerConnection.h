@@ -10,8 +10,8 @@ PeerConnection internal include file
 extern "C" {
 #endif
 
-#define LOCAL_ICE_UFRAG_LEN 4
-#define LOCAL_ICE_PWD_LEN   24
+#define LOCAL_ICE_UFRAG_LEN 4   //!< at least 24bits of randomness. be at least 4 characters long
+#define LOCAL_ICE_PWD_LEN   24  //!< at least 128bits of randomness. be at least 22 characters long
 #define LOCAL_CNAME_LEN     16
 
 // https://tools.ietf.org/html/rfc5245#section-15.4
@@ -57,7 +57,7 @@ typedef struct {
     SessionDescription remoteSessionDescription;
     PDoubleList pTransceivers;
     BOOL sctpIsEnabled;
-
+    // https://tools.ietf.org/html/rfc5245#section-15.4
     CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
     CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
 
@@ -70,7 +70,7 @@ typedef struct {
 
     MUTEX peerConnectionObjLock;
 
-    BOOL isOffer;
+    BOOL isOffer;//!< do you create the offer by yourself. it means you are a client or not.
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
 
@@ -84,7 +84,7 @@ typedef struct {
     PHashTable pRtxTable;
 
     // DataChannels keyed by streamId
-    PHashTable pDataChannels;
+    PHashTable pDataChannels;//!< stores the information of data channel. streamid, channel name...etc.
 
     UINT64 onDataChannelCustomData;
     RtcOnDataChannel onDataChannel;
@@ -112,7 +112,29 @@ STATUS onFrameDroppedFunc(UINT64, UINT16, UINT16, UINT32);
 VOID onSctpSessionOutboundPacket(UINT64, PBYTE, UINT32);
 VOID onSctpSessionDataChannelMessage(UINT64, UINT32, BOOL, PBYTE, UINT32);
 VOID onSctpSessionDataChannelOpen(UINT64, UINT32, PBYTE, UINT32);
-
+/**
+ * @brief   receive the rtp packet and send it to rtp-receiver.
+ * 
+ *              https://tools.ietf.org/html/rfc3550#section-5
+ * 
+ *              0                   1                   2                   3
+ *              0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *              +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *              |V=2|P|X|  CC   |M|     PT      |       sequence number         |
+ *              +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *              |                           timestamp                           |
+ *              +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *              |           synchronization source (SSRC) identifier            |
+ *              +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+ *              |            contributing source (CSRC) identifiers             |
+ *              |                             ....                              |
+ *              +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * 
+ * 
+ * @param[in] pKvsPeerConnection
+ * @param[in] pBuffer
+ * @param[in] bufferLen
+*/
 STATUS sendPacketToRtpReceiver(PKvsPeerConnection, PBYTE, UINT32);
 STATUS changePeerConnectionState(PKvsPeerConnection, RTC_PEER_CONNECTION_STATE);
 

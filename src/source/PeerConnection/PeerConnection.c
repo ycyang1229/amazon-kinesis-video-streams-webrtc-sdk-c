@@ -6,22 +6,23 @@ static volatile ATOMIC_BOOL gKvsWebRtcInitialized = (SIZE_T) FALSE;
 
 STATUS allocateSrtp(PKvsPeerConnection pKvsPeerConnection)
 {
-    DtlsKeyingMaterial dtlsKeyingMaterial;
+    ENTERS();
+    PDtlsKeyingMaterial pDtlsKeyingMaterial = MEMALLOC(sizeof(DtlsKeyingMaterial));
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
-    MEMSET(&dtlsKeyingMaterial, 0, SIZEOF(DtlsKeyingMaterial));
+    MEMSET(pDtlsKeyingMaterial, 0, SIZEOF(DtlsKeyingMaterial));
 
     CHK(pKvsPeerConnection != NULL, STATUS_SUCCESS);
     CHK_STATUS(dtlsSessionVerifyRemoteCertificateFingerprint(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->remoteCertificateFingerprint));
-    CHK_STATUS(dtlsSessionPopulateKeyingMaterial(pKvsPeerConnection->pDtlsSession, &dtlsKeyingMaterial));
+    CHK_STATUS(dtlsSessionPopulateKeyingMaterial(pKvsPeerConnection->pDtlsSession, pDtlsKeyingMaterial));
 
     MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
     locked = TRUE;
 
-    CHK_STATUS(initSrtpSession(pKvsPeerConnection->dtlsIsServer ? dtlsKeyingMaterial.clientWriteKey : dtlsKeyingMaterial.serverWriteKey,
-                               pKvsPeerConnection->dtlsIsServer ? dtlsKeyingMaterial.serverWriteKey : dtlsKeyingMaterial.clientWriteKey,
-                               dtlsKeyingMaterial.srtpProfile, &(pKvsPeerConnection->pSrtpSession)));
+    CHK_STATUS(initSrtpSession(pKvsPeerConnection->dtlsIsServer ? pDtlsKeyingMaterial->clientWriteKey : pDtlsKeyingMaterial->serverWriteKey,
+                               pKvsPeerConnection->dtlsIsServer ? pDtlsKeyingMaterial->serverWriteKey : pDtlsKeyingMaterial->clientWriteKey,
+                               pDtlsKeyingMaterial->srtpProfile, &(pKvsPeerConnection->pSrtpSession)));
 
 CleanUp:
     if (locked) {
@@ -31,7 +32,8 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         DLOGW("dtlsSessionPopulateKeyingMaterial failed with 0x%08x", retStatus);
     }
-
+    MEMFREE(pDtlsKeyingMaterial);
+    LEAVES();
     return retStatus;
 }
 
@@ -54,6 +56,7 @@ CleanUp:
 
 STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     SctpSessionCallbacks sctpSessionCallbacks;
     AllocateSctpSortDataChannelsData data;
@@ -102,11 +105,19 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
     }
 
 CleanUp:
+    LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief the callback of inbound packet, and it is a packet arbitrator.
+ * 
+ * @param[in] customData the object of KvsPeerConnection.
+ * @param[in] buff the buffer of packets.
+ * @param[in] buffLen the length of buffer.
+*/
 VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     BOOL isDtlsConnected = FALSE;
@@ -159,12 +170,13 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
     }
 
 CleanUp:
-
+    LEAVES();
     CHK_LOG_ERR(retStatus);
 }
 
 STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuffer, UINT32 bufferLen)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     PKvsRtpTransceiver pTransceiver;
@@ -243,11 +255,13 @@ CleanUp:
         freeRtpPacket(&pRtpPacket);
         CHK_LOG_ERR(retStatus);
     }
+    LEAVES();
     return retStatus;
 }
 
 STATUS changePeerConnectionState(PKvsPeerConnection pKvsPeerConnection, RTC_PEER_CONNECTION_STATE newState)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
@@ -275,11 +289,13 @@ CleanUp:
     }
 
     CHK_LOG_ERR(retStatus);
+    LEAVES();
     return retStatus;
 }
 
 STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, UINT32 frameSize)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsRtpTransceiver pTransceiver = (PKvsRtpTransceiver) customData;
     PRtpPacket pPacket = NULL;
@@ -328,6 +344,7 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
+    LEAVES();
     return retStatus;
 }
 
@@ -361,6 +378,7 @@ CleanUp:
 
 VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     RTC_PEER_CONNECTION_STATE newConnectionState = RTC_PEER_CONNECTION_STATE_NEW;
@@ -409,10 +427,12 @@ VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
+    LEAVES();
 }
 
 VOID onNewIceLocalCandidate(UINT64 customData, PCHAR candidateSdpStr)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     BOOL locked = FALSE;
@@ -443,6 +463,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
     }
+    LEAVES();
 }
 
 VOID onSctpSessionOutboundPacket(UINT64 customData, PBYTE pPacket, UINT32 packetLen)
@@ -492,6 +513,7 @@ CleanUp:
 
 VOID onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pName, UINT32 nameLen)
 {
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) customData;
     PKvsDataChannel pKvsDataChannel = NULL;
@@ -514,12 +536,13 @@ VOID onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pNa
     pKvsPeerConnection->onDataChannel(pKvsPeerConnection->onDataChannelCustomData, &(pKvsDataChannel->dataChannel));
 
 CleanUp:
-
+    LEAVES();
     CHK_LOG_ERR(retStatus);
 }
 
 VOID onDtlsOutboundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
 {
+    ENTERS();
     PKvsPeerConnection pKvsPeerConnection = NULL;
     if (customData == 0) {
         return;
@@ -527,10 +550,12 @@ VOID onDtlsOutboundPacket(UINT64 customData, PBYTE pBuffer, UINT32 bufferLen)
 
     pKvsPeerConnection = (PKvsPeerConnection) customData;
     iceAgentSendPacket(pKvsPeerConnection->pIceAgent, pBuffer, bufferLen);
+    LEAVES();
 }
 
 VOID onDtlsStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE newDtlsState)
 {
+    ENTERS();
     PKvsPeerConnection pKvsPeerConnection = NULL;
     if (customData == 0) {
         return;
@@ -541,6 +566,7 @@ VOID onDtlsStateChange(UINT64 customData, RTC_DTLS_TRANSPORT_STATE newDtlsState)
     if (newDtlsState == CLOSED) {
         changePeerConnectionState(pKvsPeerConnection, RTC_PEER_CONNECTION_STATE_CLOSED);
     }
+    LEAVES();
 }
 
 /* Generate a printable string that does not
@@ -566,6 +592,7 @@ CleanUp:
 
 STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
+    ENTERS();
     UNUSED_PARAM(timerId);
     STATUS retStatus = STATUS_SUCCESS;
     BOOL ready = FALSE;
@@ -626,6 +653,7 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
 CleanUp:
     CHK_LOG_ERR(retStatus);
     SAFE_MEMFREE(rawPacket);
+    LEAVES();
     return retStatus;
 }
 
