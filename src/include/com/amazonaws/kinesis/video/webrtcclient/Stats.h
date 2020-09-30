@@ -552,7 +552,7 @@ typedef struct {
     UINT32 numberOfErrors;           //!< Number of signaling client API call failures.
                                      //!< These errors are the result of non STATUS_SUCCESS returns from all of the public
                                      //!< APIs defined for the signaling client with the exception of
-                                     //!< createSignalingClient and freeSignalingClient invocation
+                                     //!< createSignalingClientSync and freeSignalingClient invocation
                                      //!< and errors where the signaling client handle is invalid
     UINT32 numberOfRuntimeErrors;    //!< Number of indirect or runtime errors.
                                      //!< These are errors that are not returned as part of

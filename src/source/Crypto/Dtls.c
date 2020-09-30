@@ -9,7 +9,6 @@
 */
 STATUS dtlsSessionOnOutBoundData(PDtlsSession pDtlsSession, UINT64 customData, DtlsSessionOutboundPacketFunc callbackFn)
 {
-    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pDtlsSession != NULL && callbackFn != NULL, STATUS_DTLS_NULL_ARG);
@@ -20,7 +19,6 @@ STATUS dtlsSessionOnOutBoundData(PDtlsSession pDtlsSession, UINT64 customData, D
     MUTEX_UNLOCK(pDtlsSession->sslLock);
 
 CleanUp:
-    LEAVES();
     return STATUS_SUCCESS;
 }
 /** 

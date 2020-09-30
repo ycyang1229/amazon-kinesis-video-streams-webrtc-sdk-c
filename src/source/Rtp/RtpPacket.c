@@ -211,7 +211,6 @@ STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pR
     csrcCount = rawPacket[0] & CSRC_COUNT_MASK;
     marker = ((rawPacket[1] >> MARKER_SHIFT) & MARKER_MASK) > 0;
     payloadType = rawPacket[1] & PAYLOAD_TYPE_MASK;
-
     sequenceNumber = getInt16(*(PUINT16)(rawPacket + SEQ_NUMBER_OFFSET));
     timestamp = getInt32(*(PUINT32)(rawPacket + TIMESTAMP_OFFSET));
     ssrc = getInt32(*(PUINT32)(rawPacket + SSRC_OFFSET));
@@ -269,6 +268,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+
+
+
 /**
  * the endianness of packet header.
  * copy all the data of rtppacket into raw packet, and do the enidanness.

@@ -277,7 +277,7 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
         CHK(username != NULL && username[0] != '\0', STATUS_ICE_URL_TURN_MISSING_USERNAME);
         CHK(credential != NULL && credential[0] != '\0', STATUS_ICE_URL_TURN_MISSING_CREDENTIAL);
 
-        // TODO after getIceServerConfig no longer give turn: ips, do TLS only for turns:
+        // TODO after getIceConfigLws no longer give turn: ips, do TLS only for turns:
         STRNCPY(pIceServer->username, username, MAX_ICE_CONFIG_USER_NAME_LEN);
         STRNCPY(pIceServer->credential, credential, MAX_ICE_CONFIG_CREDENTIAL_LEN);
         urlNoPrefix = STRCHR(url, ':') + 1;

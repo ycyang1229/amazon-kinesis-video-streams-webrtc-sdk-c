@@ -26,7 +26,7 @@ STATUS createIceAgent(PCHAR username,
                       PConnectionListener pConnectionListener, 
                       PIceAgent* ppIceAgent)
 {
-    //ENTERS();
+    ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = NULL;
@@ -134,7 +134,7 @@ CleanUp:
         *ppIceAgent = pIceAgent;
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
@@ -145,7 +145,7 @@ CleanUp:
  */
 STATUS freeIceAgent(PIceAgent* ppIceAgent)
 {
-    //ENTERS();
+    ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = NULL;
@@ -257,7 +257,7 @@ STATUS freeIceAgent(PIceAgent* ppIceAgent)
 
 CleanUp:
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
@@ -282,8 +282,6 @@ STATUS iceAgentValidateKvsRtcConfig(PKvsRtcConfiguration pKvsRtcConfiguration)
     if (pKvsRtcConfiguration->iceConnectionCheckPollingInterval == 0) {
         pKvsRtcConfiguration->iceConnectionCheckPollingInterval = KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL;
     }
-    pKvsRtcConfiguration->iceConnectionCheckPollingInterval = KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL;
-    DLOGD("iceConnectionCheckPollingInterval:%d", pKvsRtcConfiguration->iceConnectionCheckPollingInterval);
 
     DLOGD("\n\ticeLocalCandidateGatheringTimeout: %u ms"
           "\n\ticeConnectionCheckTimeout: %u ms"
@@ -301,7 +299,7 @@ CleanUp:
 
 STATUS iceAgentReportNewLocalCandidate(PIceAgent pIceAgent, PIceCandidate pIceCandidate)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     CHAR serializedIceCandidateBuf[MAX_SDP_ATTRIBUTE_VALUE_LENGTH];
     UINT32 serializedIceCandidateBufLen = ARRAY_SIZE(serializedIceCandidateBuf);
@@ -314,14 +312,13 @@ STATUS iceAgentReportNewLocalCandidate(PIceAgent pIceAgent, PIceCandidate pIceCa
     CHK_WARN(!ATOMIC_LOAD_BOOL(&pIceAgent->candidateGatheringFinished), retStatus,
              "Cannot report new ice candidate because candidate gathering is already finished");
     CHK_STATUS(iceCandidateSerialize(pIceCandidate, serializedIceCandidateBuf, &serializedIceCandidateBufLen));
-
     pIceAgent->iceAgentCallbacks.newLocalCandidateFn(pIceAgent->iceAgentCallbacks.customData, serializedIceCandidateBuf);
 
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -339,7 +336,7 @@ CleanUp:
 */
 STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
     PIceCandidate pIceCandidate = NULL, pDuplicatedIceCandidate = NULL, pLocalIceCandidate = NULL;
@@ -355,10 +352,6 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     CHK(pIceAgent != NULL && pIceCandidateString != NULL, STATUS_NULL_ARG);
     CHK(!IS_EMPTY_STRING(pIceCandidateString), STATUS_INVALID_ARG);
 
-    if(pIceCandidateString!=NULL){
-        //printf("%s\n", pIceCandidateString);
-        DLOGD("%s\n", pIceCandidateString);
-    }
     MEMSET(&candidateIpAddr, 0x00, SIZEOF(KvsIpAddress));
 
     MUTEX_LOCK(pIceAgent->lock);
@@ -476,7 +469,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
@@ -491,7 +484,7 @@ CleanUp:
  */
 STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
 {
-    //ENTERS();
+    ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     PKvsIpAddress pIpAddress = NULL;
@@ -502,10 +495,10 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
 
     for (i = 0; i < pIceAgent->localNetworkInterfaceCount; ++i) {
         pIpAddress = &pIceAgent->localNetworkInterfaces[i];
-        //DLOGD("IpAddress: %s", pIpAddress);
+
         // make sure pIceAgent->localCandidates has no duplicates
         CHK_STATUS(findCandidateWithIp(pIpAddress, pIceAgent->localCandidates, &pDuplicatedIceCandidate));
-        //DLOGD("create socket.");
+
         if (pDuplicatedIceCandidate == NULL &&
             /** #udp. #socket. */
             STATUS_SUCCEEDED(createSocketConnection(pIpAddress->family,
@@ -516,7 +509,6 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
                                                     incomingDataHandler,
                                                     pIceAgent->kvsRtcConfiguration.sendBufSize, 
                                                     &pSocketConnection))) {
-            //DLOGD("create socket successfully.");
             /** #memory. */
             pTmpIceCandidate = MEMCALLOC(1, SIZEOF(IceCandidate));
             generateJSONSafeString(pTmpIceCandidate->id, ARRAY_SIZE(pTmpIceCandidate->id));
@@ -534,9 +526,7 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
              * need to acquire lock. */
             MUTEX_LOCK(pIceAgent->lock);
             locked = TRUE;
-            /**
-             * #YC_TBD, do we need to add the enhancement of doing invalid candidate?
-            */
+            /** #YC_TBD, do we need to add the enhancement of doing invalid candidate? */
             CHK_STATUS(doubleListInsertItemHead(pIceAgent->localCandidates, (UINT64) pTmpIceCandidate));
             CHK_STATUS(createIceCandidatePairs(pIceAgent, pTmpIceCandidate, FALSE));
 
@@ -553,7 +543,7 @@ STATUS iceAgentInitHostCandidate(PIceAgent pIceAgent)
             CHK_STATUS(connectionListenerAddConnection(pIceAgent->pConnectionListener, pNewIceCandidate->pSocketConnection));
         }
     }
-    DLOGD("localCandidateCount:%d.", localCandidateCount);
+
     CHK(localCandidateCount != 0, STATUS_ICE_NO_LOCAL_HOST_CANDIDATE_AVAILABLE);
 
 CleanUp:
@@ -570,7 +560,7 @@ CleanUp:
         iceAgentFatalError(pIceAgent, retStatus);
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -586,7 +576,7 @@ CleanUp:
  */
 STATUS iceAgentStartAgent(PIceAgent pIceAgent, PCHAR remoteUsername, PCHAR remotePassword, BOOL isControlling)
 {
-    //ENTERS();
+    ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
@@ -611,14 +601,12 @@ STATUS iceAgentStartAgent(PIceAgent pIceAgent, PCHAR remoteUsername, PCHAR remot
         DLOGW("remoteUsername:localUsername will be truncated to stay within %u char limit", MAX_ICE_CONFIG_USER_NAME_LEN);
     }
     SNPRINTF(pIceAgent->combinedUserName, ARRAY_SIZE(pIceAgent->combinedUserName), "%s:%s", pIceAgent->remoteUsername, pIceAgent->localUsername);
-    //DLOGD("%s, %s, %s", pIceAgent->combinedUserName, pIceAgent->remoteUsername, pIceAgent->remotePassword);
     MUTEX_UNLOCK(pIceAgent->lock);
     locked = FALSE;
-    //DLOGD("set one timer to step StateMachine(%d)", pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval);
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, 
                                   KVS_ICE_DEFAULT_TIMER_START_DELAY,
                                   pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,
-                                  iceAgentTimerAdvanceFsm,
+                                  iceAgentStateTransitionTimerCallback,
                                   (UINT64) pIceAgent, 
                                   &pIceAgent->iceAgentStateTimerTask));
 
@@ -628,7 +616,7 @@ CleanUp:
         MUTEX_UNLOCK(pIceAgent->lock);
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
@@ -641,7 +629,6 @@ CleanUp:
  */
 STATUS iceAgentStartGathering(PIceAgent pIceAgent)
 {
-    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
@@ -670,7 +657,7 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
                                   KVS_ICE_DEFAULT_TIMER_START_DELAY,
                                   KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL,
-                                  iceAgentTimerGatherCandidate,
+                                  iceAgentGatherCandidateTimerCallback,
                                   (UINT64) pIceAgent,
                                   &pIceAgent->iceCandidateGatheringTimerTask));
 
@@ -681,7 +668,6 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-    //LEAVES();
     return retStatus;
 }
 /**
@@ -763,7 +749,6 @@ STATUS iceAgentPopulateSdpMediaDescriptionCandidates(PIceAgent pIceAgent,
                                                      UINT32 attrBufferLen,
                                                      PUINT32 pIndex)
 {
-    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 data;
     PDoubleListNode pCurNode = NULL;
@@ -794,7 +779,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
     }
-    //LEAVES();
+
     return retStatus;
 }
 
@@ -882,7 +867,7 @@ CleanUp:
 
 STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIcePwd)
 {
-    //ENTERS();
+    ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
@@ -1020,7 +1005,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
@@ -1037,7 +1022,7 @@ CleanUp:
 */
 STATUS findCandidateWithIp(PKvsIpAddress pIpAddress, PDoubleList pCandidateList, PIceCandidate* ppIceCandidate)
 {
-    //ENTERS();
+    ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
@@ -1067,7 +1052,7 @@ CleanUp:
         *ppIceCandidate = pTargetIceCandidate;
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -1079,7 +1064,7 @@ CleanUp:
 */
 STATUS findCandidateWithSocketConnection(PSocketConnection pSocketConnection, PDoubleList pCandidateList, PIceCandidate* ppIceCandidate)
 {
-    //ENTERS();
+    ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
@@ -1105,7 +1090,7 @@ CleanUp:
         *ppIceCandidate = pTargetIceCandidate;
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
@@ -1121,7 +1106,7 @@ CleanUp:
 */
 STATUS createIceCandidatePairs(PIceAgent pIceAgent, PIceCandidate pIceCandidate, BOOL isRemoteCandidate)
 {
-    //ENTERS();
+    ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 data;
@@ -1190,13 +1175,13 @@ CleanUp:
         freeIceCandidatePair(&pIceCandidatePair);
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
 STATUS freeIceCandidatePair(PIceCandidatePair* ppIceCandidatePair)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidatePair pIceCandidatePair = NULL;
 
@@ -1211,7 +1196,7 @@ STATUS freeIceCandidatePair(PIceCandidatePair* ppIceCandidatePair)
 
 CleanUp:
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -1223,7 +1208,7 @@ CleanUp:
 */
 STATUS insertIceCandidatePair(PDoubleList iceCandidatePairs, PIceCandidatePair pIceCandidatePair)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     PIceCandidatePair pCurIceCandidatePair = NULL;
@@ -1252,7 +1237,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -1270,7 +1255,7 @@ STATUS findIceCandidatePairWithLocalSocketConnectionAndRemoteAddr(PIceAgent pIce
                                                                   BOOL checkPort,
                                                                   PIceCandidatePair* ppIceCandidatePair)
 {
-    //ENTERS();
+    ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 addrLen;
@@ -1301,13 +1286,13 @@ CleanUp:
         *ppIceCandidatePair = pTargetIceCandidatePair;
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
 STATUS pruneUnconnectedIceCandidatePair(PIceAgent pIceAgent)
 {
-    //ENTERS();
+    ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL, pNextNode = NULL;
@@ -1334,7 +1319,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -1347,18 +1332,18 @@ CleanUp:
 */
 STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgent pIceAgent, PIceCandidatePair pIceCandidatePair)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    PStunAttributePriority pStunAttrPri = NULL;
+    PStunAttributePriority pStunAttributePriority = NULL;
     UINT32 checkSum = 0;
 
     CHK(pStunBindingRequest != NULL && pIceAgent != NULL && pIceCandidatePair != NULL, STATUS_NULL_ARG);
 
-    CHK_STATUS(getStunAttribute(pStunBindingRequest, STUN_ATTRIBUTE_TYPE_PRIORITY, (PStunAttributeHeader*) &pStunAttrPri));
-    CHK(pStunAttrPri != NULL, STATUS_INVALID_ARG);
+    CHK_STATUS(getStunAttribute(pStunBindingRequest, STUN_ATTRIBUTE_TYPE_PRIORITY, (PStunAttributeHeader*) &pStunAttributePriority));
+    CHK(pStunAttributePriority != NULL, STATUS_INVALID_ARG);
 
     // update priority and transaction id
-    pStunAttrPri->priority = pIceCandidatePair->local->priority;
+    pStunAttributePriority->priority = pIceCandidatePair->local->priority;
     CHK_STATUS(iceUtilsGenerateTransactionId(pStunBindingRequest->header.transactionId, ARRAY_SIZE(pStunBindingRequest->header.transactionId)));
     CHK(pIceCandidatePair->pTransactionIdStore != NULL, STATUS_INVALID_OPERATION);
     transactionIdStoreInsert(pIceCandidatePair->pTransactionIdStore, pStunBindingRequest->header.transactionId);
@@ -1381,7 +1366,7 @@ STATUS iceCandidatePairCheckConnection(PStunPacket pStunBindingRequest, PIceAgen
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -1403,7 +1388,7 @@ STATUS iceAgentSendStunPacket(PStunPacket pStunPacket,
                               PIceCandidate pLocalCandidate,
                               PKvsIpAddress pDestAddr)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidatePair pIceCandidatePair = NULL;
 
@@ -1446,7 +1431,7 @@ STATUS iceAgentSendStunPacket(PStunPacket pStunPacket,
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
@@ -1460,9 +1445,9 @@ CleanUp:
  * @param customData - custom data passed to timer queue when task was added
  * @return
  */
-STATUS iceAgentTimerAdvanceFsm(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+STATUS iceAgentStateTransitionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
-    //ENTERS();
+    ENTERS();
     UNUSED_PARAM(timerId);
     UNUSED_PARAM(currentTime);
     STATUS retStatus = STATUS_SUCCESS;
@@ -1470,9 +1455,9 @@ STATUS iceAgentTimerAdvanceFsm(UINT32 timerId, UINT64 currentTime, UINT64 custom
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
-    // Do not acquire lock because iceAgentFsmAdvance acquires lock.
+    // Do not acquire lock because stepIceAgentStateMachine acquires lock.
     // Drive the state machine
-    CHK_STATUS(iceAgentFsmAdvance(pIceAgent));
+    CHK_STATUS(stepIceAgentStateMachine(pIceAgent));
 
 CleanUp:
 
@@ -1481,7 +1466,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -1492,7 +1477,7 @@ CleanUp:
 */
 STATUS iceAgentSendSrflxCandidateRequest(PIceAgent pIceAgent)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     UINT64 data;
@@ -1545,7 +1530,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -1558,7 +1543,7 @@ CleanUp:
 */
 STATUS iceAgentCheckCandidatePairConnection(PIceAgent pIceAgent)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL triggeredCheckQueueEmpty;
     UINT64 data;
@@ -1591,7 +1576,6 @@ STATUS iceAgentCheckCandidatePairConnection(PIceAgent pIceAgent)
                     // NOTE: Explicit fall-through
                 case ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS:
                     CHK_STATUS(iceCandidatePairCheckConnection(pIceAgent->pBindingRequest, pIceAgent, pIceCandidatePair));
-                    //DLOGD("send stun packet out.");
                     break;
                 default:
                     break;
@@ -1610,13 +1594,13 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
-STATUS iceAgentTimerSendKeepAlive(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+STATUS iceAgentSendKeepAliveTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
-    //ENTERS();
+    ENTERS();
     UNUSED_PARAM(timerId);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
@@ -1657,14 +1641,14 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
     }
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
  * @brief this is one callback for one-shot timer, and it will re-trigger itself everytime.
  * #timer
 */
-STATUS iceAgentTimerGatherCandidate(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerId);
     STATUS retStatus = STATUS_SUCCESS;
@@ -1826,7 +1810,7 @@ CleanUp:
 */
 STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     UINT64 data;
@@ -1846,7 +1830,6 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent pIceAgent)
 
         if (pCandidate->iceCandidateType == ICE_CANDIDATE_TYPE_HOST) {
             for (j = 0; j < pIceAgent->iceServersCount; j++) {
-
                 pIceServer = &pIceAgent->iceServers[j];
                 /** stun server only and the ip protocol of ice server must be the same as the ip protocol of ice candidate. */
                 if (!pIceServer->isTurn && pIceServer->ipAddress.family == pCandidate->ipAddress.family) {
@@ -1910,7 +1893,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -2054,7 +2037,7 @@ CleanUp:
 */
 STATUS iceAgentCheckConnectionStateSetup(PIceAgent pIceAgent)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 iceCandidatePairCount = 0;
     PDoubleListNode pCurNode = NULL;
@@ -2102,7 +2085,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
@@ -2168,14 +2151,13 @@ CleanUp:
 
 STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
     PIceCandidatePair pIceCandidatePair = NULL, pLastDataSendingIceCandidatePair = NULL;
     BOOL locked = FALSE;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
-
     if (pIceAgent->pDataSendingIceCandidatePair != NULL) {
         MUTEX_LOCK(pIceAgent->lock);
         locked = TRUE;
@@ -2227,7 +2209,7 @@ STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
                                   KVS_ICE_DEFAULT_TIMER_START_DELAY,
                                   KVS_ICE_SEND_KEEP_ALIVE_INTERVAL,
-                                  iceAgentTimerSendKeepAlive,
+                                  iceAgentSendKeepAliveTimerCallback,
                                   (UINT64) pIceAgent,
                                   &pIceAgent->keepAliveTimerTask));
 
@@ -2242,7 +2224,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         iceAgentFatalError(pIceAgent, retStatus);
     }
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -2370,7 +2352,7 @@ CleanUp:
 */
 STATUS iceAgentNominateCandidatePair(PIceAgent pIceAgent)
 {
-    //ENTERS();
+    ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidatePair pNominatedCandidatePair = NULL, pIceCandidatePair = NULL;
@@ -2423,13 +2405,13 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
 STATUS iceAgentInvalidateCandidatePair(PIceAgent pIceAgent)
 {
-    //ENTERS();
+    ENTERS();
 
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidatePair pIceCandidatePair = NULL;
@@ -2452,7 +2434,7 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -2472,7 +2454,7 @@ STATUS incomingRelayedDataHandler(UINT64 customData,
                                   PKvsIpAddress pSrc,
                                   PKvsIpAddress pDest)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidate pRelayedCandidate = (PIceCandidate) customData;
     // this should be more than enough. Usually the number of channel data in each tcp message is around 4
@@ -2493,7 +2475,7 @@ STATUS incomingRelayedDataHandler(UINT64 customData,
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -2514,7 +2496,7 @@ STATUS incomingDataHandler(UINT64 customData,
                            PKvsIpAddress pSrc,
                            PKvsIpAddress pDest)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     BOOL locked = FALSE;
@@ -2540,11 +2522,10 @@ STATUS incomingDataHandler(UINT64 customData,
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
-
     if (locked) {
         MUTEX_UNLOCK(pIceAgent->lock);
     }
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -2645,8 +2626,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
     PStunAttributeHeader pStunAttr = NULL;
     UINT16 stunPacketType = 0;
     PIceCandidatePair pIceCandidatePair = NULL;
-    PStunAttributeAddress pStunAttrAddr = NULL;
-    PStunAttributePriority pStunAttrPri = NULL;
+    PStunAttributeAddress pStunAttributeAddress = NULL;
+    PStunAttributePriority pStunAttributePriority = NULL;
     UINT32 priority = 0;
     PIceCandidate pIceCandidate = NULL;
     CHAR ipAddrStr[KVS_IP_ADDRESS_STRING_BUFFER_LEN], ipAddrStr2[KVS_IP_ADDRESS_STRING_BUFFER_LEN];
@@ -2670,8 +2651,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
                                                       pIceAgent->isControlling ? STUN_ATTRIBUTE_TYPE_ICE_CONTROLLING : STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED,
                                                       pIceAgent->tieBreaker));
 
-            CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_PRIORITY, (PStunAttributeHeader*) &pStunAttrPri));
-            priority = pStunAttrPri == NULL ? 0 : pStunAttrPri->priority;
+            CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_PRIORITY, (PStunAttributeHeader*) &pStunAttributePriority));
+            priority = pStunAttributePriority == NULL ? 0 : pStunAttributePriority->priority;
             CHK_STATUS(iceAgentCheckPeerReflexiveCandidate(pIceAgent, pSrcAddr, priority, TRUE, 0));
 
             CHK_STATUS(findCandidateWithSocketConnection(pSocketConnection, pIceAgent->localCandidates, &pIceCandidate));
@@ -2735,9 +2716,8 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
                 CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, &pStunAttr));
                 CHK_WARN(pStunAttr != NULL, retStatus, "No mapped address attribute found in STUN binding response. Dropping Packet");
 
-                pStunAttrAddr = (PStunAttributeAddress) pStunAttr;
-                CHK_STATUS(updateCandidateAddress(pIceCandidate, &pStunAttrAddr->address));
-                DLOGD("update the ip address of ice candidate(srflx) successfully.");
+                pStunAttributeAddress = (PStunAttributeAddress) pStunAttr;
+                CHK_STATUS(updateCandidateAddress(pIceCandidate, &pStunAttributeAddress->address));
                 CHK(FALSE, retStatus);
             }
 
@@ -2776,9 +2756,9 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
             CHK_STATUS(getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, &pStunAttr));
             CHK_WARN(pStunAttr != NULL, retStatus, "No mapped address attribute found in STUN response. Dropping Packet");
 
-            pStunAttrAddr = (PStunAttributeAddress) pStunAttr;
+            pStunAttributeAddress = (PStunAttributeAddress) pStunAttr;
             /** the ip inside stun packet is not the same as the ip of local ice candidate. */
-            if (!isSameIpAddress(&pStunAttrAddr->address, &pIceCandidatePair->local->ipAddress, FALSE)) {
+            if (!isSameIpAddress(&pStunAttributeAddress->address, &pIceCandidatePair->local->ipAddress, FALSE)) {
                 // this can happen for host and server reflexive candidates. If the peer
                 // is in the same subnet, server reflexive candidate's binding response's xor mapped ip address will be
                 // the host candidate ip address. In this case we will ignore the packet since the host candidate will
@@ -2787,14 +2767,14 @@ STATUS handleStunPacket(PIceAgent pIceAgent,
 
                 // we have a peer reflexive local candidate
                 CHK_STATUS(iceAgentCheckPeerReflexiveCandidate(pIceAgent,
-                                                               &pStunAttrAddr->address,
+                                                               &pStunAttributeAddress->address,
                                                                pIceCandidatePair->local->priority,
                                                                FALSE,
                                                                pSocketConnection));
 
                 CHK(FALSE, retStatus);
             }
-            DLOGD("pIceCandidatePair->state:%d", pIceCandidatePair->state);
+
             if (pIceCandidatePair->state != ICE_CANDIDATE_PAIR_STATE_SUCCEEDED) {
                 CHK_STATUS(hashTableGet(pIceCandidatePair->requestSentTime, checkSum, &requestSentTime));
                 pIceCandidatePair->roundTripTime = GETTIME() - requestSentTime;

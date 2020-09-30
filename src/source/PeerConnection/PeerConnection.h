@@ -10,13 +10,13 @@ PeerConnection internal include file
 extern "C" {
 #endif
 
-#define LOCAL_ICE_UFRAG_LEN 4   ///< at least 24bits of randomness. be at least 4 characters long
-#define LOCAL_ICE_PWD_LEN   24  ///< at least 128bits of randomness. be at least 22 characters long
+#define LOCAL_ICE_UFRAG_LEN 4   //!< at least 24bits of randomness. be at least 4 characters long
+#define LOCAL_ICE_PWD_LEN   24  //!< at least 128bits of randomness. be at least 22 characters long
 #define LOCAL_CNAME_LEN     16
 
 // https://tools.ietf.org/html/rfc5245#section-15.4
-#define MAX_ICE_UFRAG_LEN 256   ///< The upper limit allows for buffer sizing in implementations.
-#define MAX_ICE_PWD_LEN   256   ///< The upper limit allows for buffer sizing in implementations.
+ #define MAX_ICE_UFRAG_LEN 256   //!< The upper limit allows for buffer sizing in implementations.
+#define MAX_ICE_PWD_LEN   256   //!< The upper limit allows for buffer sizing in implementations.
 
 #define PEER_FRAME_BUFFER_SIZE_INCREMENT_FACTOR 1.5
 
@@ -47,7 +47,7 @@ typedef struct {
     RtcPeerConnection peerConnection;
     PIceAgent pIceAgent;
     PDtlsSession pDtlsSession;
-    BOOL dtlsIsServer;///< indicate the roles of dtls session. server or client.
+    BOOL dtlsIsServer;//!< indicate the roles of dtls session. server or client.
 
     MUTEX pSrtpSessionLock;
     PSrtpSession pSrtpSession;
@@ -57,9 +57,7 @@ typedef struct {
     SessionDescription remoteSessionDescription;
     PDoubleList pTransceievers;
     BOOL sctpIsEnabled;
-    /**
-     * https://tools.ietf.org/html/rfc5245#section-15.4
-    */
+    // https://tools.ietf.org/html/rfc5245#section-15.4
     CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
     CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
     /** 
@@ -70,16 +68,14 @@ typedef struct {
      * */
     CHAR remoteIceUfrag[MAX_ICE_UFRAG_LEN + 1];
     CHAR remoteIcePwd[MAX_ICE_PWD_LEN + 1];
-    /**
-     * this is used for the the sdp session.
-    */
+    /** this is used for the the sdp session. */
     CHAR localCNAME[LOCAL_CNAME_LEN + 1];
 
     CHAR remoteCertificateFingerprint[CERTIFICATE_FINGERPRINT_LENGTH + 1];
 
     MUTEX peerConnectionObjLock;
 
-    BOOL isOffer;///< do you create the offer by yourself. it means you are a client or not.
+    BOOL isOffer;//!< do you create the offer by yourself. it means you are a client or not.
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
 
@@ -93,15 +89,13 @@ typedef struct {
     PHashTable pRtxTable;
 
     // DataChannels keyed by streamId
-    PHashTable pDataChannels;//!< stores the information of data channel. streamid, channel name.
+    PHashTable pDataChannels;//!< stores the information of data channel. streamid, channel name...etc.
 
     UINT64 onDataChannelCustomData;
     RtcOnDataChannel onDataChannel;//!< the callback of data channel for the external interface of the peer connection.
 
     UINT64 onIceCandidateCustomData;
-    /**
-     * https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-onicecandidate
-    */
+    /** https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-onicecandidate */
     RtcOnIceCandidate onIceCandidate;
 
     UINT64 onConnectionStateChangeCustomData;
@@ -122,9 +116,48 @@ typedef struct {
 STATUS onFrameReadyFunc(UINT64, UINT16, UINT16, UINT32);
 STATUS onFrameDroppedFunc(UINT64, UINT16, UINT16, UINT32);
 VOID onSctpSessionOutboundPacket(UINT64, PBYTE, UINT32);
+/**
+ * @brief the callback of the notification of receiving message over data channel for the internal sctp interface.
+ * 
+ * @param[in] customData the object of peer connection.
+ * @param[in] the channel id
+ * @param[in] isBinary bianry or string.
+ * @param[in] pMessage the buffer of message.
+ * @param[in] pMessageLen the length of the message buffer.
+*/
 VOID onSctpSessionDataChannelMessage(UINT64, UINT32, BOOL, PBYTE, UINT32);
+/**
+ * @brief the callback of the notification of opening data channel for the internal sctp interface.
+ * 
+ * @param[in] customData the object of peer connection.
+ * @param[in] channelId the channel id
+ * @param[in] pName the buffer of channel name
+ * @param[in] nameLen the length of the channel name buffer.
+*/
 VOID onSctpSessionDataChannelOpen(UINT64, UINT32, PBYTE, UINT32);
-
+/**
+ * @brief   receive the rtp packet and send it to rtp-receiver.
+ * 
+ *              https://tools.ietf.org/html/rfc3550#section-5
+ * 
+ *              0                   1                   2                   3
+ *              0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *              +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *              |V=2|P|X|  CC   |M|     PT      |       sequence number         |
+ *              +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *              |                           timestamp                           |
+ *              +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *              |           synchronization source (SSRC) identifier            |
+ *              +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+ *              |            contributing source (CSRC) identifiers             |
+ *              |                             ....                              |
+ *              +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ * 
+ * 
+ * @param[in] pKvsPeerConnection
+ * @param[in] pBuffer
+ * @param[in] bufferLen
+*/
 STATUS sendPacketToRtpReceiver(PKvsPeerConnection, PBYTE, UINT32);
 STATUS changePeerConnectionState(PKvsPeerConnection, RTC_PEER_CONNECTION_STATE);
 

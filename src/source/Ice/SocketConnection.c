@@ -30,7 +30,7 @@ STATUS createSocketConnection(KVS_IP_FAMILY_TYPE familyType,
                               UINT32 sendBufSize,
                               PSocketConnection* ppSocketConnection)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSocketConnection pSocketConnection = NULL;
 
@@ -74,13 +74,13 @@ CleanUp:
         *ppSocketConnection = pSocketConnection;
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
 STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSocketConnection pSocketConnection = NULL;
 
@@ -105,7 +105,7 @@ STATUS freeSocketConnection(PSocketConnection* ppSocketConnection)
 
 CleanUp:
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
@@ -152,7 +152,7 @@ VOID socketConnectionTlsSessionOnStateChange(UINT64 customData, TLS_SESSION_STAT
 
 STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection, BOOL isServer)
 {
-    //ENTERS();
+    ENTERS();
     TlsSessionCallbacks callbacks;
     STATUS retStatus = STATUS_SUCCESS;
 
@@ -172,16 +172,16 @@ CleanUp:
         freeTlsSession(&pSocketConnection->pTlsSession);
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
 STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf, UINT32 bufLen, PKvsIpAddress pDestIp)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
-    //DLOGD("bufLen:%d", bufLen);
+
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK((pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP || pDestIp != NULL), STATUS_INVALID_ARG);
 
@@ -214,8 +214,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pSocketConnection->lock);
     }
-    CHK_LOG_ERR(retStatus);
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
@@ -316,7 +315,6 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
 
     retVal = connect(pSocketConnection->localSocket, peerSockAddr, addrLen);
     if (retVal == 0 || errno == EISCONN) {
-        printf("%s(%d) failed\n", __func__, __LINE__);
         return TRUE;
     }
 
@@ -326,7 +324,7 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
 
 STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, UINT32 bufLen, PKvsIpAddress pDestIp, PUINT32 pBytesWritten)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     INT32 socketWriteAttempt = 0;
     SSIZE_T result = 0;
@@ -344,10 +342,8 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     CHK(buf != NULL && bufLen > 0, STATUS_INVALID_ARG);
 
     if (pDestIp != NULL) {
-        //DLOGD("get pDestIp");
         /** #IPV4 */
         if (IS_IPV4_ADDR(pDestIp)) {
-            //DLOGD("ipv4");
             addrLen = sizeof(struct sockaddr_in);//SIZEOF(ipv4Addr);
             MEMSET(ipv4Addr, 0x00, sizeof(struct sockaddr_in));
             ipv4Addr->sin_family = AF_INET;
@@ -359,7 +355,6 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
         /** #IPV6 */
         else 
         {
-            //DLOGD("ipv6");
             addrLen = sizeof(struct sockaddr_in6);
             MEMSET(ipv6Addr, 0x00, sizeof(struct sockaddr_in6));
             ipv6Addr->sin6_family = AF_INET6;
@@ -373,7 +368,6 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
         /** #sokcet. #YC_TBD. */
         
         result = sendto(pSocketConnection->localSocket, buf, bufLen, NO_SIGNAL, destAddr, addrLen);
-        //DLOGD("socketWriteAttempt:%d, %d", socketWriteAttempt, result);
         if (result < 0) {
             errorNum = errno;
             if (errorNum == EAGAIN || errorNum == EWOULDBLOCK) {
@@ -423,7 +417,6 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         DLOGD("Warning: Send data failed with 0x%08x", retStatus);
     }
-    CHK_LOG_ERR(retStatus);
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }

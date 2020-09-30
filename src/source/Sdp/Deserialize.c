@@ -9,7 +9,7 @@
 */
 STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR pch, UINT32 lineLen)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pSessionDescription->mediaCount < MAX_SDP_SESSION_MEDIA_COUNT, STATUS_BUFFER_TOO_SMALL);
@@ -21,7 +21,7 @@ STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR pch, UINT32
     pSessionDescription->mediaCount++;
 
 CleanUp:
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
@@ -34,7 +34,7 @@ CleanUp:
 */
 STATUS parseSessionAttributes(PSessionDescription pSessionDescription, PCHAR pch, UINT32 lineLen)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR search;
 
@@ -57,7 +57,7 @@ STATUS parseSessionAttributes(PSessionDescription pSessionDescription, PCHAR pch
 
 CleanUp:
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -65,7 +65,7 @@ CleanUp:
 */
 STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pch, UINT32 lineLen)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR search;
     UINT8 currentMediaAttributesCount;
@@ -90,13 +90,13 @@ STATUS parseMediaAttributes(PSessionDescription pSessionDescription, PCHAR pch, 
 
 CleanUp:
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
 STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PCHAR sdpBytes)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR curr, tail, next;
     UINT32 lineLen;
@@ -170,6 +170,6 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
 
 CleanUp:
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }

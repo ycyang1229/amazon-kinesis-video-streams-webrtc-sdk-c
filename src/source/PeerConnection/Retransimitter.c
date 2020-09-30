@@ -40,12 +40,7 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-/**
- * @brief 
- * 
- * @param[]
- * @param[]
-*/
+
 STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
     ENTERS();

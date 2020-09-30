@@ -294,7 +294,6 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
         // update connection list.
         /**
          * refresh the connectionlist if connection list is changed or socket list is updated.
-         * 
         */
         connectionListChanged = ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged);
         
@@ -307,7 +306,6 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
             CHK_STATUS(doubleListGetHeadNode(pConnectionListener->connectionList, &pCurNode));
             while (pCurNode != NULL) {
                 pSocketConnection = (PSocketConnection) pCurNode->data;
-
                 if (ATOMIC_LOAD_BOOL(&pSocketConnection->connectionClosed)) {
                     pNodeToDelete = pCurNode;
                     pCurNode = pCurNode->pNext;
@@ -336,19 +334,13 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                 CVAR_BROADCAST(pConnectionListener->removeConnectionComplete);
             }
         }
-        /**
-         * 
-         * 
-         * 
-        */
+
         for (i = 0; i < socketCount; ++i) {
             pSocketConnection = socketList[i];
             /** remove the closed sockets. */
             if (socketConnectionIsClosed(pSocketConnection)) {
-                //DLOGD("isclosed");
                 updateSocketList = TRUE;
             } else {
-                //DLOGD("pSocketConnection->localSocket:%x", pSocketConnection->localSocket);
                 FD_SET(pSocketConnection->localSocket, &rfds);
                 nfds = MAX(nfds, pSocketConnection->localSocket);
             }
@@ -367,7 +359,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
         // blocking call
         /** polling. #YC_TBD, */
         retval = select(nfds, &rfds, NULL, NULL, &tv);
-        //DLOGD("up");
+
         if (retval == -1) {
             DLOGE("select() failed with errno %s", strerror(errno));
             continue;
@@ -395,7 +387,6 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                                        (struct sockaddr*) &srcAddrBuff,
                                        &srcAddrBuffLen);
                     /** #YC_TBD, need to review. */
-                    //DLOGD("readLen:%d", readLen);
                     if (readLen < 0) {
                         switch (errno) {
                             case EWOULDBLOCK:

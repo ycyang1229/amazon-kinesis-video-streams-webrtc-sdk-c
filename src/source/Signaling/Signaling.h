@@ -297,7 +297,7 @@ typedef struct {
     SignalingDiagnostics diagnostics;
 
     // Tracking when was the Last time the APIs were called
-    /** this records the time of calling the describeSignalingChannel() successfully. */
+    /** this records the time of calling the describeChannelLws() successfully. */
     UINT64 describeTime;
     UINT64 createTime;
     UINT64 getEndpointTime;
@@ -313,23 +313,23 @@ typedef struct {
 #define TO_SIGNALING_CLIENT_HANDLE(p)   ((SIGNALING_CLIENT_HANDLE)(p))
 #define FROM_SIGNALING_CLIENT_HANDLE(h) (IS_VALID_SIGNALING_CLIENT_HANDLE(h) ? (PSignalingClient)(h) : NULL)
 
-STATUS createSignaling(PSignalingClientInfoInternal, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
+STATUS createSignalingSync(PSignalingClientInfoInternal, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
 STATUS freeSignaling(PSignalingClient*);
 
-STATUS signalingSendMessage(PSignalingClient, PSignalingMessage);
+STATUS signalingSendMessageSync(PSignalingClient, PSignalingMessage);
 STATUS signalingGetIceConfigInfoCout(PSignalingClient, PUINT32);
 STATUS signalingGetIceConfigInfo(PSignalingClient, UINT32, PIceConfigInfo*);
-STATUS signalingConnect(PSignalingClient);
-STATUS signalingDisconnect(PSignalingClient);
+STATUS signalingConnectSync(PSignalingClient);
+STATUS signalingDisconnectSync(PSignalingClient);
 STATUS signalingDeleteSync(PSignalingClient);
 
 STATUS validateSignalingCallbacks(PSignalingClient, PSignalingClientCallbacks);
 STATUS validateSignalingClientInfo(PSignalingClient, PSignalingClientInfoInternal);
 STATUS validateIceConfiguration(PSignalingClient);
 
-STATUS signalingStoreMessage(PSignalingClient, PSignalingMessage);
-STATUS signalingRemoveMessage(PSignalingClient, PCHAR);
-STATUS signalingGetMessage(PSignalingClient, PCHAR, PCHAR, PSignalingMessage*);
+STATUS signalingStoreOngoingMessage(PSignalingClient, PSignalingMessage);
+STATUS signalingRemoveOngoingMessage(PSignalingClient, PCHAR);
+STATUS signalingGetOngoingMessage(PSignalingClient, PCHAR, PCHAR, PSignalingMessage*);
 
 STATUS refreshIceConfigurationCallback(UINT32, UINT64, UINT64);
 
@@ -345,7 +345,7 @@ STATUS describeChannel(PSignalingClient, UINT64);
 STATUS createChannel(PSignalingClient, UINT64);
 STATUS getChannelEndpoint(PSignalingClient, UINT64);
 STATUS getIceConfig(PSignalingClient, UINT64);
-STATUS connectChannel(PSignalingClient, UINT64);
+STATUS connectSignalingChannel(PSignalingClient, UINT64);
 STATUS deleteChannel(PSignalingClient, UINT64);
 STATUS signalingGetMetrics(PSignalingClient, PSignalingClientMetrics);
 

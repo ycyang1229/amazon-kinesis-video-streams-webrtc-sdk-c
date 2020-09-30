@@ -134,7 +134,7 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     // ice candidate message and offer message can come at any order. Therefore, if we see a new peerId, then create
     // a new SampleStreamingSession, which in turn creates a new peerConnection
     for (i = 0; i < pSampleConfiguration->streamingSessionCount && pSampleStreamingSession == NULL; ++i) {
-        if (0 == STRCMP(pReceivedSignalingMessage->signalingMessage.senderClientId, pSampleConfiguration->sampleStreamingSessionList[i]->peerId)) {
+        if (0 == STRCMP(pReceivedSignalingMessage->signalingMessage.peerClientId, pSampleConfiguration->sampleStreamingSessionList[i]->peerId)) {
             pSampleStreamingSession = pSampleConfiguration->sampleStreamingSessionList[i];
         }
     }
@@ -142,10 +142,10 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
     if (pSampleStreamingSession == NULL) {
         CHK_WARN(pSampleConfiguration->streamingSessionCount < ARRAY_SIZE(pSampleConfiguration->sampleStreamingSessionList), retStatus,
                  "Dropping signalling message from peer %s since maximum simultaneous streaming session of %u is reached",
-                 pReceivedSignalingMessage->signalingMessage.senderClientId, ARRAY_SIZE(pSampleConfiguration->sampleStreamingSessionList));
+                 pReceivedSignalingMessage->signalingMessage.peerClientId, ARRAY_SIZE(pSampleConfiguration->sampleStreamingSessionList));
 
-        DLOGD("Creating new streaming session for peer %s", pReceivedSignalingMessage->signalingMessage.senderClientId);
-        CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, pReceivedSignalingMessage->signalingMessage.senderClientId, TRUE,
+        DLOGD("Creating new streaming session for peer %s", pReceivedSignalingMessage->signalingMessage.peerClientId);
+        CHK_STATUS(createSampleStreamingSession(pSampleConfiguration, pReceivedSignalingMessage->signalingMessage.peerClientId, TRUE,
                                                 &pSampleStreamingSession));
         pSampleStreamingSession->firstSdpMsgReceiveTime = GETTIME();
         pSampleConfiguration->sampleStreamingSessionList[pSampleConfiguration->streamingSessionCount++] = pSampleStreamingSession;
@@ -156,7 +156,7 @@ STATUS masterMessageReceived(UINT64 customData, PReceivedSignalingMessage pRecei
             if (ATOMIC_COMPARE_EXCHANGE_BOOL(&pSampleStreamingSession->sdpOfferAnswerExchanged, &expected, TRUE)) {
                 CHK_STATUS(handleOffer(pSampleConfiguration, pSampleStreamingSession, &pReceivedSignalingMessage->signalingMessage));
             } else {
-                DLOGD("Offer already received, ignore new offer from client id %s", pReceivedSignalingMessage->signalingMessage.senderClientId);
+                DLOGD("Offer already received, ignore new offer from client id %s", pReceivedSignalingMessage->signalingMessage.peerClientId);
             }
             break;
         case SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE:
@@ -312,11 +312,11 @@ STATUS respondWithAnswer(PSampleStreamingSession pSampleStreamingSession)
 
     message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     message.messageType = SIGNALING_MESSAGE_TYPE_ANSWER;
-    STRCPY(message.senderClientId, pSampleStreamingSession->peerId);
+    STRCPY(message.peerClientId, pSampleStreamingSession->peerId);
     message.payloadLen = (UINT32) STRLEN(message.payload);
     message.correlationId[0] = '\0';
 
-    retStatus = signalingClientSendMessage(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle, &message);
+    retStatus = signalingClientSendMessageSync(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle, &message);
 
 CleanUp:
 
@@ -339,11 +339,11 @@ VOID onIceCandidateHandler(UINT64 customData, PCHAR candidateJson)
     } else if (pSampleStreamingSession->pSampleConfiguration->trickleIce && ATOMIC_LOAD_BOOL(&pSampleStreamingSession->peerIdReceived)) {
         message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
         message.messageType = SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE;
-        STRCPY(message.senderClientId, pSampleStreamingSession->peerId);
+        STRCPY(message.peerClientId, pSampleStreamingSession->peerId);
         message.payloadLen = (UINT32) STRLEN(candidateJson);
         STRCPY(message.payload, candidateJson);
         message.correlationId[0] = '\0';
-        CHK_STATUS(signalingClientSendMessage(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle, &message));
+        CHK_STATUS(signalingClientSendMessageSync(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle, &message));
     }
 
 CleanUp:
@@ -857,7 +857,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
         // Check if we need to re-create the signaling client on-the-fly
         if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient) &&
             STATUS_SUCCEEDED(freeSignalingClient(&pSampleConfiguration->signalingClientHandle)) &&
-            STATUS_SUCCEEDED(createSignalingClient(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
+            STATUS_SUCCEEDED(createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                                        &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
                                                        &pSampleConfiguration->signalingClientHandle))) {
             // Re-set the variable again
@@ -868,7 +868,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
         if (IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleConfiguration->signalingClientHandle)) {
             CHK_STATUS(signalingClientGetCurrentState(pSampleConfiguration->signalingClientHandle, &signalingClientState));
             if (signalingClientState == SIGNALING_CLIENT_STATE_READY) {
-                UNUSED_PARAM(signalingClientConnect(pSampleConfiguration->signalingClientHandle));
+                UNUSED_PARAM(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
             }
         }
     }

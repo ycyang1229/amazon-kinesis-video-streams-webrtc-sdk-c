@@ -13,9 +13,7 @@ extern "C" {
 /**
  * https://tools.ietf.org/html/rfc5245
  * https://tools.ietf.org/html/rfc8445
- * 
 */
-
 #define KVS_ICE_MAX_CANDIDATE_PAIR_COUNT                       1024
 #define KVS_ICE_MAX_REMOTE_CANDIDATE_COUNT                     100
 #define KVS_ICE_MAX_LOCAL_CANDIDATE_COUNT                      100
@@ -149,7 +147,6 @@ typedef struct {
     UINT64 priority;
     ICE_CANDIDATE_PAIR_STATE state;
     PTransactionIdStore pTransactionIdStore;
-    /** the time of last*/
     UINT64 lastDataSentTime;
     PHashTable requestSentTime;
     UINT64 roundTripTime;
@@ -167,8 +164,7 @@ struct __IceAgent {
     CHAR localPassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
     CHAR remoteUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
     CHAR remotePassword[MAX_ICE_CONFIG_CREDENTIAL_LEN + 1];
-    CHAR combinedUserName[MAX_ICE_CONFIG_USER_NAME_LEN*2 + 2];//!< the combination of remote user name and local user name.
-                                                              //!< It is used by the stun attribute.
+    CHAR combinedUserName[(MAX_ICE_CONFIG_USER_NAME_LEN+1)<<1];//!< the combination of remote user name and local user name.
 
     RtcIceServerDiagnostics rtcIceServerDiagnostics[MAX_ICE_SERVERS_COUNT];
     RtcIceCandidateDiagnostics rtcSelectedLocalIceCandidateDiagnostics;
@@ -393,9 +389,9 @@ STATUS iceAgentNominatingStateSetup(PIceAgent);
 STATUS iceAgentReadyStateSetup(PIceAgent);
 
 // timer callbacks. timer callbacks are interlocked by time queue lock.
-STATUS iceAgentTimerAdvanceFsm(UINT32, UINT64, UINT64);
-STATUS iceAgentTimerSendKeepAlive(UINT32, UINT64, UINT64);
-STATUS iceAgentTimerGatherCandidate(UINT32, UINT64, UINT64);
+STATUS iceAgentStateTransitionTimerCallback(UINT32, UINT64, UINT64);
+STATUS iceAgentSendKeepAliveTimerCallback(UINT32, UINT64, UINT64);
+STATUS iceAgentGatherCandidateTimerCallback(UINT32, UINT64, UINT64);
 
 // Default time callback for the state machine
 UINT64 iceAgentGetCurrentTime(UINT64);

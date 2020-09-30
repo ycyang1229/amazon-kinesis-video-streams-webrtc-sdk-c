@@ -51,22 +51,22 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     sprintf(pSampleConfiguration->clientInfo.clientId, "%s_%u", SAMPLE_VIEWER_CLIENT_ID, RAND() % MAX_UINT32);
 
-    retStatus = createSignalingClient(&pSampleConfiguration->clientInfo, 
+    retStatus = createSignalingClientSync(&pSampleConfiguration->clientInfo, 
                                           &pSampleConfiguration->channelInfo,
                                           &pSampleConfiguration->signalingClientCallbacks, 
                                           pSampleConfiguration->pCredentialProvider,
                                           &pSampleConfiguration->signalingClientHandle);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS Viewer] createSignalingClient(): operation returned status code: 0x%08x \n", retStatus);
+        printf("[KVS Viewer] createSignalingClientSync(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
 
     printf("[KVS Viewer] Signaling client created successfully\n");
 
     // Enable the processing of the messages
-    retStatus = signalingClientConnect(pSampleConfiguration->signalingClientHandle);
+    retStatus = signalingClientConnectSync(pSampleConfiguration->signalingClientHandle);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS Viewer] signalingClientConnect(): operation returned status code: 0x%08x \n", retStatus);
+        printf("[KVS Viewer] signalingClientConnectSync(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
 
@@ -151,13 +151,13 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     message.version = SIGNALING_MESSAGE_CURRENT_VERSION;
     message.messageType = SIGNALING_MESSAGE_TYPE_OFFER;
-    STRCPY(message.senderClientId, SAMPLE_MASTER_CLIENT_ID);
+    STRCPY(message.peerClientId, SAMPLE_MASTER_CLIENT_ID);
     message.payloadLen = (buffLen / SIZEOF(CHAR)) - 1;
     message.correlationId[0] = '\0';
 
-    retStatus = signalingClientSendMessage(pSampleConfiguration->signalingClientHandle, &message);
+    retStatus = signalingClientSendMessageSync(pSampleConfiguration->signalingClientHandle, &message);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS Viewer] signalingClientSendMessage(): operation returned status code: 0x%08x \n", retStatus);
+        printf("[KVS Viewer] signalingClientSendMessageSync(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
 

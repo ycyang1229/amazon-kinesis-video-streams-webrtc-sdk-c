@@ -1090,7 +1090,7 @@ typedef struct {
 
     CHAR correlationId[MAX_CORRELATION_ID_LEN + 1]; //!< Correlation Id string, used for waiting for the response.
 
-    CHAR senderClientId[MAX_SIGNALING_CLIENT_ID_LEN + 1]; //!< Sender client id
+    CHAR peerClientId[MAX_SIGNALING_CLIENT_ID_LEN + 1]; //!< Sender client id
 
     UINT32 payloadLen; //!< Optional payload length. If 0, the length will be calculated
     /** 
@@ -1803,7 +1803,7 @@ PUBLIC_API PCHAR getNatBehaviorStr(NAT_BEHAVIOR natBehavior);
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
-PUBLIC_API STATUS createSignalingClient(PSignalingClientInfo, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider,
+PUBLIC_API STATUS createSignalingClientSync(PSignalingClientInfo, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider,
                                             PSIGNALING_CLIENT_HANDLE);
 
 /**
@@ -1828,7 +1828,7 @@ PUBLIC_API STATUS freeSignalingClient(PSIGNALING_CLIENT_HANDLE);
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
-PUBLIC_API STATUS signalingClientSendMessage(SIGNALING_CLIENT_HANDLE, PSignalingMessage);
+PUBLIC_API STATUS signalingClientSendMessageSync(SIGNALING_CLIENT_HANDLE, PSignalingMessage);
 
 /**
  * @brief Gets the retrieved ICE configuration information object count
@@ -1866,7 +1866,7 @@ PUBLIC_API STATUS signalingClientGetIceConfigInfo(SIGNALING_CLIENT_HANDLE, UINT3
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
-PUBLIC_API STATUS signalingClientConnect(SIGNALING_CLIENT_HANDLE);
+PUBLIC_API STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE);
 
 /**
  * @brief Disconnects the signaling client.
@@ -1875,7 +1875,7 @@ PUBLIC_API STATUS signalingClientConnect(SIGNALING_CLIENT_HANDLE);
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
-PUBLIC_API STATUS signalingClientDisconnect(SIGNALING_CLIENT_HANDLE);
+PUBLIC_API STATUS signalingClientDisconnectSync(SIGNALING_CLIENT_HANDLE);
 
 /*
  * @brief Gets the Signaling client current state.

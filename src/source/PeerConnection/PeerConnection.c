@@ -12,22 +12,22 @@ STATUS allocateSrtp(PKvsPeerConnection pKvsPeerConnection)
 {
     ENTERS();
     /** #memory. */
-    PDtlsKeyingMaterial dtlsKeyingMaterial = MEMALLOC(sizeof(DtlsKeyingMaterial));
+    PDtlsKeyingMaterial pDtlsKeyingMaterial = MEMALLOC(sizeof(DtlsKeyingMaterial));
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
-    MEMSET(dtlsKeyingMaterial, 0, SIZEOF(DtlsKeyingMaterial));
+    MEMSET(pDtlsKeyingMaterial, 0, SIZEOF(DtlsKeyingMaterial));
 
     CHK(pKvsPeerConnection != NULL, STATUS_SUCCESS);
     CHK_STATUS(dtlsSessionVerifyRemoteCertificateFingerprint(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->remoteCertificateFingerprint));
-    CHK_STATUS(dtlsSessionPopulateKeyingMaterial(pKvsPeerConnection->pDtlsSession, dtlsKeyingMaterial));
+    CHK_STATUS(dtlsSessionPopulateKeyingMaterial(pKvsPeerConnection->pDtlsSession, pDtlsKeyingMaterial));
 
     MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
     locked = TRUE;
 
-    CHK_STATUS(initSrtpSession(pKvsPeerConnection->dtlsIsServer ? dtlsKeyingMaterial->clientWriteKey : dtlsKeyingMaterial->serverWriteKey,
-                               pKvsPeerConnection->dtlsIsServer ? dtlsKeyingMaterial->serverWriteKey : dtlsKeyingMaterial->clientWriteKey,
-                               dtlsKeyingMaterial->srtpProfile, &(pKvsPeerConnection->pSrtpSession)));
+    CHK_STATUS(initSrtpSession(pKvsPeerConnection->dtlsIsServer ? pDtlsKeyingMaterial->clientWriteKey : pDtlsKeyingMaterial->serverWriteKey,
+                               pKvsPeerConnection->dtlsIsServer ? pDtlsKeyingMaterial->serverWriteKey : pDtlsKeyingMaterial->clientWriteKey,
+                               pDtlsKeyingMaterial->srtpProfile, &(pKvsPeerConnection->pSrtpSession)));
 
 CleanUp:
     if (locked) {
@@ -37,7 +37,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         DLOGW("dtlsSessionPopulateKeyingMaterial failed with 0x%08x", retStatus);
     }
-    MEMFREE(dtlsKeyingMaterial);
+    MEMFREE(pDtlsKeyingMaterial);
     LEAVES();
     return retStatus;
 }
@@ -132,9 +132,9 @@ CleanUp:
 /**
  * @brief the callback of inbound packet, and it is a packet arbitrator.
  * 
- * @param[]
- * @param[]
- * @param[]
+ * @param[in] customData the object of KvsPeerConnection.
+ * @param[in] buff the buffer of packets.
+ * @param[in] buffLen the length of buffer.
 */
 VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 {
@@ -158,7 +158,6 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
                   +----------------+
     */
     if (buff[0] > 19 && buff[0] < 64) {
-        /** #dtls. */
         dtlsSessionProcessPacket(pKvsPeerConnection->pDtlsSession, buff, &signedBuffLen);
 
         if (signedBuffLen > 0) {
@@ -183,7 +182,6 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 
     } else if ((buff[0] > 127 && buff[0] < 192) && (pKvsPeerConnection->pSrtpSession != NULL)) {
         #if (ENABLE_STREAMING)
-        /** rtcp. */
         if (buff[1] >= 192 && buff[1] <= 223) {
             if (STATUS_FAILED(retStatus = decryptSrtcpPacket(pKvsPeerConnection->pSrtpSession, buff, &signedBuffLen))) {
                 DLOGW("decryptSrtcpPacket failed with 0x%08x", retStatus);
@@ -191,10 +189,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
             }
 
             CHK_STATUS(onRtcpPacket(pKvsPeerConnection, buff, signedBuffLen));
-        } 
-        /** rtp. */
-        else 
-        {
+        } else {
             CHK_STATUS(sendPacketToRtpReceiver(pKvsPeerConnection, buff, signedBuffLen));
         }
         #endif
@@ -206,29 +201,6 @@ CleanUp:
 }
 
 #if (ENABLE_STREAMING)
-/**
- * @brief   receive the rtp packet and send it to rtp-receiver.
- * 
- *              https://tools.ietf.org/html/rfc3550#section-5
- * 
- *              0                   1                   2                   3
- *              0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
- *              +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *              |V=2|P|X|  CC   |M|     PT      |       sequence number         |
- *              +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *              |                           timestamp                           |
- *              +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- *              |           synchronization source (SSRC) identifier            |
- *              +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
- *              |            contributing source (CSRC) identifiers             |
- *              |                             ....                              |
- *              +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
- * 
- * 
- * @param[]
- * @param[]
- * @param[]
-*/
 STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuffer, UINT32 bufferLen)
 {
     ENTERS();
@@ -267,7 +239,6 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
                 CHK(FALSE, STATUS_SUCCESS);
             }
             now = GETTIME();
-
             /** #memory. 
              * #YC_TBD, can we save this buffer? need to review this part. 
             */
@@ -289,9 +260,7 @@ STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuf
             delta = transit - pTransceiver->pJitterBuffer->transit;
             pTransceiver->pJitterBuffer->transit = transit;
             pTransceiver->pJitterBuffer->jitter += (1. / 16.) * ((DOUBLE) ABS(delta) - pTransceiver->pJitterBuffer->jitter);
-
             CHK_STATUS(jitterBufferPush(pTransceiver->pJitterBuffer, pRtpPacket, &discarded));
-
             /** #stat. */
             if (discarded) {
                 packetsDiscarded++;
@@ -365,12 +334,6 @@ CleanUp:
 }
 
 #if (ENABLE_STREAMING)
-/**
- * @brief 
- * 
- * @param[]
- * @param[]
-*/
 STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, UINT32 frameSize)
 {
     ENTERS();
@@ -572,15 +535,7 @@ CleanUp:
         DLOGW("onSctpSessionOutboundPacket failed with 0x%08x", retStatus);
     }
 }
-/**
- * @brief the callback of the notification of receiving message over data channel for the internal sctp interface.
- * 
- * @param[in] the object of peer connection.
- * @param[in] the channel id
- * @param[in] isBinary 
- * @param[in] pMessage the buffer of message.
- * @param[in] the length of the message buffer.
-*/
+
 VOID onSctpSessionDataChannelMessage(UINT64 customData, UINT32 channelId, BOOL isBinary, PBYTE pMessage, UINT32 pMessageLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -599,14 +554,7 @@ CleanUp:
         DLOGW("onSctpSessionDataChannelMessage failed with 0x%08x", retStatus);
     }
 }
-/**
- * @brief the callback of the notification of opening data channel for the internal sctp interface.
- * 
- * @param[in] the object of peer connection.
- * @param[in] the channel id
- * @param[in] pName the buffer of channel name
- * @param[in] the length of the channel name buffer.
-*/
+
 VOID onSctpSessionDataChannelOpen(UINT64 customData, UINT32 channelId, PBYTE pName, UINT32 pNameLen)
 {
     ENTERS();
@@ -794,9 +742,7 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     STATUS retStatus = STATUS_SUCCESS;
     PKvsPeerConnection pKvsPeerConnection = NULL;
     IceAgentCallbacks iceAgentCallbacks;
-    /**
-     * the callback of the dtls sessions.
-    */
+    /** the callback of the dtls sessions. */
     DtlsSessionCallbacks dtlsSessionCallbacks;
     UINT32 logLevel = LOG_LEVEL_VERBOSE;
     PCHAR logLevelStr = NULL;
@@ -1175,7 +1121,6 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     CHK_STATUS(deserializeSessionDescription(pSessionDescription, pSessionDescriptionInit->sdp));
 
     for (i = 0; i < pSessionDescription->sessionAttributesCount; i++) {
-        //DLOGD("name:%s, attri:%s", pSessionDescription->sdpAttributes[i].attributeName, pSessionDescription->sdpAttributes[i].attributeValue);
         if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "fingerprint") == 0) {
             STRNCPY(pKvsPeerConnection->remoteCertificateFingerprint, pSessionDescription->sdpAttributes[i].attributeValue + 8,
                     CERTIFICATE_FINGERPRINT_LENGTH);
@@ -1185,13 +1130,11 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     }
 
     for (i = 0; i < pSessionDescription->mediaCount; i++) {
-        //DLOGD("media name:%s", pSessionDescription->mediaDescriptions[i].mediaName);
         if (STRNCMP(pSessionDescription->mediaDescriptions[i].mediaName, "application", SIZEOF("application") - 1) == 0) {
             pKvsPeerConnection->sctpIsEnabled = TRUE;
         }
 
         for (j = 0; j < pSessionDescription->mediaDescriptions[i].mediaAttributesCount; j++) {
-            //DLOGD("media description name:%s, attri:%s", pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue);
             if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "ice-ufrag") == 0) {
                 remoteIceUfrag = pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue;
             } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "ice-pwd") == 0) {
@@ -1554,7 +1497,6 @@ STATUS closePeerConnection(PRtcPeerConnection pPeerConnection)
     PKvsPeerConnection pKvsPeerConnection = (PKvsPeerConnection) pPeerConnection;
 
     CHK(pKvsPeerConnection != NULL, STATUS_NULL_ARG);
-
     CHK_LOG_ERR(dtlsSessionShutdown(pKvsPeerConnection->pDtlsSession));
     CHK_LOG_ERR(iceAgentShutdown(pKvsPeerConnection->pIceAgent));
 

@@ -85,6 +85,42 @@ typedef STATUS (*DepayRtpPayloadFunc)(PBYTE, UINT32, PBYTE, PUINT32, PBOOL);
  * #YC_TBD. this must be improved.
  * 
 */
+
+#if 0
+
+struct __RtpHdr{
+    #if (BYTE_ORDER == BIG_ENDIAN)
+    struct{
+        //
+        UINT16 version:2;
+        UINT16 padding:1;
+        UINT16 extension:1;
+        UINT16 csrcCount:4;
+        UINT16 marker:1;
+        UINT16 payloadType:7;
+    }
+    #elif (BYTE_ORDER == BIG_ENDIAN)
+    struct{
+        //
+        UINT16 payloadType:7;
+        UINT16 marker:1;
+        UINT16 csrcCount:4;
+        UINT16 extension:1;
+        UINT16 padding:1;
+        UINT16 version:2;
+    }
+    #else
+    #error "need to define the byte order"
+    #endif
+    UINT16 sequenceNumber;
+    UINT32 timestamp;
+    UINT32 ssrc;
+    PUINT32 csrcArray;
+    UINT16 extensionProfile;
+    PBYTE extensionPayload;
+    UINT32 extensionLength;
+};
+#endif
 struct __RtpPacketHeader {
     UINT8 version;
     BOOL padding;

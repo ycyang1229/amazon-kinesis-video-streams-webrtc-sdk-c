@@ -1,11 +1,7 @@
 #define LOG_CLASS "DTLS_mbedtls"
 #include "../Include_i.h"
 
-/** 
- * #encryption. 
- * #YC_TBD.
- * https://tools.ietf.org/html/rfc5764#section-4.1.2
- * */
+/**  https://tools.ietf.org/html/rfc5764#section-4.1.2 */
 mbedtls_ssl_srtp_profile DTLS_SRTP_SUPPORTED_PROFILES[] = {
     MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_80,
     MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_32,
@@ -125,16 +121,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-/**
- * @brief
- * 
- * @param[]
- * @param[]
- * @param[]
-*/
+
 INT32 dtlsSessionSendCallback(PVOID customData, const unsigned char* pBuf, ULONG len)
 {
-    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PDtlsSession pDtlsSession = (PDtlsSession) customData;
 
@@ -143,7 +132,6 @@ INT32 dtlsSessionSendCallback(PVOID customData, const unsigned char* pBuf, ULONG
     pDtlsSession->dtlsSessionCallbacks.outboundPacketFn(pDtlsSession->dtlsSessionCallbacks.outBoundPacketFnCustomData, (PBYTE) pBuf, len);
 
 CleanUp:
-    LEAVES();
     return STATUS_FAILED(retStatus) ? -retStatus : len;
 }
 
@@ -219,9 +207,9 @@ INT32 dtlsSessionGetTimerCallback(PVOID customData)
 */
 STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 customData)
 {
-    ENTERS();
     UNUSED_PARAM(timerID);
     UNUSED_PARAM(currentTime);
+    ENTERS();
     INT32 handshakeStatus;
     STATUS retStatus = STATUS_SUCCESS;
     PDtlsSession pDtlsSession = (PDtlsSession) customData;
@@ -235,7 +223,7 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     handshakeStatus = mbedtls_ssl_handshake(&pDtlsSession->sslCtx);
     switch (handshakeStatus) {
         case 0:
-        /** success. */
+        // success. 
             CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CONNECTED));
             CHK(FALSE, STATUS_TIMER_QUEUE_STOP_SCHEDULING);
             break;
@@ -295,8 +283,7 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     UINT32 i;
     BOOL locked = FALSE;
     PDtlsSessionCertificateInfo pCertInfo;
-    //extern void mbedtls_debug_set_threshold( int threshold );
-    //mbedtls_debug_set_threshold(3);
+
     CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
 
     MUTEX_LOCK(pDtlsSession->sslLock);
@@ -683,38 +670,39 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL initialized = FALSE;
-    //CHAR certBuf[GENERATED_CERTIFICATE_MAX_SIZE];
-    PCHAR certBuf = MEMALLOC(GENERATED_CERTIFICATE_MAX_SIZE);
+    PCHAR pCertBuf = NULL;
     CHAR notBeforeBuf[MBEDTLS_X509_RFC5280_UTC_TIME_LEN + 1], notAfterBuf[MBEDTLS_X509_RFC5280_UTC_TIME_LEN + 1];
     UINT64 now, notAfter;
     UINT32 written;
     INT32 len;
-    mbedtls_entropy_context* entropy = MEMALLOC(sizeof(mbedtls_entropy_context));
-    mbedtls_ctr_drbg_context* ctrDrbg = MEMALLOC(sizeof(mbedtls_ctr_drbg_context));
+    mbedtls_entropy_context* pEntropy = NULL;
+    mbedtls_ctr_drbg_context* pCtrDrbg = NULL;
     mbedtls_mpi serial;
-    //
-    mbedtls_x509write_cert* writeCert = MEMALLOC(sizeof(mbedtls_x509write_cert));;
+    mbedtls_x509write_cert* pWriteCert = NULL;
 
     CHK(pCert != NULL && pKey != NULL, STATUS_DTLS_NULL_ARG);
+    CHK(NULL != (pCertBuf = (PCHAR) MEMALLOC(GENERATED_CERTIFICATE_MAX_SIZE)), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pEntropy = (mbedtls_entropy_context*) MEMALLOC(sizeof(mbedtls_entropy_context))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pCtrDrbg = (mbedtls_ctr_drbg_context*) MEMALLOC(sizeof(mbedtls_ctr_drbg_context))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pWriteCert = (mbedtls_x509write_cert*) MEMALLOC(sizeof(mbedtls_x509write_cert))), STATUS_NOT_ENOUGH_MEMORY);
 
     // initialize to sane values
-    /** #mbedtls.*/
-    mbedtls_entropy_init(entropy);
-    mbedtls_ctr_drbg_init(ctrDrbg);
+    mbedtls_entropy_init(pEntropy);
+    mbedtls_ctr_drbg_init(pCtrDrbg);
     mbedtls_mpi_init(&serial);
-    mbedtls_x509write_crt_init(writeCert);
+    mbedtls_x509write_crt_init(pWriteCert);
     mbedtls_x509_crt_init(pCert);
     mbedtls_pk_init(pKey);
     initialized = TRUE;
-    CHK(mbedtls_ctr_drbg_seed(ctrDrbg, mbedtls_entropy_func, entropy, NULL, 0) == 0, STATUS_DTLS_DRBG_SEED_FAILED);
+    CHK(mbedtls_ctr_drbg_seed(pCtrDrbg, mbedtls_entropy_func, pEntropy, NULL, 0) == 0, STATUS_DTLS_DRBG_SEED_FAILED);
 
     // generate a key
     if (generateRSACertificate) {
         CHK(mbedtls_pk_setup(pKey, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA)) == 0 &&
-            mbedtls_rsa_gen_key(mbedtls_pk_rsa(*pKey), mbedtls_ctr_drbg_random, ctrDrbg, certificateBits, KVS_RSA_F4) == 0, STATUS_DTLS_RSA_GEN_KEY_FAILED);
+            mbedtls_rsa_gen_key(mbedtls_pk_rsa(*pKey), mbedtls_ctr_drbg_random, pCtrDrbg, certificateBits, KVS_RSA_F4) == 0, STATUS_DTLS_RSA_GEN_KEY_FAILED);
     } else {
         CHK(mbedtls_pk_setup(pKey, mbedtls_pk_info_from_type(MBEDTLS_PK_ECKEY)) == 0 &&
-            mbedtls_ecp_gen_key(MBEDTLS_ECP_DP_SECP256R1, mbedtls_pk_ec(*pKey), mbedtls_ctr_drbg_random, ctrDrbg) == 0, STATUS_DTLS_ECP_GEN_KEY_FAILED);
+            mbedtls_ecp_gen_key(MBEDTLS_ECP_DP_SECP256R1, mbedtls_pk_ec(*pKey), mbedtls_ctr_drbg_random, pCtrDrbg) == 0, STATUS_DTLS_ECP_GEN_KEY_FAILED);
     }
 
     // generate a new certificate
@@ -726,19 +714,19 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     notAfter = now + GENERATED_CERTIFICATE_DAYS * HUNDREDS_OF_NANOS_IN_A_DAY;
     CHK(generateTimestampStr(notAfter, "%Y%m%d%H%M%S", notAfterBuf, SIZEOF(notAfterBuf), &written) == STATUS_SUCCESS, STATUS_DTLS_GEN_TIME_FAILED);
 
-    CHK(mbedtls_x509write_crt_set_serial(writeCert, &serial) == 0 &&
-        mbedtls_x509write_crt_set_validity(writeCert, notBeforeBuf, notAfterBuf) == 0 &&
-        mbedtls_x509write_crt_set_subject_name(writeCert, "O=" GENERATED_CERTIFICATE_NAME ",CN=" GENERATED_CERTIFICATE_NAME) == 0 &&
-        mbedtls_x509write_crt_set_issuer_name(writeCert, "O=" GENERATED_CERTIFICATE_NAME ",CN=" GENERATED_CERTIFICATE_NAME) == 0,
+    CHK(mbedtls_x509write_crt_set_serial(pWriteCert, &serial) == 0 &&
+        mbedtls_x509write_crt_set_validity(pWriteCert, notBeforeBuf, notAfterBuf) == 0 &&
+        mbedtls_x509write_crt_set_subject_name(pWriteCert, "O=" GENERATED_CERTIFICATE_NAME ",CN=" GENERATED_CERTIFICATE_NAME) == 0 &&
+        mbedtls_x509write_crt_set_issuer_name(pWriteCert, "O=" GENERATED_CERTIFICATE_NAME ",CN=" GENERATED_CERTIFICATE_NAME) == 0,
         STATUS_DTLS_X509_SET_FAILED);
     // void functions, it must succeed
-    mbedtls_x509write_crt_set_version(writeCert, MBEDTLS_X509_CRT_VERSION_3);
-    mbedtls_x509write_crt_set_subject_key(writeCert, pKey);
-    mbedtls_x509write_crt_set_issuer_key(writeCert, pKey);
-    mbedtls_x509write_crt_set_md_alg(writeCert, MBEDTLS_MD_SHA1);
+    mbedtls_x509write_crt_set_version(pWriteCert, MBEDTLS_X509_CRT_VERSION_3);
+    mbedtls_x509write_crt_set_subject_key(pWriteCert, pKey);
+    mbedtls_x509write_crt_set_issuer_key(pWriteCert, pKey);
+    mbedtls_x509write_crt_set_md_alg(pWriteCert, MBEDTLS_MD_SHA1);
 
-    MEMSET(certBuf, 0, GENERATED_CERTIFICATE_MAX_SIZE);
-    len = mbedtls_x509write_crt_der(writeCert, (PVOID) certBuf, GENERATED_CERTIFICATE_MAX_SIZE, mbedtls_ctr_drbg_random, ctrDrbg);
+    MEMSET(pCertBuf, 0, GENERATED_CERTIFICATE_MAX_SIZE);
+    len = mbedtls_x509write_crt_der(pWriteCert, (PVOID) pCertBuf, GENERATED_CERTIFICATE_MAX_SIZE, mbedtls_ctr_drbg_random, pCtrDrbg);
     CHK(len >= 0, STATUS_CERTIFICATE_GENERATION_FAILED);
 
     // mbedtls_x509write_crt_der starts writing from behind, so we need to use the return len
@@ -748,24 +736,24 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     //         |  padding      |       certificate     |
     //         -----------------------------------------
     //         ^               ^
-    //       certBuf   certBuf + (SIZEOF(certBuf) - len)
-    CHK(mbedtls_x509_crt_parse_der(pCert, (PVOID)(certBuf + GENERATED_CERTIFICATE_MAX_SIZE - len), len) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+    //       pCertBuf   pCertBuf + (SIZEOF(pCertBuf) - len)
+    CHK(mbedtls_x509_crt_parse_der(pCert, (PVOID)(pCertBuf + GENERATED_CERTIFICATE_MAX_SIZE - len), len) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
 
 CleanUp:
     if (initialized) {
-        mbedtls_x509write_crt_free(writeCert);
+        mbedtls_x509write_crt_free(pWriteCert);
         mbedtls_mpi_free(&serial);
-        mbedtls_ctr_drbg_free(ctrDrbg);
-        mbedtls_entropy_free(entropy);
+        mbedtls_ctr_drbg_free(pCtrDrbg);
+        mbedtls_entropy_free(pEntropy);
 
         if (STATUS_FAILED(retStatus)) {
             freeCertificateAndKey(pCert, pKey);
         }
     }
-    MEMFREE(certBuf);
-    MEMFREE(entropy);
-    MEMFREE(ctrDrbg);
-    MEMFREE(writeCert);
+    SAFE_MEMFREE(pCertBuf);
+    SAFE_MEMFREE(pEntropy);
+    SAFE_MEMFREE(pCtrDrbg);
+    SAFE_MEMFREE(pWriteCert);
     LEAVES();
     return retStatus;
 }

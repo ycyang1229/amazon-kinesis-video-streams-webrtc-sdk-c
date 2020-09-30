@@ -2,7 +2,7 @@
 #include "../Include_i.h"
 
 
-STATUS createSignalingClient(PSignalingClientInfo pClientInfo, 
+STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, 
                                 PChannelInfo pChannelInfo, 
                                 PSignalingClientCallbacks pCallbacks,
                                 PAwsCredentialProvider pCredentialProvider, 
@@ -20,7 +20,7 @@ STATUS createSignalingClient(PSignalingClientInfo pClientInfo,
     MEMSET(signalingClientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
     signalingClientInfoInternal->signalingClientInfo = *pClientInfo;
 
-    CHK_STATUS(createSignaling(signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient));
+    CHK_STATUS(createSignalingSync(signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient));
 
     *pSignalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
 
@@ -70,7 +70,7 @@ CleanUp:
 /**
  * Basically, we only use this to send offer, answer, and ice candidates.
 */
-STATUS signalingClientSendMessage(SIGNALING_CLIENT_HANDLE signalingClientHandle, PSignalingMessage pSignalingMessage)
+STATUS signalingClientSendMessageSync(SIGNALING_CLIENT_HANDLE signalingClientHandle, PSignalingMessage pSignalingMessage)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -78,7 +78,7 @@ STATUS signalingClientSendMessage(SIGNALING_CLIENT_HANDLE signalingClientHandle,
 
     DLOGI("Signaling Client Sending Message Sync");
 
-    CHK_STATUS(signalingSendMessage(pSignalingClient, pSignalingMessage));
+    CHK_STATUS(signalingSendMessageSync(pSignalingClient, pSignalingMessage));
 
 CleanUp:
 
@@ -87,7 +87,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingClientConnect(SIGNALING_CLIENT_HANDLE signalingClientHandle)
+STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -95,7 +95,7 @@ STATUS signalingClientConnect(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 
     DLOGI("Signaling Client Connect Sync");
 
-    CHK_STATUS(signalingConnect(pSignalingClient));
+    CHK_STATUS(signalingConnectSync(pSignalingClient));
 
 CleanUp:
 
@@ -104,7 +104,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingClientDisconnect(SIGNALING_CLIENT_HANDLE signalingClientHandle)
+STATUS signalingClientDisconnectSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -112,7 +112,7 @@ STATUS signalingClientDisconnect(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 
     DLOGI("Signaling Client Disconnect Sync");
 
-    CHK_STATUS(signalingDisconnect(pSignalingClient));
+    CHK_STATUS(signalingDisconnectSync(pSignalingClient));
 
 CleanUp:
 

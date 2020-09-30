@@ -106,7 +106,7 @@ class WebRtcClientTestBase : public ::testing::Test {
             channelInfo.pRegion = (PCHAR) TEST_DEFAULT_REGION;
         }
 
-        retStatus = createSignalingClient(&clientInfo, &channelInfo, &signalingClientCallbacks,
+        retStatus = createSignalingClientSync(&clientInfo, &channelInfo, &signalingClientCallbacks,
                                               pCredentialProvider != NULL ? pCredentialProvider : mTestCredentialProvider, &mSignalingClientHandle);
 
         if (mAccessKeyIdSet) {
@@ -123,7 +123,7 @@ class WebRtcClientTestBase : public ::testing::Test {
     {
         // Delete the created channel
         if (mAccessKeyIdSet) {
-            deleteSignalingChannel(FROM_SIGNALING_CLIENT_HANDLE(mSignalingClientHandle), 0);
+            deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(mSignalingClientHandle), 0);
         }
 
         EXPECT_EQ(STATUS_SUCCESS, freeSignalingClient(&mSignalingClientHandle));

@@ -25,9 +25,7 @@ extern "C" {
 #define PROTOCOL_INDEX_WSS   1
 
 // API postfix definitions
-/**
- * https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_CreateSignalingChannel.html
-*/
+// https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_CreateSignalingChannel.html
 #define CREATE_SIGNALING_CHANNEL_API_POSTFIX       "/createSignalingChannel"
 #define DESCRIBE_SIGNALING_CHANNEL_API_POSTFIX     "/describeSignalingChannel"
 #define GET_SIGNALING_CHANNEL_ENDPOINT_API_POSTFIX "/getSignalingChannelEndpoint"
@@ -75,13 +73,8 @@ extern "C" {
     "\n}"
 
 // Parameter names for Signaling connect URL
-/**
- * 
- * https://docs.aws.amazon.com/zh_tw/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis-1.html
- * https://docs.aws.amazon.com/zh_tw/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis-2.html
- * 
- * 
-*/
+// https://docs.aws.amazon.com/zh_tw/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis-1.html
+// https://docs.aws.amazon.com/zh_tw/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis-2.html
 #define SIGNALING_ROLE_PARAM_NAME         "X-Amz-Role"
 #define SIGNALING_CHANNEL_NAME_PARAM_NAME "X-Amz-ChannelName"
 #define SIGNALING_CHANNEL_ARN_PARAM_NAME  "X-Amz-ChannelARN"
@@ -199,10 +192,10 @@ typedef struct {
 VOID lwsSignalHandler(INT32);
 
 // Performs a blocking call
-STATUS LwsCallDone(PLwsCallInfo);
+STATUS lwsCompleteSync(PLwsCallInfo);
 
 // LWS listener handler
-PVOID LwsRspThread(PVOID);
+PVOID lwsListenerHandler(PVOID);
 
 // Retry thread
 PVOID reconnectHandler(PVOID);
@@ -211,24 +204,24 @@ PVOID reconnectHandler(PVOID);
 INT32 lwsHttpCallbackRoutine(struct lws*, enum lws_callback_reasons, PVOID, PVOID, size_t);
 INT32 lwsWssCallbackRoutine(struct lws*, enum lws_callback_reasons, PVOID, PVOID, size_t);
 
-STATUS describeSignalingChannel(PSignalingClient, UINT64);
-STATUS createSignalingChannel(PSignalingClient, UINT64);
-STATUS getSignalingChannelEndpoint(PSignalingClient, UINT64);
-STATUS getIceServerConfig(PSignalingClient, UINT64);
-STATUS connectSignalingChannel(PSignalingClient, UINT64);
-STATUS deleteSignalingChannel(PSignalingClient, UINT64);
+STATUS describeChannelLws(PSignalingClient, UINT64);
+STATUS createChannelLws(PSignalingClient, UINT64);
+STATUS getChannelEndpointLws(PSignalingClient, UINT64);
+STATUS getIceConfigLws(PSignalingClient, UINT64);
+STATUS connectSignalingChannelLws(PSignalingClient, UINT64);
+STATUS deleteChannelLws(PSignalingClient, UINT64);
 
 STATUS createLwsCallInfo(PSignalingClient, PRequestInfo, UINT32, PLwsCallInfo*);
 STATUS freeLwsCallInfo(PLwsCallInfo*);
 
-PVOID wssReceptionThread(PVOID);
+PVOID receiveLwsMessageWrapper(PVOID);
 
-STATUS sendWssMessage(PSignalingClient, PCHAR, PCHAR, PCHAR, UINT32, PCHAR, UINT32);
-STATUS flushWssData(PSignalingClient, BOOL);
+STATUS sendLwsMessage(PSignalingClient, PCHAR, PCHAR, PCHAR, UINT32, PCHAR, UINT32);
+STATUS writeLwsData(PSignalingClient, BOOL);
 STATUS terminateLwsListenerLoop(PSignalingClient);
-STATUS receiveWssMessage(PSignalingClient, PCHAR, UINT32);
+STATUS receiveLwsMessage(PSignalingClient, PCHAR, UINT32);
 STATUS getMessageTypeFromString(PCHAR, UINT32, SIGNALING_MESSAGE_TYPE*);
-STATUS wakeWssService(PSignalingClient);
+STATUS wakeLwsServiceEventLoop(PSignalingClient);
 STATUS terminateConnectionWithStatus(PSignalingClient, SERVICE_CALL_RESULT);
 
 #ifdef __cplusplus

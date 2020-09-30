@@ -17,13 +17,13 @@
 #define ICE_AGENT_STATE_FAILED_REQUIRED       (ICE_AGENT_STATE_CHECK_CONNECTION | ICE_AGENT_STATE_CONNECTED | ICE_AGENT_STATE_NOMINATING | ICE_AGENT_STATE_READY | ICE_AGENT_STATE_DISCONNECTED | ICE_AGENT_STATE_FAILED)
 
 StateMachineState ICE_AGENT_STATE_MACHINE_STATES[] = {
-    {ICE_AGENT_STATE_NEW,              ICE_AGENT_STATE_NEW_REQUIRED,        iceAgentFsmLeaveNew,             iceAgentFsmNew,             ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
-    {ICE_AGENT_STATE_CHECK_CONNECTION, ICE_AGENT_STATE_CHECK_CONN_REQUIRED, iceAgentFsmLeaveCheckConnection, iceAgentFsmCheckConnection, ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
-    {ICE_AGENT_STATE_CONNECTED,        ICE_AGENT_STATE_CONNECTED_REQUIRED,  iceAgentFsmLeaveConnected,       iceAgentFsmConnected,       ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
-    {ICE_AGENT_STATE_NOMINATING,       ICE_AGENT_STATE_NOMINATING_REQUIRED, iceAgentFsmLeaveNominating,      iceAgentFsmNominating,      ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
-    {ICE_AGENT_STATE_READY,            ICE_AGENT_STATE_READY_REQUIRED,      iceAgentFsmLeaveReady,           iceAgentFsmReady,           ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
-    {ICE_AGENT_STATE_DISCONNECTED,     ICE_AGENT_STATE_DISCONNECTED_REQUIRED, iceAgentFsmLeaveDisconnected,  iceAgentFsmDisconnected,    ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
-    {ICE_AGENT_STATE_FAILED,           ICE_AGENT_STATE_FAILED_REQUIRED,      iceAgentFsmLeaveFailed,         iceAgentFsmFailed,          ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
+    {ICE_AGENT_STATE_NEW,              ICE_AGENT_STATE_NEW_REQUIRED,        fromNewIceAgentState,             executeNewIceAgentState,             ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
+    {ICE_AGENT_STATE_CHECK_CONNECTION, ICE_AGENT_STATE_CHECK_CONN_REQUIRED, fromCheckConnectionIceAgentState, executeCheckConnectionIceAgentState, ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
+    {ICE_AGENT_STATE_CONNECTED,        ICE_AGENT_STATE_CONNECTED_REQUIRED,  fromConnectedIceAgentState,       executeConnectedIceAgentState,       ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
+    {ICE_AGENT_STATE_NOMINATING,       ICE_AGENT_STATE_NOMINATING_REQUIRED, fromNominatingIceAgentState,      executeNominatingIceAgentState,      ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
+    {ICE_AGENT_STATE_READY,            ICE_AGENT_STATE_READY_REQUIRED,      fromReadyIceAgentState,           executeReadyIceAgentState,           ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
+    {ICE_AGENT_STATE_DISCONNECTED,     ICE_AGENT_STATE_DISCONNECTED_REQUIRED, fromDisconnectedIceAgentState,  executeDisconnectedIceAgentState,    ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
+    {ICE_AGENT_STATE_FAILED,           ICE_AGENT_STATE_FAILED_REQUIRED,      fromFailedIceAgentState,         executeFailedIceAgentState,          ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
 };
 
 UINT32 ICE_AGENT_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(ICE_AGENT_STATE_MACHINE_STATES);
@@ -32,9 +32,9 @@ UINT32 ICE_AGENT_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(ICE_AGENT_STATE_MACHINE_
  * 
  * @param[in] the object of the ice agent.
 */
-STATUS iceAgentFsmAdvance(PIceAgent pIceAgent)
+STATUS stepIceAgentStateMachine(PIceAgent pIceAgent)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 oldState;
 
@@ -65,13 +65,13 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
 STATUS acceptIceAgentMachineState(PIceAgent pIceAgent, UINT64 state)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
@@ -89,16 +89,16 @@ CleanUp:
         MUTEX_UNLOCK(pIceAgent->lock);
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
 /*
  * This function is supposed to be called from within IceAgentStateMachine callbacks. Assume holding IceAgent->lock
  */
-STATUS iceAgentFsmCheckDisconnection(PIceAgent pIceAgent, PUINT64 pNextState)
+STATUS iceAgentStateMachineCheckDisconnection(PIceAgent pIceAgent, PUINT64 pNextState)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT64 currentTime;
 
@@ -124,7 +124,7 @@ STATUS iceAgentFsmCheckDisconnection(PIceAgent pIceAgent, PUINT64 pNextState)
 
 CleanUp:
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -168,9 +168,9 @@ PCHAR iceAgentStateToString(UINT64 state)
 ///////////////////////////////////////////////////////////////////////////
 // State machine callback functions
 ///////////////////////////////////////////////////////////////////////////
-STATUS iceAgentFsmLeaveNew(UINT64 customData, PUINT64 pState)
+STATUS fromNewIceAgentState(UINT64 customData, PUINT64 pState)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state;
@@ -184,13 +184,13 @@ STATUS iceAgentFsmLeaveNew(UINT64 customData, PUINT64 pState)
 
 CleanUp:
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
-STATUS iceAgentFsmNew(UINT64 customData, UINT64 time)
+STATUS executeNewIceAgentState(UINT64 customData, UINT64 time)
 {
-    //ENTERS();
+    ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
@@ -203,7 +203,7 @@ STATUS iceAgentFsmNew(UINT64 customData, UINT64 time)
 
 CleanUp:
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -212,9 +212,9 @@ CleanUp:
  * @param[in] the object of the ice agent.
  * @param[out] pState the next state
 */
-STATUS iceAgentFsmLeaveCheckConnection(UINT64 customData, PUINT64 pState)
+STATUS fromCheckConnectionIceAgentState(UINT64 customData, PUINT64 pState)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = ICE_AGENT_STATE_CHECK_CONNECTION; // original state
@@ -272,7 +272,7 @@ CleanUp:
         MUTEX_UNLOCK(pIceAgent->lock);
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 /**
@@ -283,9 +283,9 @@ CleanUp:
  * @param[]
  * 
 */
-STATUS iceAgentFsmCheckConnection(UINT64 customData, UINT64 time)
+STATUS executeCheckConnectionIceAgentState(UINT64 customData, UINT64 time)
 {
-    //ENTERS();
+    ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
@@ -312,13 +312,13 @@ CleanUp:
         retStatus = STATUS_SUCCESS;
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
-STATUS iceAgentFsmLeaveConnected(UINT64 customData, PUINT64 pState)
+STATUS fromConnectedIceAgentState(UINT64 customData, PUINT64 pState)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = ICE_AGENT_STATE_CONNECTED; // original state
@@ -355,13 +355,13 @@ CleanUp:
         MUTEX_UNLOCK(pIceAgent->lock);
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
-STATUS iceAgentFsmConnected(UINT64 customData, UINT64 time)
+STATUS executeConnectedIceAgentState(UINT64 customData, UINT64 time)
 {
-    //ENTERS();
+    ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
@@ -381,13 +381,13 @@ CleanUp:
         retStatus = STATUS_SUCCESS;
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
-STATUS iceAgentFsmLeaveNominating(UINT64 customData, PUINT64 pState)
+STATUS fromNominatingIceAgentState(UINT64 customData, PUINT64 pState)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = ICE_AGENT_STATE_NOMINATING; // original state
@@ -443,19 +443,13 @@ CleanUp:
         MUTEX_UNLOCK(pIceAgent->lock);
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
-/**
- * @brief 
- * 
- * @param[]
- * @param[]
- * 
-*/
-STATUS iceAgentFsmNominating(UINT64 customData, UINT64 time)
+
+STATUS executeNominatingIceAgentState(UINT64 customData, UINT64 time)
 {
-    //ENTERS();
+    ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
@@ -484,18 +478,13 @@ CleanUp:
         retStatus = STATUS_SUCCESS;
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
-/**
- * @brief 
- * 
- * @param[]
- * @param[]
-*/
-STATUS iceAgentFsmLeaveReady(UINT64 customData, PUINT64 pState)
+
+STATUS fromReadyIceAgentState(UINT64 customData, PUINT64 pState)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = ICE_AGENT_STATE_READY; // original state
@@ -509,7 +498,7 @@ STATUS iceAgentFsmLeaveReady(UINT64 customData, PUINT64 pState)
     // move to failed state if any error happened.
     CHK_STATUS(pIceAgent->iceAgentStatus);
 
-    CHK_STATUS(iceAgentFsmCheckDisconnection(pIceAgent, &state));
+    CHK_STATUS(iceAgentStateMachineCheckDisconnection(pIceAgent, &state));
     // return early if changing to disconnected state
     CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
 
@@ -530,13 +519,13 @@ CleanUp:
         MUTEX_UNLOCK(pIceAgent->lock);
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
-STATUS iceAgentFsmReady(UINT64 customData, UINT64 time)
+STATUS executeReadyIceAgentState(UINT64 customData, UINT64 time)
 {
-    //ENTERS();
+    ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
@@ -557,13 +546,13 @@ CleanUp:
         retStatus = STATUS_SUCCESS;
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
-STATUS iceAgentFsmLeaveDisconnected(UINT64 customData, PUINT64 pState)
+STATUS fromDisconnectedIceAgentState(UINT64 customData, PUINT64 pState)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
     UINT64 state = pIceAgent->iceAgentState; // state before ICE_AGENT_STATE_DISCONNECTED
@@ -594,17 +583,13 @@ CleanUp:
         MUTEX_UNLOCK(pIceAgent->lock);
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
-/**
- * @brief 
- * @param[]
- * @param[]
-*/
-STATUS iceAgentFsmDisconnected(UINT64 customData, UINT64 time)
+
+STATUS executeDisconnectedIceAgentState(UINT64 customData, UINT64 time)
 {
-    //ENTERS();
+    ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
@@ -638,13 +623,13 @@ CleanUp:
         retStatus = STATUS_SUCCESS;
     }
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
-STATUS iceAgentFsmLeaveFailed(UINT64 customData, PUINT64 pState)
+STATUS fromFailedIceAgentState(UINT64 customData, PUINT64 pState)
 {
-    //ENTERS();
+    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
 
@@ -655,13 +640,13 @@ STATUS iceAgentFsmLeaveFailed(UINT64 customData, PUINT64 pState)
 
 CleanUp:
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
 
-STATUS iceAgentFsmFailed(UINT64 customData, UINT64 time)
+STATUS executeFailedIceAgentState(UINT64 customData, UINT64 time)
 {
-    //ENTERS();
+    ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
@@ -684,6 +669,6 @@ STATUS iceAgentFsmFailed(UINT64 customData, UINT64 time)
 
 CleanUp:
 
-    //LEAVES();
+    LEAVES();
     return retStatus;
 }
