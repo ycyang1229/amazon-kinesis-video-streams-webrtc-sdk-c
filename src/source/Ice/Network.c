@@ -19,7 +19,7 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 ipCount = 0, destIpListLen;
-#ifdef KVCWEBRTC_HAVE_GETIFADDRS
+
     BOOL filterSet = TRUE;
 
 #ifdef _WIN32
@@ -27,17 +27,18 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
     PIP_ADAPTER_ADDRESSES adapterAddresses, aa = NULL;
     PIP_ADAPTER_UNICAST_ADDRESS ua;
 #else
+#ifdef KVCWEBRTC_HAVE_IFADDRS_H
     struct ifaddrs *ifaddr = NULL, *ifa = NULL;
 #endif
-
+#endif
     struct sockaddr_in* pIpv4Addr = NULL;
     struct sockaddr_in6* pIpv6Addr = NULL;
-#endif
 
     CHK(destIpList != NULL && pDestIpListLen != NULL, STATUS_NULL_ARG);
     CHK(*pDestIpListLen != 0, STATUS_INVALID_ARG);
 
     destIpListLen = *pDestIpListLen;
+
 #ifdef _WIN32
     retWinStatus = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX, NULL, NULL, &sizeAAPointer);
     CHK(retWinStatus == ERROR_BUFFER_OVERFLOW, STATUS_GET_LOCAL_IP_ADDRESSES_FAILED);
@@ -92,14 +93,13 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
         }
     }
 #else
-    #ifdef KVCWEBRTC_HAVE_GETIFADDRS
+#ifdef KVCWEBRTC_HAVE_GETIFADDRS
     CHK(getifaddrs(&ifaddr) != -1, STATUS_GET_LOCAL_IP_ADDRESSES_FAILED);
     for (ifa = ifaddr; ifa != NULL && ipCount < destIpListLen; ifa = ifa->ifa_next) {
         if (ifa->ifa_addr != NULL && 
             (ifa->ifa_flags & IFF_LOOPBACK) == 0 && // ignore loopback interface
             (ifa->ifa_flags & IFF_RUNNING) > 0 &&                            // interface has to be allocated
             (ifa->ifa_addr->sa_family == AF_INET || ifa->ifa_addr->sa_family == AF_INET6)) {
-
             // mark vpn interface
             destIpList[ipCount].isPointToPoint = ((ifa->ifa_flags & IFF_POINTOPOINT) != 0);
 
@@ -137,7 +137,8 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
             }
         }
     }
-    #else
+#else
+    //#error "need to add the network interface."
     extern char* esp_get_ip(void);
     DLOGD("external getifaddrs.");
     destIpList[ipCount].isPointToPoint = 0;
@@ -149,17 +150,17 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
                                    destIpList[ipCount].address[2], 
                                    destIpList[ipCount].address[3]);
     ipCount++;
-    #endif
+#endif
 #endif
 
 CleanUp:
 
-#ifdef KVCWEBRTC_HAVE_GETIFADDRS
 #ifdef _WIN32
     if (adapterAddresses != NULL) {
         SAFE_MEMFREE(adapterAddresses);
     }
 #else
+#ifdef KVCWEBRTC_HAVE_GETIFADDRS
     if (ifaddr != NULL) {
         freeifaddrs(ifaddr);
     }
@@ -177,7 +178,6 @@ CleanUp:
 */
 STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol, UINT32 sendBufSize, PINT32 pOutSockFd)
 {
-    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     INT32 sockfd, sockType, flags;
@@ -226,13 +226,12 @@ STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol,
     }
 
 CleanUp:
-    LEAVES();
+
     return retStatus;
 }
 
 STATUS socketBind(PKvsIpAddress pHostIpAddress, INT32 sockfd)
 {
-    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     struct sockaddr_in ipv4Addr;
     struct sockaddr_in6 ipv6Addr;
@@ -279,13 +278,11 @@ STATUS socketBind(PKvsIpAddress pHostIpAddress, INT32 sockfd)
     pHostIpAddress->port = (UINT16) pHostIpAddress->family == KVS_IP_FAMILY_TYPE_IPV4 ? ipv4Addr.sin_port : ipv6Addr.sin6_port;
 
 CleanUp:
-    LEAVES();
     return retStatus;
 }
 
 STATUS socketConnect(PKvsIpAddress pPeerAddress, INT32 sockfd)
 {
-    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     struct sockaddr_in ipv4PeerAddr;
     struct sockaddr_in6 ipv6PeerAddr;
@@ -315,7 +312,6 @@ STATUS socketConnect(PKvsIpAddress pPeerAddress, INT32 sockfd)
     CHK_ERR(retVal >= 0 || errno == EINPROGRESS, STATUS_SOCKET_CONNECT_FAILED, "connect() failed with errno %s", strerror(errno));
 
 CleanUp:
-    LEAVES();
     return retStatus;
 }
 /**
@@ -326,7 +322,6 @@ CleanUp:
 */
 STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 {
-    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     INT32 errCode;
     PCHAR errStr;
@@ -364,13 +359,12 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-    LEAVES();
+
     return retStatus;
 }
 
 STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen)
 {
-    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 generatedStrLen = 0; // number of characters written if buffer is large enough not counting the null terminator
 
@@ -392,7 +386,7 @@ STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen
     CHK(generatedStrLen < bufferLen, STATUS_BUFFER_TOO_SMALL);
 
 CleanUp:
-    LEAVES();
+
     return retStatus;
 }
 /**

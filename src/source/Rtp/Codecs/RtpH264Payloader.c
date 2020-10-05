@@ -2,18 +2,6 @@
 
 #include "../../Include_i.h"
 
-/**
- * @brief 
- * 
- * @param[in] mtu
- * @param[in] the 
- * @param[]
- * @param[]
- * @param[]
- * @param[]
- * @param[]
- * 
-*/
 STATUS createPayloadForH264(UINT32 mtu,
                             PBYTE nalus,
                             UINT32 nalusLength,

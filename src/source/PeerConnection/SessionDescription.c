@@ -268,14 +268,6 @@ CleanUp:
     return retStatus;
 }
 
-
-/**
- * @brief 
- * 
- * @param[] codecTable 
- * @param[] rtxTable 
- * @param[] pTransceivers
-*/
 STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PDoubleList pTransceivers)
 {
     ENTERS();
@@ -819,15 +811,14 @@ STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection pKvsPeerConnecti
 
         // Scan the media section name for any codecs we support
         attributeValue = pMediaDescription->mediaName;
+
         do {
             if ((end = STRCHR(attributeValue, ' ')) != NULL) {
                 tokenLen = (end - attributeValue);
             } else {
                 tokenLen = STRLEN(attributeValue);
             }
-            /**
-             * #YC_TBD, 
-            */
+            /** #YC_TBD, */
             if (STRNCMP(DEFAULT_PAYLOAD_MULAW_STR, attributeValue, tokenLen) == 0) {
                 supportCodec = TRUE;
                 rtcCodec = RTC_CODEC_MULAW;
@@ -848,9 +839,7 @@ STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection pKvsPeerConnecti
         // Scan the media section attributes for codecs we support
         for (currentAttribute = 0; currentAttribute < pMediaDescription->mediaAttributesCount && !foundMediaSectionWithCodec; currentAttribute++) {
             attributeValue = pMediaDescription->sdpAttributes[currentAttribute].attributeValue;
-            /**
-             * #YC_TBD.
-            */
+            /** #YC_TBD. */
             if (STRSTR(attributeValue, H264_VALUE) != NULL) {
                 supportCodec = TRUE;
                 rtcCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
@@ -934,7 +923,6 @@ CleanUp:
 */
 STATUS setReceiversSsrc(PSessionDescription pRemoteSessionDescription, PDoubleList pTransceievers)
 {
-    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSdpMediaDescription pMediaDescription = NULL;
     BOOL foundSsrc, isVideoMediaSection, isAudioMediaSection, isAudioCodec, isVideoCodec;
@@ -952,7 +940,6 @@ STATUS setReceiversSsrc(PSessionDescription pRemoteSessionDescription, PDoubleLi
     */
     for (currentMedia = 0; currentMedia < pRemoteSessionDescription->mediaCount; currentMedia++) {
         pMediaDescription = &(pRemoteSessionDescription->mediaDescriptions[currentMedia]);
-
         isVideoMediaSection = (STRNCMP(pMediaDescription->mediaName, MEDIA_SECTION_VIDEO_VALUE, ARRAY_SIZE(MEDIA_SECTION_VIDEO_VALUE) - 1) == 0);
         isAudioMediaSection = (STRNCMP(pMediaDescription->mediaName, MEDIA_SECTION_AUDIO_VALUE, ARRAY_SIZE(MEDIA_SECTION_AUDIO_VALUE) - 1) == 0);
         foundSsrc = FALSE;
@@ -1000,6 +987,6 @@ STATUS setReceiversSsrc(PSessionDescription pRemoteSessionDescription, PDoubleLi
     }
 
 CleanUp:
-    LEAVES();
+
     return retStatus;
 }

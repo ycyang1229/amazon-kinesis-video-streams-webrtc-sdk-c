@@ -23,7 +23,6 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction,
                                RTC_CODEC rtcCodec,
                                PKvsRtpTransceiver* ppKvsRtpTransceiver)
 {
-    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsRtpTransceiver pKvsRtpTransceiver = NULL;
 
@@ -62,7 +61,7 @@ CleanUp:
     if (ppKvsRtpTransceiver != NULL) {
         *ppKvsRtpTransceiver = pKvsRtpTransceiver;
     }
-    LEAVES();
+
     return retStatus;
 }
 

@@ -13,15 +13,17 @@ extern "C" {
 ////////////////////////////////////////////////////
 // Public headers
 ////////////////////////////////////////////////////
-//#pragma clang diagnostic push
-//#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+#endif
 #include <com/amazonaws/kinesis/video/client/Include.h>
 #include <com/amazonaws/kinesis/video/common/Include.h>
 #include <com/amazonaws/kinesis/video/webrtcclient/NullableDefs.h>
 #include <com/amazonaws/kinesis/video/webrtcclient/Stats.h>
-
-//#pragma clang diagnostic pop
-
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 /*===========================================================================================*/
 /*=================SESSION DESCRIPTION INIT RELATED STATUS ERROR CODES=== ===================*/
 /*===========================================================================================*/
@@ -390,12 +392,13 @@ extern "C" {
 
 /**
  * Maximum allowed ICE configuration user name length
+ * https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_AWSAcuitySignalingService_GetIceServerConfig.html#API_AWSAcuitySignalingService_GetIceServerConfig_RequestSyntax
  */
-#define MAX_ICE_CONFIG_USER_NAME_LEN 512
-//#define MAX_ICE_CONFIG_USER_NAME_LEN 256
+#define MAX_ICE_CONFIG_USER_NAME_LEN 256
 
 /**
  * Maximum allowed ICE configuration password length
+ * https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_AWSAcuitySignalingService_IceServer.html#KinesisVideo-Type-AWSAcuitySignalingService_IceServer-Password
  */
 //#define MAX_ICE_CONFIG_CREDENTIAL_LEN 512
 #define MAX_ICE_CONFIG_CREDENTIAL_LEN 256

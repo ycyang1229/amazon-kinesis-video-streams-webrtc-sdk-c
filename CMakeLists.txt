@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake;${CMAKE_MODULE_PATH}")
 include(Utilities)
 include(CheckIncludeFiles)
+include (CheckFunctionExists)
 
 project(KinesisVideoWebRTCClient LANGUAGES C)
 
@@ -28,13 +29,19 @@ option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF
 option(KVS_PLAT_FREERTOS "Build for FreeRTOS" ON)
 option(BUILD_CLIENT "Build with UndefinedBehaviorSanitizer." ON)
 option(BUILD_SIGNALING_CLIENT "Build with UndefinedBehaviorSanitizer." ON)
-option(ENABLE_STREAMING "Enable support for streaming" OFF)
-option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
+option(ENABLE_STREAMING "Enable support for streaming" ON)
+option(ENABLE_DATA_CHANNEL "Enable support for data channel" OFF)
 
 
 CHECK_INCLUDE_FILES(ifaddrs.h       KVCWEBRTC_HAVE_IFADDRS_H)
+if(KVCWEBRTC_HAVE_IFADDRS_H)
+add_definitions(-DKVCWEBRTC_HAVE_IFADDRS_H)
+endif()
 CHECK_INCLUDE_FILES(netinet/tcp.h   KVCWEBRTC_HAVE_NETINET_TCP_H)
 CHECK_FUNCTION_EXISTS(getifaddrs    KVCWEBRTC_HAVE_GETIFADDRS)
+if(KVCWEBRTC_HAVE_GETIFADDRS)
+add_definitions(-DKVCWEBRTC_HAVE_GETIFADDRS)
+endif()
 
 
 set(CMAKE_MACOSX_RPATH TRUE)

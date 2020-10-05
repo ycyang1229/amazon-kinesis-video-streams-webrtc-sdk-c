@@ -223,7 +223,7 @@ STATUS dtlsTransmissionTimerCallback(UINT32 timerID, UINT64 currentTime, UINT64 
     handshakeStatus = mbedtls_ssl_handshake(&pDtlsSession->sslCtx);
     switch (handshakeStatus) {
         case 0:
-        // success. 
+            // success.
             CHK_STATUS(dtlsSessionChangeState(pDtlsSession, CONNECTED));
             CHK(FALSE, STATUS_TIMER_QUEUE_STOP_SCHEDULING);
             break;

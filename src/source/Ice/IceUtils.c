@@ -147,7 +147,6 @@ CleanUp:
 */
 STATUS iceUtilsPackageStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen, PBYTE pBuffer, PUINT32 pBufferLen)
 {
-    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 stunPacketSize = 0;
     BOOL addMessageIntegrity = FALSE;
@@ -167,7 +166,7 @@ STATUS iceUtilsPackageStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-    LEAVES();
+
     return retStatus;
 }
 /**
@@ -189,7 +188,6 @@ STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket,
                               PTurnConnection pTurnConnection,
                               BOOL useTurn)
 {
-    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 stunPacketSize = STUN_PACKET_ALLOCATION_SIZE;
     //BYTE stunPacketBuffer[STUN_PACKET_ALLOCATION_SIZE];
@@ -206,20 +204,9 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
     MEMFREE(stunPacketBuffer);
-    //LEAVES();
     return retStatus;
 }
-/**
- * @brief 
- * 
- * @param[]
- * @param[]
- * @param[]
- * @param[]
- * @param[]
- * @param[]
- * 
-*/
+
 STATUS iceUtilsSendData(PBYTE buffer,
                         UINT32 size,
                         PKvsIpAddress pDest,
@@ -227,7 +214,6 @@ STATUS iceUtilsSendData(PBYTE buffer,
                         PTurnConnection pTurnConnection,
                         BOOL useTurn)
 {
-    //ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK((pSocketConnection != NULL && !useTurn) || (pTurnConnection != NULL && useTurn), STATUS_INVALID_ARG);
@@ -245,7 +231,7 @@ STATUS iceUtilsSendData(PBYTE buffer,
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-    //LEAVES();
+
     return retStatus;
 }
 /**
@@ -292,9 +278,7 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
             pIceServer->transport = KVS_SOCKET_PROTOCOL_TCP;
         }
 
-    } 
-    else 
-    {
+    } else {
         CHK(FALSE, STATUS_ICE_URL_INVALID_PREFIX);
     }
     /** retrieve the port. */
