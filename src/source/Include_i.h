@@ -56,7 +56,11 @@ extern "C" {
 #if !defined __WINDOWS_BUILD__
 #include <signal.h>
 #include <sys/types.h>
+#ifdef KVCWEBRTC_HAVE_IFADDRS_H
 #include <ifaddrs.h>
+#else
+#error "need to add the network interface."
+#endif
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
