@@ -203,7 +203,6 @@ link_directories(${LIBSRTP_LIBRARY_DIRS})
 link_directories(${LIBWEBSOCKETS_LIBRARY_DIRS})
 link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 
-
 pkg_check_modules(GST gstreamer-1.0)
 if(GST_FOUND)
 

@@ -178,7 +178,6 @@ CleanUp:
 
 STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf, UINT32 bufLen, PKvsIpAddress pDestIp)
 {
-    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
@@ -197,9 +196,7 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
     /* Should have a valid buffer */
     CHK(pBuf != NULL && bufLen > 0, STATUS_SOCKET_INVALID_ARG);
     if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP && pSocketConnection->secureConnection) {
-        /**
-         * tls over tcp.
-        */
+        /** tls over tcp. */
         CHK_STATUS(tlsSessionPutApplicationData(pSocketConnection->pTlsSession, pBuf, bufLen));
     } else if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP) {
         CHK_STATUS(retStatus = socketSendDataWithRetry(pSocketConnection, pBuf, bufLen, NULL, NULL));
@@ -214,7 +211,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pSocketConnection->lock);
     }
-    LEAVES();
+
     return retStatus;
 }
 
@@ -301,9 +298,7 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
         ipv4PeerAddr.sin_port = pSocketConnection->peerIpAddr.port;
         MEMCPY(&ipv4PeerAddr.sin_addr, pSocketConnection->peerIpAddr.address, IPV4_ADDRESS_LENGTH);
         peerSockAddr = (struct sockaddr*) &ipv4PeerAddr;
-    } 
-    else 
-    {
+    } else {
         /** #IPV6. */
         addrLen = SIZEOF(struct sockaddr_in6);
         MEMSET(&ipv6PeerAddr, 0x00, SIZEOF(ipv6PeerAddr));
@@ -324,7 +319,6 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
 
 STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, UINT32 bufLen, PKvsIpAddress pDestIp, PUINT32 pBytesWritten)
 {
-    ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     INT32 socketWriteAttempt = 0;
     SSIZE_T result = 0;
@@ -417,6 +411,6 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         DLOGD("Warning: Send data failed with 0x%08x", retStatus);
     }
-    LEAVES();
+
     return retStatus;
 }
