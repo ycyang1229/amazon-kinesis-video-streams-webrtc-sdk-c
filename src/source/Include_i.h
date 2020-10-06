@@ -52,7 +52,7 @@ extern "C" {
 // If removed will cause corruption that is hard to determine at runtime
 #define INET  1
 #define INET6 1
-#if (BUILD_CLIENT && ENABLE_DATA_CHANNEL)
+#ifdef ENABLE_DATA_CHANNEL
 #include <usrsctp.h>
 #endif
 #include <libwebsockets.h>

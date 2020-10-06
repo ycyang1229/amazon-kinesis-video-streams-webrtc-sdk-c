@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMake;${CMAKE_MODULE_PATH}")
 include(Utilities)
 include(CheckIncludeFiles)
-include (CheckFunctionExists)
+include(CheckFunctionExists)
 
 project(KinesisVideoWebRTCClient LANGUAGES C)
 
@@ -32,12 +32,13 @@ option(BUILD_SIGNALING_CLIENT "Build with UndefinedBehaviorSanitizer." ON)
 option(ENABLE_STREAMING "Enable support for streaming" ON)
 option(ENABLE_DATA_CHANNEL "Enable support for data channel" OFF)
 
+CHECK_INCLUDE_FILES(netinet/tcp.h   KVCWEBRTC_HAVE_NETINET_TCP_H)
 
 CHECK_INCLUDE_FILES(ifaddrs.h       KVCWEBRTC_HAVE_IFADDRS_H)
 if(KVCWEBRTC_HAVE_IFADDRS_H)
 add_definitions(-DKVCWEBRTC_HAVE_IFADDRS_H)
 endif()
-CHECK_INCLUDE_FILES(netinet/tcp.h   KVCWEBRTC_HAVE_NETINET_TCP_H)
+
 CHECK_FUNCTION_EXISTS(getifaddrs    KVCWEBRTC_HAVE_GETIFADDRS)
 if(KVCWEBRTC_HAVE_GETIFADDRS)
 add_definitions(-DKVCWEBRTC_HAVE_GETIFADDRS)
@@ -70,14 +71,6 @@ elseif(USE_MBEDTLS)
   add_definitions(-DKVS_USE_MBEDTLS)
 endif()
 
-if (ENABLE_STREAMING)
-  add_definitions(-DENABLE_STREAMING)
-endif()
-
-if (ENABLE_DATA_CHANNEL)
-  add_definitions(-DENABLE_DATA_CHANNEL)
-endif()
-
 if(BUILD_DEPENDENCIES)
   set(OPEN_SRC_INSTALL_PREFIX ${CMAKE_CURRENT_SOURCE_DIR}/open-source)
   if(NOT EXISTS ${OPEN_SRC_INSTALL_PREFIX})
@@ -107,7 +100,6 @@ if(BUILD_DEPENDENCIES)
     build_dependency(mbedtls ${BUILD_ARGS})
   endif()
 
-
   set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                  -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
                  -DUSE_OPENSSL=${USE_OPENSSL}
@@ -124,9 +116,12 @@ if(BUILD_DEPENDENCIES)
   )
   build_dependency(srtp ${BUILD_ARGS})
 
-  build_dependency(usrsctp)
+  if(ENABLE_DATA_CHANNEL)
+    build_dependency(usrsctp)
+  endif()
+
   if(BUILD_TEST)
-   build_dependency(gtest)
+    build_dependency(gtest)
   endif()
 
   # building kvsCommonLws also builds kvspic
@@ -187,12 +182,12 @@ else()
 endif()
 
 
-if(BUILD_CLIENT AND ENABLE_DATA_CHANNEL)
-# usrsctp dont support pkgconfig yet
-#find_library(
-#  Usrsctp
-#  NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
-#  PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib)
+if(ENABLE_DATA_CHANNEL)
+  # usrsctp dont support pkgconfig yet
+  find_library(
+    Usrsctp
+    NAMES ${USRSCTP_LIBNAME} usrsctp REQUIRED
+    PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib)
 endif()
 
 set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS} 
@@ -288,6 +283,14 @@ file(
     "src/source/Sctp/*.c")
 endif()
 
+if (ENABLE_STREAMING)
+  add_definitions(-DENABLE_STREAMING)
+endif()
+
+if (ENABLE_DATA_CHANNEL)
+  add_definitions(-DENABLE_DATA_CHANNEL)
+endif()
+
 file(
   GLOB
   WEBRTC_CLIENT_SOURCE_FILES
@@ -306,8 +309,6 @@ endif()
 
 file(GLOB WEBRTC_SIGNALING_CLIENT_SOURCE_FILES "src/source/Signaling/*.c")
 
-#file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/opusSampleFrames" DESTINATION .)
-#file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/h264SampleFrames" DESTINATION .)
 
 include_directories(${OPEN_SRC_INCLUDE_DIRS})
 include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
@@ -381,6 +382,9 @@ install(DIRECTORY ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include/
 )
 
 if (BUILD_SAMPLE)
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/opusSampleFrames" DESTINATION .)
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/samples/h264SampleFrames" DESTINATION .)
+
   add_executable(
     kvsWebrtcClientMaster
     ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/samples/Common.c

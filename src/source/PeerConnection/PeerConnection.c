@@ -42,7 +42,7 @@ CleanUp:
 }
 #endif
 
-#if (ENABLE_DATA_CHANNEL)
+#ifdef ENABLE_DATA_CHANNEL
 STATUS allocateSctpSortDataChannelsDataCallback(UINT64 customData, PHashEntry pHashEntry)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -124,7 +124,6 @@ STATUS allocateSctp(PKvsPeerConnection pKvsPeerConnection)
 CleanUp:
     return retStatus;
 }
-
 #endif
 /**
  * @brief the callback of inbound packet, and it is a packet arbitrator.
@@ -157,7 +156,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
         dtlsSessionProcessPacket(pKvsPeerConnection->pDtlsSession, buff, &signedBuffLen);
 
         if (signedBuffLen > 0) {
-            #if (ENABLE_DATA_CHANNEL)
+            #ifdef ENABLE_DATA_CHANNEL
             CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
             #endif
         }
@@ -169,11 +168,12 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
                 CHK_STATUS(allocateSrtp(pKvsPeerConnection));
             }
             #endif
-            #if (ENABLE_DATA_CHANNEL)
+
+#ifdef ENABLE_DATA_CHANNEL
             if (pKvsPeerConnection->pSctpSession == NULL) {
                 CHK_STATUS(allocateSctp(pKvsPeerConnection));
             }
-            #endif
+#endif
         }
 
     } else if ((buff[0] > 127 && buff[0] < 192) && (pKvsPeerConnection->pSrtpSession != NULL)) {
@@ -498,7 +498,7 @@ CleanUp:
     }
 }
 
-#if (ENABLE_DATA_CHANNEL)
+#ifdef ENABLE_DATA_CHANNEL
 /**
  * @brief the callback of outbound sctp packets for webrtc client.
  * 
@@ -844,7 +844,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 
     /* Free structs that have their own thread. SCTP has threads created by SCTP library. IceAgent has the
      * connectionListener thread. Free SCTP first so it wont try to send anything through ICE. */
-    #if (ENABLE_DATA_CHANNEL)
+    #ifdef ENABLE_DATA_CHANNEL
     CHK_LOG_ERR(freeSctpSession(&pKvsPeerConnection->pSctpSession));
     #endif
     CHK_LOG_ERR(freeIceAgent(&pKvsPeerConnection->pIceAgent));
@@ -860,7 +860,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     }
     #endif
 
-    #if (ENABLE_DATA_CHANNEL)
+    #ifdef ENABLE_DATA_CHANNEL
     // Free DataChannels
     CHK_LOG_ERR(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, 0, freeHashEntry));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pDataChannels));
@@ -1110,9 +1110,11 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     }
 
     for (i = 0; i < pSessionDescription->mediaCount; i++) {
+#ifdef ENABLE_DATA_CHANNEL
         if (STRNCMP(pSessionDescription->mediaDescriptions[i].mediaName, "application", SIZEOF("application") - 1) == 0) {
             pKvsPeerConnection->sctpIsEnabled = TRUE;
         }
+#endif
 
         for (j = 0; j < pSessionDescription->mediaDescriptions[i].mediaAttributesCount; j++) {
             if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "ice-ufrag") == 0) {
@@ -1521,9 +1523,10 @@ STATUS initKvsWebRtc(VOID)
     initializeEndianness();
 
     KVS_CRYPTO_INIT();
-    #if (ENABLE_DATA_CHANNEL)
+
+#ifdef ENABLE_DATA_CHANNEL
     CHK_STATUS(initSctpSession());
-    #endif
+#endif
 
     ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, TRUE);
 
@@ -1539,9 +1542,9 @@ STATUS deinitKvsWebRtc(VOID)
     STATUS retStatus = STATUS_SUCCESS;
     CHK(ATOMIC_LOAD_BOOL(&gKvsWebRtcInitialized), retStatus);
 
-    #if (ENABLE_DATA_CHANNEL)
+#ifdef ENABLE_DATA_CHANNEL
     deinitSctpSession();
-    #endif
+#endif
     #if (ENABLE_STREAMING)
     srtp_shutdown();
     #endif

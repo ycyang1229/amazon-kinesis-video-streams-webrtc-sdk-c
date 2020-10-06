@@ -1,4 +1,4 @@
-#if (ENABLE_DATA_CHANNEL)
+#ifdef ENABLE_DATA_CHANNEL
 
 #define LOG_CLASS "DataChannel"
 

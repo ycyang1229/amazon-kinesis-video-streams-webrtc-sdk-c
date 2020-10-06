@@ -51,7 +51,7 @@ typedef struct {
 
     MUTEX pSrtpSessionLock;
     PSrtpSession pSrtpSession;
-#if (BUILD_CLIENT && ENABLE_DATA_CHANNEL)
+#ifdef ENABLE_DATA_CHANNEL
     PSctpSession pSctpSession;//!< the handler of the sctp session.
 #endif
     SessionDescription remoteSessionDescription;
@@ -106,7 +106,7 @@ typedef struct {
 
     NullableBool canTrickleIce;
 } KvsPeerConnection, *PKvsPeerConnection;
-#if (ENABLE_DATA_CHANNEL)
+#ifdef ENABLE_DATA_CHANNEL
 typedef struct {
     UINT32 currentDataChannelId;//!< indicate the role of dtls server.
     PKvsPeerConnection pKvsPeerConnection;
