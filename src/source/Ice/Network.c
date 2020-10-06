@@ -17,7 +17,7 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
     PIP_ADAPTER_ADDRESSES adapterAddresses, aa = NULL;
     PIP_ADAPTER_UNICAST_ADDRESS ua;
 #else
-#ifdef KVCWEBRTC_HAVE_IFADDRS_H
+#ifdef KVSWEBRTC_HAVE_IFADDRS_H
     struct ifaddrs *ifaddr = NULL, *ifa = NULL;
 #endif
 #endif
@@ -83,7 +83,7 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
         }
     }
 #else
-#ifdef KVCWEBRTC_HAVE_GETIFADDRS
+#ifdef KVSWEBRTC_HAVE_GETIFADDRS
     CHK(getifaddrs(&ifaddr) != -1, STATUS_GET_LOCAL_IP_ADDRESSES_FAILED);
     for (ifa = ifaddr; ifa != NULL && ipCount < destIpListLen; ifa = ifa->ifa_next) {
         if (ifa->ifa_addr != NULL && (ifa->ifa_flags & IFF_LOOPBACK) == 0 && // ignore loopback interface
@@ -138,7 +138,7 @@ CleanUp:
         SAFE_MEMFREE(adapterAddresses);
     }
 #else
-#ifdef KVCWEBRTC_HAVE_GETIFADDRS
+#ifdef KVSWEBRTC_HAVE_GETIFADDRS
     if (ifaddr != NULL) {
         freeifaddrs(ifaddr);
     }
