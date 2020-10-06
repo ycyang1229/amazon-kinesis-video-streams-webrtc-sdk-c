@@ -210,7 +210,10 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief create the raw packet for transmission.
+ * 
+*/
 STATUS createBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, PUINT32 pPacketLength)
 {
     ENTERS();
@@ -311,7 +314,7 @@ STATUS setBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, UINT32 pac
         MEMCPY(pCurPtr, pHeader->extensionPayload, pHeader->extensionLength);
         pCurPtr += pHeader->extensionLength;
     }
-
+    /** copy payload. #YC_TBD. */
     MEMCPY(pCurPtr, pRtpPacket->payload, pRtpPacket->payloadLength);
 CleanUp:
     LEAVES();
