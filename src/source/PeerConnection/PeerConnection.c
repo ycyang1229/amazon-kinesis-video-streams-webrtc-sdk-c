@@ -6,27 +6,30 @@ static volatile ATOMIC_BOOL gKvsWebRtcInitialized = (SIZE_T) FALSE;
 
 STATUS allocateSrtp(PKvsPeerConnection pKvsPeerConnection)
 {
-    DtlsKeyingMaterial dtlsKeyingMaterial;
+    PDtlsKeyingMaterial pDtlsKeyingMaterial = NULL;
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
-    MEMSET(&dtlsKeyingMaterial, 0, SIZEOF(DtlsKeyingMaterial));
+    CHK(NULL != (pDtlsKeyingMaterial = (PDtlsKeyingMaterial) MEMALLOC(SIZEOF(DtlsKeyingMaterial))), STATUS_NOT_ENOUGH_MEMORY);
+    MEMSET(pDtlsKeyingMaterial, 0, SIZEOF(DtlsKeyingMaterial));
 
     CHK(pKvsPeerConnection != NULL, STATUS_SUCCESS);
     CHK_STATUS(dtlsSessionVerifyRemoteCertificateFingerprint(pKvsPeerConnection->pDtlsSession, pKvsPeerConnection->remoteCertificateFingerprint));
-    CHK_STATUS(dtlsSessionPopulateKeyingMaterial(pKvsPeerConnection->pDtlsSession, &dtlsKeyingMaterial));
+    CHK_STATUS(dtlsSessionPopulateKeyingMaterial(pKvsPeerConnection->pDtlsSession, pDtlsKeyingMaterial));
 
     MUTEX_LOCK(pKvsPeerConnection->pSrtpSessionLock);
     locked = TRUE;
 
-    CHK_STATUS(initSrtpSession(pKvsPeerConnection->dtlsIsServer ? dtlsKeyingMaterial.clientWriteKey : dtlsKeyingMaterial.serverWriteKey,
-                               pKvsPeerConnection->dtlsIsServer ? dtlsKeyingMaterial.serverWriteKey : dtlsKeyingMaterial.clientWriteKey,
-                               dtlsKeyingMaterial.srtpProfile, &(pKvsPeerConnection->pSrtpSession)));
+    CHK_STATUS(initSrtpSession(pKvsPeerConnection->dtlsIsServer ? pDtlsKeyingMaterial->clientWriteKey : pDtlsKeyingMaterial->serverWriteKey,
+                               pKvsPeerConnection->dtlsIsServer ? pDtlsKeyingMaterial->serverWriteKey : pDtlsKeyingMaterial->clientWriteKey,
+                               pDtlsKeyingMaterial->srtpProfile, &(pKvsPeerConnection->pSrtpSession)));
 
 CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pKvsPeerConnection->pSrtpSessionLock);
     }
+
+    SAFE_MEMFREE(pDtlsKeyingMaterial);
 
     if (STATUS_FAILED(retStatus)) {
         DLOGW("dtlsSessionPopulateKeyingMaterial failed with 0x%08x", retStatus);
