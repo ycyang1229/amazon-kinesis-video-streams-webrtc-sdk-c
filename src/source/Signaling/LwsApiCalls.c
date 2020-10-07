@@ -34,7 +34,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
     PSignalingClient pSignalingClient = NULL;
     BOOL locked = FALSE;
 
-    DLOGV("HTTPS callback with reason %d", reason);
+    //DLOGV("HTTPS callback with reason %d", reason);
 
     // Early check before accessing the custom data field to see if we are interested in processing the message
     switch (reason) {
@@ -251,7 +251,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
     SIZE_T offset, bufferSize;
     BOOL connected, locked = FALSE;
 
-    DLOGV("WSS callback with reason %d", reason);
+    //DLOGV("WSS callback with reason %d", reason);
 
     // Early check before accessing custom field to see if we are interested in the message
     switch (reason) {
@@ -381,7 +381,8 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
             break;
 
         case LWS_CALLBACK_CLIENT_RECEIVE:
-            DLOGD("Client receive %.*s", dataSize, (PCHAR) pDataIn);
+            //DLOGD("Client receive %.*s", dataSize, (PCHAR) pDataIn);
+            DLOGD("Client receive %d", dataSize);
 
             // Check if it's a binary data
             CHK(!lws_frame_is_binary(wsi), STATUS_SIGNALING_RECEIVE_BINARY_DATA_NOT_SUPPORTED);
@@ -1939,10 +1940,11 @@ PVOID receiveLwsMessageWrapper(PVOID args)
         
     }
 CleanUp:
+    DLOGD("pthread exit");
     CHK_LOG_ERR(retStatus);
 
     SAFE_MEMFREE(pSignalingMessageWrapper);
-    DLOGD("pthread exit");
+    
     pthread_exit(NULL);
     return (PVOID)(ULONG_PTR) retStatus;
 }
