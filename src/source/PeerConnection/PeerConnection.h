@@ -92,8 +92,9 @@ typedef struct {
     PHashTable pDataChannels;//!< stores the information of data channel. streamid, channel name...etc.
 
     UINT64 onDataChannelCustomData;
+#ifdef ENABLE_DATA_CHANNEL
     RtcOnDataChannel onDataChannel;//!< the callback of data channel for the external interface of the peer connection.
-
+#endif
     UINT64 onIceCandidateCustomData;
     /** https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-onicecandidate */
     RtcOnIceCandidate onIceCandidate;

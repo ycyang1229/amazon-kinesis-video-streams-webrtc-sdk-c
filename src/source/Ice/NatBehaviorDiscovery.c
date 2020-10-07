@@ -393,5 +393,5 @@ PCHAR getNatBehaviorStr(NAT_BEHAVIOR natBehavior)
         case NAT_BEHAVIOR_PORT_DEPENDENT:
             return NAT_BEHAVIOR_PORT_DEPENDENT_STR;
     }
-    return NULL;
+    return NAT_BEHAVIOR_UNKNOWN;
 }

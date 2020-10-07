@@ -10,11 +10,11 @@ static volatile ATOMIC_BOOL gKvsWebRtcInitialized = (SIZE_T) FALSE;
 */
 STATUS allocateSrtp(PKvsPeerConnection pKvsPeerConnection)
 {
-    /** #memory. */
-    PDtlsKeyingMaterial pDtlsKeyingMaterial = MEMALLOC(sizeof(DtlsKeyingMaterial));
+    PDtlsKeyingMaterial pDtlsKeyingMaterial = NULL;
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
+    CHK(NULL != (pDtlsKeyingMaterial = (PDtlsKeyingMaterial) MEMALLOC(SIZEOF(DtlsKeyingMaterial))), STATUS_NOT_ENOUGH_MEMORY);
     MEMSET(pDtlsKeyingMaterial, 0, SIZEOF(DtlsKeyingMaterial));
 
     CHK(pKvsPeerConnection != NULL, STATUS_SUCCESS);
@@ -33,10 +33,11 @@ CleanUp:
         MUTEX_UNLOCK(pKvsPeerConnection->pSrtpSessionLock);
     }
 
+    SAFE_MEMFREE(pDtlsKeyingMaterial);
+
     if (STATUS_FAILED(retStatus)) {
         DLOGW("dtlsSessionPopulateKeyingMaterial failed with 0x%08x", retStatus);
     }
-    MEMFREE(pDtlsKeyingMaterial);
 
     return retStatus;
 }
@@ -156,9 +157,9 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
         dtlsSessionProcessPacket(pKvsPeerConnection->pDtlsSession, buff, &signedBuffLen);
 
         if (signedBuffLen > 0) {
-            #ifdef ENABLE_DATA_CHANNEL
+#ifdef ENABLE_DATA_CHANNEL
             CHK_STATUS(putSctpPacket(pKvsPeerConnection->pSctpSession, buff, signedBuffLen));
-            #endif
+#endif
         }
 
         CHK_STATUS(dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &isDtlsConnected));
@@ -842,11 +843,11 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
         timerQueueShutdown(pKvsPeerConnection->timerQueueHandle);
     }
 
-    /* Free structs that have their own thread. SCTP has threads created by SCTP library. IceAgent has the
-     * connectionListener thread. Free SCTP first so it wont try to send anything through ICE. */
-    #ifdef ENABLE_DATA_CHANNEL
+/* Free structs that have their own thread. SCTP has threads created by SCTP library. IceAgent has the
+ * connectionListener thread. Free SCTP first so it wont try to send anything through ICE. */
+#ifdef ENABLE_DATA_CHANNEL
     CHK_LOG_ERR(freeSctpSession(&pKvsPeerConnection->pSctpSession));
-    #endif
+#endif
     CHK_LOG_ERR(freeIceAgent(&pKvsPeerConnection->pIceAgent));
 
     #if (ENABLE_STREAMING)
@@ -860,11 +861,11 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     }
     #endif
 
-    #ifdef ENABLE_DATA_CHANNEL
+#ifdef ENABLE_DATA_CHANNEL
     // Free DataChannels
     CHK_LOG_ERR(hashTableIterateEntries(pKvsPeerConnection->pDataChannels, 0, freeHashEntry));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pDataChannels));
-    #endif
+#endif
 
     // free rest of structs
     #if (ENABLE_STREAMING)
@@ -935,15 +936,7 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-/**
- * Set a callback for the notification of opening data channel
- *
- * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
- * @param[in] UINT64 User customData that will be passed along when RtcOnDataChannel is called
- * @param[in] RtcOnDataChannel User RtcOnDataChannel callback
- *
- * @return STATUS code of the execution. STATUS_SUCCESS on success
- */
+#ifdef ENABLE_DATA_CHANNEL
 STATUS peerConnectionOnDataChannel(PRtcPeerConnection pRtcPeerConnection, UINT64 customData, RtcOnDataChannel rtcOnDataChannel)
 {
     ENTERS();
@@ -968,6 +961,7 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+#endif
 
 STATUS peerConnectionOnConnectionStateChange(PRtcPeerConnection pRtcPeerConnection,
                                              UINT64 customData,
@@ -1205,7 +1199,9 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
     pSessionDescriptionInit->type = SDP_TYPE_OFFER;
     pKvsPeerConnection->isOffer = TRUE;
 
+#ifdef ENABLE_DATA_CHANNEL
     pKvsPeerConnection->sctpIsEnabled = TRUE;
+#endif
     #if (ENABLE_STREAMING)
     CHK_STATUS(setPayloadTypesForOffer(pKvsPeerConnection->pCodecTable));
     #endif

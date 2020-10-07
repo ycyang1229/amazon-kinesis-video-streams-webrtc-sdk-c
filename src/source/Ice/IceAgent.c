@@ -420,7 +420,6 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
                 CHK_STATUS(STRTOUI32(curr, curr + tokenLen, 10, &portValue));
                 candidateIpAddr.port = htons(portValue);
                 foundPort = TRUE;
-                CHK(foundPort, STATUS_ICE_CANDIDATE_STRING_MISSING_PORT);
                 break;
             default:
                 DLOGW("supposedly does not happen.");
@@ -429,6 +428,9 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
         state++;
         curr = next + 1;
     }
+
+    CHK(foundPort, STATUS_ICE_CANDIDATE_STRING_MISSING_PORT);
+    CHK(foundIp, STATUS_ICE_CANDIDATE_STRING_MISSING_IP);
 
     CHK_STATUS(findCandidateWithIp(&candidateIpAddr, pIceAgent->remoteCandidates, &pDuplicatedIceCandidate));
     /** if it is one duplicate ice candidate, we do not do anything. */
@@ -2961,7 +2963,7 @@ PCHAR iceAgentGetCandidateTypeStr(ICE_CANDIDATE_TYPE candidateType)
         case ICE_CANDIDATE_TYPE_RELAYED:
             return SDP_CANDIDATE_TYPE_RELAY;
     }
-    return NULL;
+    return SDP_CANDIDATE_TYPE_UNKNOWN;
 }
 
 UINT64 iceAgentGetCurrentTime(UINT64 customData)

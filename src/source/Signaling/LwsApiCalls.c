@@ -606,7 +606,7 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(NULL != (pUrl = (PCHAR) MEMALLOC(MAX_URI_CHAR_LEN + 1)), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pParamsJson = (PCHAR) MEMALLOC(MAX_JSON_PARAMETER_STRING_LEN)), STATUS_NOT_ENOUGH_MEMORY);
-    CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT*SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT * SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
 
     // Create the API url
     STRCPY(pUrl, pSignalingClient->pChannelInfo->pControlPlaneUrl);
@@ -720,7 +720,7 @@ CleanUp:
     SAFE_MEMFREE(pUrl);
     SAFE_MEMFREE(pParamsJson);
     SAFE_MEMFREE(pTokens);
-    
+
     LEAVES();
     return retStatus;
 }
@@ -747,7 +747,7 @@ STATUS createChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK(NULL != (pUrl = (PCHAR) MEMALLOC(MAX_URI_CHAR_LEN + 1)), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pParamsJson = (PCHAR) MEMALLOC(MAX_JSON_PARAMETER_STRING_LEN)), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pTtagsJson = (PCHAR) MEMALLOC(2 * MAX_JSON_PARAMETER_STRING_LEN)), STATUS_NOT_ENOUGH_MEMORY);
-    CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT*SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT * SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
 
     // Create the API url
     STRCPY(pUrl, pSignalingClient->pChannelInfo->pControlPlaneUrl);

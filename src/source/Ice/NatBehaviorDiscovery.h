@@ -17,6 +17,7 @@ extern "C" {
 #define NAT_BEHAVIOR_ENDPOINT_INDEPENDENT_STR (PCHAR) "ENDPOINT_INDEPENDENT"
 #define NAT_BEHAVIOR_ADDRESS_DEPENDENT_STR    (PCHAR) "ADDRESS_DEPENDENT"
 #define NAT_BEHAVIOR_PORT_DEPENDENT_STR       (PCHAR) "PORT_DEPENDENT"
+#define NAT_BEHAVIOR_UNKNOWN                  (PCHAR) "UNKNOWN"
 
 typedef struct {
     /* Should be able to contain max number of binding response we can get */

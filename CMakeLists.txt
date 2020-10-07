@@ -16,6 +16,7 @@ option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" O
 option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platform" OFF)
 option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
 option(BUILD_SAMPLE "Build available samples" OFF)
+option(ENABLE_DATA_CHANNEL "Enable support for data channel" OFF)
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -30,20 +31,22 @@ option(KVS_PLAT_FREERTOS "Build for FreeRTOS" ON)
 option(BUILD_CLIENT "Build with UndefinedBehaviorSanitizer." ON)
 option(BUILD_SIGNALING_CLIENT "Build with UndefinedBehaviorSanitizer." ON)
 option(ENABLE_STREAMING "Enable support for streaming" ON)
-option(ENABLE_DATA_CHANNEL "Enable support for data channel" OFF)
 
-CHECK_INCLUDE_FILES(netinet/tcp.h   KVCWEBRTC_HAVE_NETINET_TCP_H)
-
-CHECK_INCLUDE_FILES(ifaddrs.h       KVCWEBRTC_HAVE_IFADDRS_H)
-if(KVCWEBRTC_HAVE_IFADDRS_H)
-add_definitions(-DKVCWEBRTC_HAVE_IFADDRS_H)
+if(NOT WIN32)
+CHECK_INCLUDE_FILES(ifaddrs.h       KVSWEBRTC_HAVE_IFADDRS_H)
+if(KVSWEBRTC_HAVE_IFADDRS_H)
+add_definitions(-DKVSWEBRTC_HAVE_IFADDRS_H)
+endif()
+CHECK_FUNCTION_EXISTS(getifaddrs    KVSWEBRTC_HAVE_GETIFADDRS)
+if(KVSWEBRTC_HAVE_GETIFADDRS)
+add_definitions(-DKVSWEBRTC_HAVE_GETIFADDRS)
 endif()
 
-CHECK_FUNCTION_EXISTS(getifaddrs    KVCWEBRTC_HAVE_GETIFADDRS)
-if(KVCWEBRTC_HAVE_GETIFADDRS)
-add_definitions(-DKVCWEBRTC_HAVE_GETIFADDRS)
+CHECK_INCLUDE_FILES(netinet/tcp.h   KVSWEBRTC_HAVE_NETINET_TCP_H)
+if(KVSWEBRTC_HAVE_NETINET_TCP_H)
+add_definitions(-DKVSWEBRTC_HAVE_NETINET_TCP_H)
 endif()
-
+endif()
 
 set(CMAKE_MACOSX_RPATH TRUE)
 get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)

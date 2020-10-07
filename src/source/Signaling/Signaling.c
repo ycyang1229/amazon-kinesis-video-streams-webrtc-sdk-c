@@ -764,9 +764,7 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief get the message according to the correlation id and sender client id.
- * 
- * 
+ * @brief get the message according to the correlation id and sender client id. 
 */
 STATUS signalingGetOngoingMessage(PSignalingClient pSignalingClient, PCHAR correlationId, PCHAR peerClientId, PSignalingMessage* ppSignalingMessage)
 {

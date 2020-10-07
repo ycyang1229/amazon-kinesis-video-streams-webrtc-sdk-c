@@ -3,7 +3,7 @@
 #include "jsmn.h"
 
 #define VIDEO_SUPPPORT_TYPE(codec) (codec == RTC_CODEC_VP8 || codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE)
-#define AUDIO_SUPPORT_TYPE(codec) (codec == RTC_CODEC_MULAW || codec == RTC_CODEC_ALAW || codec == RTC_CODEC_OPUS)
+#define AUDIO_SUPPORT_TYPE(codec)  (codec == RTC_CODEC_MULAW || codec == RTC_CODEC_ALAW || codec == RTC_CODEC_OPUS)
 
 
 /**
@@ -886,8 +886,7 @@ STATUS deserializeRtcIceCandidateInit(PCHAR pJson, UINT32 jsonLen, PRtcIceCandid
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    //jsmntok_t tokens[MAX_JSON_TOKEN_COUNT];
-    jsmntok_t* tokens = MEMALLOC(MAX_JSON_TOKEN_COUNT*sizeof(jsmntok_t));
+    jsmntok_t* pTokens = NULL;
     jsmn_parser parser;
     INT8 i;
     INT32 tokenCount;
@@ -895,19 +894,17 @@ STATUS deserializeRtcIceCandidateInit(PCHAR pJson, UINT32 jsonLen, PRtcIceCandid
     CHK(pRtcIceCandidateInit != NULL && pJson != NULL, STATUS_SDP_ICE_CANDIDATE_NULL_ARG);
     MEMSET(pRtcIceCandidateInit->candidate, 0x00, MAX_ICE_CANDIDATE_INIT_CANDIDATE_LEN + 1);
 
+    CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT * SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
+
     jsmn_init(&parser);
-    /**
-     * {"candidate":"candidate:0 1 udp 2130706431 192.168.193.201 50271 typ host raddr 0.0.0.0 rport 0 generation 0 network-cost 999",
-     *  "sdpMid":"0",
-     *  "sdpMLineIndex":0}
-    */
-    tokenCount = jsmn_parse(&parser, pJson, jsonLen, tokens, MAX_JSON_TOKEN_COUNT*sizeof(jsmntok_t));
+
+    tokenCount = jsmn_parse(&parser, pJson, jsonLen, pTokens, MAX_JSON_TOKEN_COUNT);
     CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
-    CHK(tokens[0].type == JSMN_OBJECT, STATUS_ICE_CANDIDATE_INIT_MALFORMED);
+    CHK(pTokens[0].type == JSMN_OBJECT, STATUS_ICE_CANDIDATE_INIT_MALFORMED);
 
     for (i = 1; i < (tokenCount - 1); i += 2) {
-        if (STRNCMP(CANDIDATE_KEY, pJson + tokens[i].start, ARRAY_SIZE(CANDIDATE_KEY) - 1) == 0) {
-            STRNCPY(pRtcIceCandidateInit->candidate, pJson + tokens[i + 1].start, (tokens[i + 1].end - tokens[i + 1].start));
+        if (STRNCMP(CANDIDATE_KEY, pJson + pTokens[i].start, ARRAY_SIZE(CANDIDATE_KEY) - 1) == 0) {
+            STRNCPY(pRtcIceCandidateInit->candidate, pJson + pTokens[i + 1].start, (pTokens[i + 1].end - pTokens[i + 1].start));
         }
     }
 
@@ -915,6 +912,7 @@ STATUS deserializeRtcIceCandidateInit(PCHAR pJson, UINT32 jsonLen, PRtcIceCandid
 
 CleanUp:
 
+    SAFE_MEMFREE(pTokens);
     LEAVES();
     return retStatus;
 }

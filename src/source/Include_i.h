@@ -60,7 +60,7 @@ extern "C" {
 #if !defined __WINDOWS_BUILD__
 #include <signal.h>
 #include <sys/types.h>
-#ifdef KVCWEBRTC_HAVE_IFADDRS_H
+#ifdef KVSWEBRTC_HAVE_IFADDRS_H
 #include <ifaddrs.h>
 #else
 //#error "need to add the network interface."
@@ -71,7 +71,7 @@ extern "C" {
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
-#ifdef KVCWEBRTC_HAVE_NETINET_TCP_H
+#ifdef KVSWEBRTC_HAVE_NETINET_TCP_H
 #include <netinet/tcp.h>
 #endif
 #endif

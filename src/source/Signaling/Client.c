@@ -11,16 +11,18 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo,
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = NULL;
-    PSignalingClientInfoInternal signalingClientInfoInternal = MEMALLOC(sizeof(SignalingClientInfoInternal));
+    PSignalingClientInfoInternal pSignalingClientInfoInternal = NULL;
 
     DLOGI("Creating Signaling Client Sync");
     CHK(pSignalingHandle != NULL && pClientInfo != NULL, STATUS_NULL_ARG);
+    CHK(NULL != (pSignalingClientInfoInternal = (PSignalingClientInfoInternal) MEMALLOC(SIZEOF(SignalingClientInfoInternal))),
+        STATUS_NOT_ENOUGH_MEMORY);
 
     // Convert the client info to the internal structure with empty values
-    MEMSET(signalingClientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
-    signalingClientInfoInternal->signalingClientInfo = *pClientInfo;
+    MEMSET(pSignalingClientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
+    pSignalingClientInfoInternal->signalingClientInfo = *pClientInfo;
 
-    CHK_STATUS(createSignalingSync(signalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient));
+    CHK_STATUS(createSignalingSync(pSignalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient));
 
     *pSignalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
 
@@ -29,7 +31,7 @@ CleanUp:
     if (STATUS_FAILED(retStatus)) {
         freeSignaling(&pSignalingClient);
     }
-    MEMFREE(signalingClientInfoInternal);
+    SAFE_MEMFREE(pSignalingClientInfoInternal);
     LEAVES();
     return retStatus;
 }
