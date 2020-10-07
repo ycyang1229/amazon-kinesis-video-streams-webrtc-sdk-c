@@ -67,13 +67,8 @@ CleanUp:
     return retStatus;
 }
 
-STATUS serializeStunPacket(PStunPacket pStunPacket,
-                           PBYTE password,
-                           UINT32 passwordLen,
-                           BOOL generateMessageIntegrity,
-                           BOOL generateFingerprint,
-                           PBYTE pBuffer,
-                           PUINT32 pSize)
+STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen, BOOL generateMessageIntegrity, BOOL generateFingerprint,
+                           PBYTE pBuffer, PUINT32 pSize)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;

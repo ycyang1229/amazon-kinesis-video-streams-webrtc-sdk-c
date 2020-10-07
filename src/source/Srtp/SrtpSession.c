@@ -2,7 +2,7 @@
 #include "../Include_i.h"
 
 
-#if (ENABLE_STREAMING)
+#ifdef ENABLE_STREAMING
 /**
  * the initialization of srtp. 
  * 

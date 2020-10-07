@@ -74,7 +74,7 @@ STATUS getTransportStats(PRtcPeerConnection pRtcPeerConnection, PRtcTransportSta
 CleanUp:
     return retStatus;
 }
-#if (ENABLE_STREAMING)
+#ifdef ENABLE_STREAMING
 STATUS getRtpRemoteInboundStats(PRtcPeerConnection pRtcPeerConnection, PRtcRtpTransceiver pTransceiver,
                                 PRtcRemoteInboundRtpStreamStats pRtcRemoteInboundRtpStreamStats)
 {
@@ -160,7 +160,7 @@ STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection pRtcPeerConnection, PRtcRt
         case RTC_STATS_TYPE_TRANSPORT:
             CHK_STATUS(getTransportStats(pRtcPeerConnection, &pRtcMetrics->rtcStatsObject.transportStats));
             break;
-        #if (ENABLE_STREAMING)
+        #ifdef ENABLE_STREAMING
         case RTC_STATS_TYPE_REMOTE_INBOUND_RTP:
             CHK_STATUS(getRtpRemoteInboundStats(pRtcPeerConnection, pRtcRtpTransceiver, &pRtcMetrics->rtcStatsObject.remoteInboundRtpStreamStats));
             break;

@@ -4,7 +4,7 @@
 
 static volatile ATOMIC_BOOL gKvsWebRtcInitialized = (SIZE_T) FALSE;
 
-#if (ENABLE_STREAMING)
+#ifdef ENABLE_STREAMING
 /**
  * the initialization of srtp, after dtls session is done and receiving the srtp packets.
 */
@@ -164,7 +164,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 
         CHK_STATUS(dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &isDtlsConnected));
         if (isDtlsConnected) {
-            #if (ENABLE_STREAMING)
+            #ifdef ENABLE_STREAMING
             if (pKvsPeerConnection->pSrtpSession == NULL) {
                 CHK_STATUS(allocateSrtp(pKvsPeerConnection));
             }
@@ -178,7 +178,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
         }
 
     } else if ((buff[0] > 127 && buff[0] < 192) && (pKvsPeerConnection->pSrtpSession != NULL)) {
-        #if (ENABLE_STREAMING)
+        #ifdef ENABLE_STREAMING
         if (buff[1] >= 192 && buff[1] <= 223) {
             if (STATUS_FAILED(retStatus = decryptSrtcpPacket(pKvsPeerConnection->pSrtpSession, buff, &signedBuffLen))) {
                 DLOGW("decryptSrtcpPacket failed with 0x%08x", retStatus);
@@ -197,7 +197,7 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
 }
 
-#if (ENABLE_STREAMING)
+#ifdef ENABLE_STREAMING
 STATUS sendPacketToRtpReceiver(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuffer, UINT32 bufferLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -326,7 +326,7 @@ CleanUp:
     return retStatus;
 }
 
-#if (ENABLE_STREAMING)
+#ifdef ENABLE_STREAMING
 STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, UINT32 frameSize)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -621,7 +621,7 @@ CleanUp:
     return retStatus;
 }
 
-#if (ENABLE_STREAMING)
+#ifdef ENABLE_STREAMING
 /**
  * @brief the callback of one peridic timer. It trigger itself periodically.
  *        Send the Sender Report RTCP Packet periodically after waiting for 2.5secs.
@@ -850,7 +850,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 #endif
     CHK_LOG_ERR(freeIceAgent(&pKvsPeerConnection->pIceAgent));
 
-    #if (ENABLE_STREAMING)
+    #ifdef ENABLE_STREAMING
     // free transceivers
     CHK_LOG_ERR(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
     while (pCurNode != NULL) {
@@ -868,13 +868,13 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 #endif
 
     // free rest of structs
-    #if (ENABLE_STREAMING)
+    #ifdef ENABLE_STREAMING
     CHK_LOG_ERR(freeSrtpSession(&pKvsPeerConnection->pSrtpSession));
     #endif
 
     CHK_LOG_ERR(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
 
-    #if (ENABLE_STREAMING)
+    #ifdef ENABLE_STREAMING
     CHK_LOG_ERR(doubleListFree(pKvsPeerConnection->pTransceievers));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pCodecTable));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pRtxTable));
@@ -1153,14 +1153,14 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
                                   pKvsPeerConnection->remoteIceUfrag,
                                   pKvsPeerConnection->remoteIcePwd,
                                   pKvsPeerConnection->isOffer));
-    #if (ENABLE_STREAMING)
+    #ifdef ENABLE_STREAMING
     if (!pKvsPeerConnection->isOffer) {
         CHK_STATUS(setPayloadTypesFromOffer(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pSessionDescription));
     }
     CHK_STATUS(setTransceiverPayloadTypes(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pKvsPeerConnection->pTransceievers));
     CHK_STATUS(setReceiversSsrc(pSessionDescription, pKvsPeerConnection->pTransceievers));
     #endif
-    #if 0
+    #ifdef KVSWEBRTC_HAVE_GETENV
     if (NULL != getenv(DEBUG_LOG_SDP)) 
     {
         DLOGD("REMOTE_SDP:%s\n", pSessionDescriptionInit->sdp);
@@ -1202,7 +1202,7 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
 #ifdef ENABLE_DATA_CHANNEL
     pKvsPeerConnection->sctpIsEnabled = TRUE;
 #endif
-    #if (ENABLE_STREAMING)
+    #ifdef ENABLE_STREAMING
     CHK_STATUS(setPayloadTypesForOffer(pKvsPeerConnection->pCodecTable));
     #endif
 
@@ -1270,7 +1270,7 @@ STATUS setLocalDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescri
     CHK(pKvsPeerConnection != NULL && pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
 
     CHK_STATUS(iceAgentStartGathering(pKvsPeerConnection->pIceAgent));
-    #if 0
+    #ifdef KVSWEBRTC_HAVE_GETENV
     if (NULL != getenv(DEBUG_LOG_SDP)) 
     {
         DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
@@ -1282,7 +1282,7 @@ CleanUp:
     return retStatus;
 }
 
-#if (ENABLE_STREAMING)
+#ifdef ENABLE_STREAMING
 /**
  * @brief Create a new RtcRtpTransceiver and add it to the set of transceivers.
  *
@@ -1511,7 +1511,7 @@ STATUS initKvsWebRtc(VOID)
 
     SRAND(GETTIME());
 
-    #if (ENABLE_STREAMING)
+    #ifdef ENABLE_STREAMING
     CHK(srtp_init() == srtp_err_status_ok, STATUS_SRTP_INIT_FAILED);
     #endif
 
@@ -1541,7 +1541,7 @@ STATUS deinitKvsWebRtc(VOID)
 #ifdef ENABLE_DATA_CHANNEL
     deinitSctpSession();
 #endif
-    #if (ENABLE_STREAMING)
+    #ifdef ENABLE_STREAMING
     srtp_shutdown();
     #endif
 

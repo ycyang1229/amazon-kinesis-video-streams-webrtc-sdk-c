@@ -633,7 +633,11 @@ STATUS lookForSslCert(PSampleConfiguration* ppSampleConfiguration)
     PSampleConfiguration pSampleConfiguration = *ppSampleConfiguration;
 
     MEMSET(certName, 0x0, ARRAY_SIZE(certName));
+    #ifdef KVSWEBRTC_HAVE_GETENV
     pSampleConfiguration->pCaCertPath = getenv(CACERT_PATH_ENV_VAR);
+    #else
+    pSampleConfiguration->pCaCertPath = NULL;
+    #endif
 
     // if ca cert path is not set from the environment, try to use the one that cmake detected
     if (pSampleConfiguration->pCaCertPath == NULL) {

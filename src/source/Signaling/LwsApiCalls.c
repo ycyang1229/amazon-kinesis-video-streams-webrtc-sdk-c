@@ -34,7 +34,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
     PSignalingClient pSignalingClient = NULL;
     BOOL locked = FALSE;
 
-    //DLOGV("HTTPS callback with reason %d", reason);
+    DLOGV("HTTPS callback with reason %d", reason);
 
     // Early check before accessing the custom data field to see if we are interested in processing the message
     switch (reason) {
@@ -251,7 +251,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
     SIZE_T offset, bufferSize;
     BOOL connected, locked = FALSE;
 
-    //DLOGV("WSS callback with reason %d", reason);
+    DLOGV("WSS callback with reason %d", reason);
 
     // Early check before accessing custom field to see if we are interested in the message
     switch (reason) {
@@ -271,13 +271,10 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
 
     lws_set_log_level(LLL_NOTICE | LLL_INFO | LLL_WARN | LLL_ERR, NULL);
 
-    CHK(pLwsCallInfo != NULL && 
-        pLwsCallInfo->pSignalingClient != NULL && 
-        pLwsCallInfo->pSignalingClient->pOngoingCallInfo != NULL &&
-        pLwsCallInfo->pSignalingClient->pLwsContext != NULL && 
-        pLwsCallInfo->pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL &&
-        pLwsCallInfo->protocolIndex == PROTOCOL_INDEX_WSS, retStatus);
-
+    CHK(pLwsCallInfo != NULL && pLwsCallInfo->pSignalingClient != NULL && pLwsCallInfo->pSignalingClient->pOngoingCallInfo != NULL &&
+            pLwsCallInfo->pSignalingClient->pLwsContext != NULL && pLwsCallInfo->pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL &&
+            pLwsCallInfo->protocolIndex == PROTOCOL_INDEX_WSS,
+        retStatus);
     pSignalingClient = pLwsCallInfo->pSignalingClient;
     pLwsCallInfo = pSignalingClient->pOngoingCallInfo;
     pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
@@ -400,8 +397,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
 
             // Flush on last
             if (lws_is_final_fragment(wsi)) {
-                CHK_STATUS(receiveLwsMessage(pLwsCallInfo->pSignalingClient, 
-                                             (PCHAR) &pLwsCallInfo->receiveBuffer[LWS_PRE],
+                CHK_STATUS(receiveLwsMessage(pLwsCallInfo->pSignalingClient, (PCHAR) &pLwsCallInfo->receiveBuffer[LWS_PRE],
                                              pLwsCallInfo->receiveBufferSize / SIZEOF(CHAR)));
             }
 
@@ -450,7 +446,6 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
             break;
 
         default:
-            DLOGE("supposedly this will not happen.");
             break;
     }
 
@@ -559,13 +554,10 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     MUTEX_UNLOCK(pCallInfo->pSignalingClient->lwsServiceLock);
     locked = FALSE;
 
-    while (retVal >= 0 && 
-           !gInterruptedFlagBySignalHandler && 
-           pCallInfo->callInfo.pRequestInfo != NULL &&
+    while (retVal >= 0 && !gInterruptedFlagBySignalHandler && pCallInfo->callInfo.pRequestInfo != NULL &&
            !ATOMIC_LOAD_BOOL(&pCallInfo->callInfo.pRequestInfo->terminating)) {
-
         if (!MUTEX_TRYLOCK(pCallInfo->pSignalingClient->lwsSerializerLock)) {
-            THREAD_SLEEP(LWS_SERVICE_LOOP_ITERATION_WAIT);///< 50ms
+            THREAD_SLEEP(LWS_SERVICE_LOOP_ITERATION_WAIT);
         } else {
             retVal = lws_service(pContext, 0);
             MUTEX_UNLOCK(pCallInfo->pSignalingClient->lwsSerializerLock);
@@ -618,19 +610,10 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
     // Create the request info with the body
     /** #YC_TBD, this should be better. */
-    CHK_STATUS(createRequestInfo(pUrl, 
-                                 pParamsJson, 
-                                 pSignalingClient->pChannelInfo->pRegion, 
-                                 pSignalingClient->pChannelInfo->pCertPath, 
-                                 NULL, NULL,
-                                 SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, 
-                                 pSignalingClient->pChannelInfo->pUserAgent,
-                                 SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, 
-                                 SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
-                                 DEFAULT_LOW_SPEED_LIMIT, 
-                                 DEFAULT_LOW_SPEED_TIME_LIMIT, 
-                                 pSignalingClient->pAwsCredentials,
-                                 &pRequestInfo));
+    CHK_STATUS(createRequestInfo(pUrl, pParamsJson, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
+                                 SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
+                                 SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
+                                 DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
 
     CHK_STATUS(createLwsCallInfo(pSignalingClient, pRequestInfo, PROTOCOL_INDEX_HTTPS, &pLwsCallInfo));
 
@@ -848,7 +831,7 @@ STATUS getChannelEndpointLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(NULL != (pUrl = (PCHAR) MEMALLOC(MAX_URI_CHAR_LEN + 1)), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pParamsJson = (PCHAR) MEMALLOC(MAX_JSON_PARAMETER_STRING_LEN)), STATUS_NOT_ENOUGH_MEMORY);
-    CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT*SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT * SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
 
     // Create the API url
     STRCPY(pUrl, pSignalingClient->pChannelInfo->pControlPlaneUrl);
@@ -982,7 +965,7 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
 
     CHK(NULL != (pUrl = (PCHAR) MEMALLOC(MAX_URI_CHAR_LEN + 1)), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pParamsJson = (PCHAR) MEMALLOC(MAX_JSON_PARAMETER_STRING_LEN)), STATUS_NOT_ENOUGH_MEMORY);
-    CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT*SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT * SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
 
     // Update the diagnostics info on the number of ICE refresh calls
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.iceRefreshCount);
@@ -1104,8 +1087,7 @@ STATUS deleteChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     CHK(NULL != (pParamsJson = (PCHAR) MEMALLOC(MAX_JSON_PARAMETER_STRING_LEN)), STATUS_NOT_ENOUGH_MEMORY);
 
     // Check if we need to terminate the ongoing listener
-    if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) && 
-        pSignalingClient->pOngoingCallInfo != NULL &&
+    if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) && pSignalingClient->pOngoingCallInfo != NULL &&
         pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL) {
         terminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_OK);
     }
@@ -1222,32 +1204,18 @@ STATUS connectSignalingChannelLws(PSignalingClient pSignalingClient, UINT64 time
     // Prepare the json params for the call
     if (pSignalingClient->pChannelInfo->channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER) {
         SNPRINTF(pUrl, (MAX_URI_CHAR_LEN + 1), SIGNALING_ENDPOINT_VIEWER_URL_WSS_TEMPLATE, pSignalingClient->channelEndpointWss,
-                                                                                          SIGNALING_CHANNEL_ARN_PARAM_NAME,
-                                                                                          pSignalingClient->channelDescription.channelArn,
-                                                                                          SIGNALING_CLIENT_ID_PARAM_NAME,
-                                                                                          pSignalingClient->clientInfo.signalingClientInfo.clientId);
+                 SIGNALING_CHANNEL_ARN_PARAM_NAME, pSignalingClient->channelDescription.channelArn, SIGNALING_CLIENT_ID_PARAM_NAME,
+                 pSignalingClient->clientInfo.signalingClientInfo.clientId);
     } else {
         SNPRINTF(pUrl, (MAX_URI_CHAR_LEN + 1), SIGNALING_ENDPOINT_MASTER_URL_WSS_TEMPLATE, pSignalingClient->channelEndpointWss,
-                                                                                          SIGNALING_CHANNEL_ARN_PARAM_NAME,
-                                                                                          pSignalingClient->channelDescription.channelArn);
+                 SIGNALING_CHANNEL_ARN_PARAM_NAME, pSignalingClient->channelDescription.channelArn);
     }
 
     // Create the request info with the body
-    CHK_STATUS(createRequestInfo(pUrl,
-                                 NULL,
-                                 pSignalingClient->pChannelInfo->pRegion,
-                                 pSignalingClient->pChannelInfo->pCertPath,
-                                 NULL,
-                                 NULL,
-                                 SSL_CERTIFICATE_TYPE_NOT_SPECIFIED,
-                                 pSignalingClient->pChannelInfo->pUserAgent,
-                                 SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT,
-                                 SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
-                                 DEFAULT_LOW_SPEED_LIMIT,
-                                 DEFAULT_LOW_SPEED_TIME_LIMIT,
-                                 pSignalingClient->pAwsCredentials,
-                                 &pRequestInfo));
-
+    CHK_STATUS(createRequestInfo(pUrl, NULL, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
+                                 SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
+                                 SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
+                                 DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
     // Override the POST with GET
     pRequestInfo->verb = HTTP_REQUEST_VERB_GET;
 
@@ -1294,8 +1262,7 @@ CleanUp:
         SERVICE_CALL_RESULT serviceCallResult =
             (retStatus == STATUS_OPERATION_TIMED_OUT) ? SERVICE_CALL_NETWORK_CONNECTION_TIMEOUT : SERVICE_CALL_UNKNOWN;
         // Trigger termination
-        if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) && 
-            pSignalingClient->pOngoingCallInfo != NULL &&
+        if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) && pSignalingClient->pOngoingCallInfo != NULL &&
             pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL) {
             terminateConnectionWithStatus(pSignalingClient, serviceCallResult);
         }
@@ -1359,8 +1326,7 @@ CleanUp:
     if (locked) {
         MUTEX_UNLOCK(pSignalingClient->listenerTracker.lock);
     }
-    DLOGD("pthread exit");
-    pthread_exit(NULL);
+
     LEAVES();
     return (PVOID)(ULONG_PTR) retStatus;
 }
@@ -1461,23 +1427,12 @@ STATUS sendLwsMessage(PSignalingClient pSignalingClient,
 
     // Prepare json message
     if (correlationLen == 0) {
-        writtenSize = (UINT32) SNPRINTF((PCHAR)(pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE),
-                                        size,
-                                        SIGNALING_SEND_MESSAGE_TEMPLATE,
-                                        pMessageType,
-                                        MAX_SIGNALING_CLIENT_ID_LEN,
-                                        peerClientId,
-                                        pEncodedMessage);
+        writtenSize = (UINT32) SNPRINTF((PCHAR)(pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE), size, SIGNALING_SEND_MESSAGE_TEMPLATE,
+                                        pMessageType, MAX_SIGNALING_CLIENT_ID_LEN, peerClientId, pEncodedMessage);
     } else {
-        writtenSize = (UINT32) SNPRINTF((PCHAR)(pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE),
-                                        size,
-                                        SIGNALING_SEND_MESSAGE_TEMPLATE_WITH_CORRELATION_ID,
-                                        pMessageType,
-                                        MAX_SIGNALING_CLIENT_ID_LEN,
-                                        peerClientId,
-                                        pEncodedMessage,
-                                        correlationLen, 
-                                        pCorrelationId);
+        writtenSize = (UINT32) SNPRINTF((PCHAR)(pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE), size,
+                                        SIGNALING_SEND_MESSAGE_TEMPLATE_WITH_CORRELATION_ID, pMessageType, MAX_SIGNALING_CLIENT_ID_LEN, peerClientId,
+                                        pEncodedMessage, correlationLen, pCorrelationId);
     }
 
     // Validate against max
@@ -1602,7 +1557,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     PSignalingMessage pOngoingMessage;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-    CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT*SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT * SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
 
     // If we have a signalingMessage and if there is a correlation id specified then the response should be non-empty
     if (pMessage == NULL || messageLen == 0) {
