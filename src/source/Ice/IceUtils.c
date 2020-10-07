@@ -147,13 +147,15 @@ STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 pa
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 stunPacketSize = STUN_PACKET_ALLOCATION_SIZE;
-    BYTE stunPacketBuffer[STUN_PACKET_ALLOCATION_SIZE];
+    BYTE stunPacketBuffer = NULL;
+
+    CHK(NULL != (stunPacketBuffer = (BYTE) MEMALLOC(STUN_PACKET_ALLOCATION_SIZE)), STATUS_NOT_ENOUGH_MEMORY);
 
     CHK_STATUS(iceUtilsPackageStunPacket(pStunPacket, password, passwordLen, stunPacketBuffer, &stunPacketSize));
     CHK_STATUS(iceUtilsSendData(stunPacketBuffer, stunPacketSize, pDest, pSocketConnection, pTurnConnection, useTurn));
 
 CleanUp:
-
+    SAFE_MEMFREE(stunPacketBuffer);
     CHK_LOG_ERR(retStatus);
 
     return retStatus;
