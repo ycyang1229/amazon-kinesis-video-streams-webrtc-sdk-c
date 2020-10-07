@@ -302,28 +302,30 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     struct timeval tv;
     socklen_t addrLen = 0;
     struct sockaddr* destAddr = NULL;
-    struct sockaddr_in ipv4Addr;
-    struct sockaddr_in6 ipv6Addr;
+    struct sockaddr_in* pIpv4Addr = NULL;
+    struct sockaddr_in6* pIpv6Addr = NULL;
 
     CHK(pSocketConnection != NULL, STATUS_NULL_ARG);
     CHK(buf != NULL && bufLen > 0, STATUS_INVALID_ARG);
 
     if (pDestIp != NULL) {
         if (IS_IPV4_ADDR(pDestIp)) {
-            addrLen = SIZEOF(ipv4Addr);
-            MEMSET(&ipv4Addr, 0x00, SIZEOF(ipv4Addr));
-            ipv4Addr.sin_family = AF_INET;
-            ipv4Addr.sin_port = pDestIp->port;
-            MEMCPY(&ipv4Addr.sin_addr, pDestIp->address, IPV4_ADDRESS_LENGTH);
-            destAddr = (struct sockaddr*) &ipv4Addr;
+            CHK(NULL != (pIpv4Addr = (PCHAR) MEMALLOC(SIZEOF(struct sockaddr_in))), STATUS_NOT_ENOUGH_MEMORY);
+            addrLen = SIZEOF(struct sockaddr_in);
+            MEMSET(pIpv4Addr, 0x00, SIZEOF(struct sockaddr_in));
+            pIpv4Addr->sin_family = AF_INET;
+            pIpv4Addr->sin_port = pDestIp->port;
+            MEMCPY(&pIpv4Addr->sin_addr, pDestIp->address, IPV4_ADDRESS_LENGTH);
+            destAddr = (struct sockaddr*) pIpv4Addr;
 
         } else {
-            addrLen = SIZEOF(ipv6Addr);
-            MEMSET(&ipv6Addr, 0x00, SIZEOF(ipv6Addr));
-            ipv6Addr.sin6_family = AF_INET6;
-            ipv6Addr.sin6_port = pDestIp->port;
-            MEMCPY(&ipv6Addr.sin6_addr, pDestIp->address, IPV6_ADDRESS_LENGTH);
-            destAddr = (struct sockaddr*) &ipv6Addr;
+            CHK(NULL != (pIpv6Addr = (PCHAR) MEMALLOC(SIZEOF(struct sockaddr_in6))), STATUS_NOT_ENOUGH_MEMORY);
+            addrLen = SIZEOF(struct sockaddr_in6);
+            MEMSET(pIpv6Addr, 0x00, SIZEOF(struct sockaddr_in6));
+            pIpv6Addr->sin6_family = AF_INET6;
+            pIpv6Addr->sin6_port = pDestIp->port;
+            MEMCPY(&pIpv6Addr->sin6_addr, pDestIp->address, IPV6_ADDRESS_LENGTH);
+            destAddr = (struct sockaddr*) pIpv6Addr;
         }
     }
 
@@ -372,7 +374,8 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     }
 
 CleanUp:
-
+    SAFE_MEMFREE(pIpv4Addr);
+    SAFE_MEMFREE(pIpv6Addr);
     // CHK_LOG_ERR might be too verbose in this case
     if (STATUS_FAILED(retStatus)) {
         DLOGD("Warning: Send data failed with 0x%08x", retStatus);
