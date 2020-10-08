@@ -666,7 +666,6 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
         packetCount = pKvsRtpTransceiver->outboundStats.sent.packetsSent;
         octetCount = pKvsRtpTransceiver->outboundStats.sent.bytesSent;
         MUTEX_UNLOCK(pKvsRtpTransceiver->statsLock);
-
         DLOGV("sender report %u %" PRIu64 " %" PRIu64 " : %u packets %u bytes", ssrc, ntpTime, rtpTime, packetCount, octetCount);
         packetLen = RTCP_PACKET_HEADER_LEN + 24;
 
@@ -685,7 +684,6 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
         putUnalignedInt32BigEndian(rawPacket + 16, rtpTime);
         putUnalignedInt32BigEndian(rawPacket + 20, packetCount);
         putUnalignedInt32BigEndian(rawPacket + 24, octetCount);
-
         /** the encryption of rtcp packet. */
         CHK_STATUS(encryptRtcpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
         CHK_STATUS(iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen));
@@ -1161,8 +1159,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     CHK_STATUS(setReceiversSsrc(pSessionDescription, pKvsPeerConnection->pTransceievers));
     #endif
     #ifdef KVSWEBRTC_HAVE_GETENV
-    if (NULL != getenv(DEBUG_LOG_SDP)) 
-    {
+    if (NULL != getenv(DEBUG_LOG_SDP)) {
         DLOGD("REMOTE_SDP:%s\n", pSessionDescriptionInit->sdp);
     }
     #endif
@@ -1270,12 +1267,11 @@ STATUS setLocalDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescri
     CHK(pKvsPeerConnection != NULL && pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
 
     CHK_STATUS(iceAgentStartGathering(pKvsPeerConnection->pIceAgent));
-    #ifdef KVSWEBRTC_HAVE_GETENV
-    if (NULL != getenv(DEBUG_LOG_SDP)) 
-    {
+#ifdef KVSWEBRTC_HAVE_GETENV
+    if (NULL != getenv(DEBUG_LOG_SDP)) {
         DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
     }
-    #endif
+#endif
 CleanUp:
 
     LEAVES();

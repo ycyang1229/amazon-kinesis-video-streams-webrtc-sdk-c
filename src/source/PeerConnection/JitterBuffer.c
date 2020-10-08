@@ -1,8 +1,8 @@
+#ifdef ENABLE_STREAMING
 #define LOG_CLASS "JitterBuffer"
 
 #include "../Include_i.h"
 
-#ifdef ENABLE_STREAMING
 /**
  * @brief create the jitter buffer, setup the callback of frameready, framedrop, and depayRTPPayload.
  * 

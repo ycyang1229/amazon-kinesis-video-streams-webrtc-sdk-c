@@ -8,15 +8,17 @@ project(KinesisVideoWebRTCClient LANGUAGES C)
 
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
-option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" OFF)
+option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)
 option(USE_OPENSSL "Use openssl as crypto library" OFF)
 option(USE_MBEDTLS "Use mbedtls as crypto library" ON)
-option(BUILD_STATIC_LIBS "Build all libraries statically. (This includes third-party libraries.)" ON)
+option(BUILD_STATIC_LIBS "Build all libraries statically. (This includes third-party libraries.)" OFF)
 option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" OFF)
 option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platform" OFF)
 option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
-option(BUILD_SAMPLE "Build available samples" OFF)
-option(ENABLE_DATA_CHANNEL "Enable support for data channel" OFF)
+option(BUILD_SAMPLE "Build available samples" ON)
+option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)## withhout sample code. experimental option.
+option(ENABLE_STREAMING "Enable support for streaming" ON)## withhout sample code. experimental option.
+option(BUILD_CLIENT "Build client." ON)## withhout sample code. experimental option.
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -28,21 +30,18 @@ option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
 
 option(KVS_PLAT_FREERTOS "Build for FreeRTOS" ON)
-option(BUILD_CLIENT "Build with UndefinedBehaviorSanitizer." ON)
-option(BUILD_SIGNALING_CLIENT "Build with UndefinedBehaviorSanitizer." ON)
-option(ENABLE_STREAMING "Enable support for streaming" ON)
 
 if(NOT WIN32)
-CHECK_INCLUDE_FILES(ifaddrs.h       KVSWEBRTC_HAVE_IFADDRS_H)
+CHECK_INCLUDE_FILES(ifaddrs.h KVSWEBRTC_HAVE_IFADDRS_H)
 if(KVSWEBRTC_HAVE_IFADDRS_H)
   add_definitions(-DKVSWEBRTC_HAVE_IFADDRS_H)
 endif()
-CHECK_FUNCTION_EXISTS(getifaddrs    KVSWEBRTC_HAVE_GETIFADDRS)
+CHECK_FUNCTION_EXISTS(getifaddrs KVSWEBRTC_HAVE_GETIFADDRS)
 if(KVSWEBRTC_HAVE_GETIFADDRS)
   add_definitions(-DKVSWEBRTC_HAVE_GETIFADDRS)
 endif()
 
-CHECK_FUNCTION_EXISTS(getenv    KVSWEBRTC_HAVE_GETENV)
+CHECK_FUNCTION_EXISTS(getenv KVSWEBRTC_HAVE_GETENV)
 if(KVSWEBRTC_HAVE_GETENV)
   add_definitions(-DKVSWEBRTC_HAVE_GETENV)
 endif()
@@ -98,13 +97,13 @@ if(BUILD_DEPENDENCIES)
   endif()
 
   if (USE_OPENSSL)
-    set(BUILD_ARGS -DBUILD_STATIC=${BUILD_STATIC}
+    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                    -DBUILD_OPENSSL_PLATFORM=${BUILD_OPENSSL_PLATFORM}
                    -DOPENSSL_EXTRA=${OPENSSL_EXTRA})
     build_dependency(openssl ${BUILD_ARGS})
     set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
   elseif(USE_MBEDTLS)
-    set(BUILD_ARGS -DBUILD_STATIC=${BUILD_STATIC})
+    set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS})
     build_dependency(mbedtls ${BUILD_ARGS})
   endif()
 
@@ -113,17 +112,17 @@ if(BUILD_DEPENDENCIES)
                  -DUSE_OPENSSL=${USE_OPENSSL}
                  -DUSE_MBEDTLS=${USE_MBEDTLS})
   build_dependency(websockets ${BUILD_ARGS})
-
-  set(BUILD_ARGS
-      -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-      -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
-      -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM}
-      -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM}
-      -DUSE_OPENSSL=${USE_OPENSSL}
-      -DUSE_MBEDTLS=${USE_MBEDTLS}
-  )
-  build_dependency(srtp ${BUILD_ARGS})
-
+  if(ENABLE_STREAMING)
+    set(BUILD_ARGS
+        -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+        -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
+        -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM}
+        -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM}
+        -DUSE_OPENSSL=${USE_OPENSSL}
+        -DUSE_MBEDTLS=${USE_MBEDTLS}
+    )
+    build_dependency(srtp ${BUILD_ARGS})
+  endif()
   if(ENABLE_DATA_CHANNEL)
     build_dependency(usrsctp)
   endif()
@@ -167,14 +166,12 @@ endif()
 if (DEFINED MBEDTLS_INCLUDE_DIRS)
 include_directories(${MBEDTLS_INCLUDE_DIRS})
 endif()
-
-if(BUILD_CLIENT)
-add_definitions(-DBUILD_CLIENT)
-if (OPEN_SRC_INSTALL_PREFIX)
-  find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
-else()
-  #find_library(SRTP_LIBRARIES srtp2 REQUIRED )
-endif()
+if (ENABLE_STREAMING)
+  if (OPEN_SRC_INSTALL_PREFIX)
+    find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
+  else()
+    #find_library(SRTP_LIBRARIES srtp2 REQUIRED )
+  endif()
 endif()
 
 if (WIN32)
@@ -274,27 +271,12 @@ endif()
 # Uncomment below line for very verbose logging
 # add_definitions(-DLOG_STREAMING)
 
-if (ENABLE_STREAMING)
-file(
-  GLOB
-  WEBRTC_CLIENT_STREAMING_SRC
-  "src/source/Rtcp/*.c"
-  "src/source/Rtp/*.c"
-  "src/source/Rtp/Codecs/*.c"
-  "src/source/Srtp/*.c")
+if(BUILD_CLIENT)
+  add_definitions(-DBUILD_CLIENT)
 endif()
-
-if (ENABLE_DATA_CHANNEL)
-file(
-    GLOB
-    WEBRTC_CLIENT_DATA_CHANNEL_SRC
-    "src/source/Sctp/*.c")
-endif()
-
 if (ENABLE_STREAMING)
   add_definitions(-DENABLE_STREAMING)
 endif()
-
 if (ENABLE_DATA_CHANNEL)
   add_definitions(-DENABLE_DATA_CHANNEL)
 endif()
@@ -305,8 +287,13 @@ file(
   "src/source/Crypto/*.c"
   "src/source/Ice/*.c"
   "src/source/PeerConnection/*.c"
+  "src/source/Rtcp/*.c"
+  "src/source/Rtp/*.c"
+  "src/source/Rtp/Codecs/*.c"
   "src/source/Sdp/*.c"
+  "src/source/Srtp/*.c"
   "src/source/Stun/*.c"
+  "src/source/Sctp/*.c"
   "src/source/Metrics/*.c")
 
 if (USE_OPENSSL)
@@ -327,40 +314,47 @@ include_directories(${KVS_LIBSRTP_INCLUDE_DIRS})
 include_directories(${KVS_USRSCTP_INCLUDE_DIRS})
 
 if(BUILD_CLIENT)
-add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${WEBRTC_CLIENT_STREAMING_SRC} ${WEBRTC_CLIENT_DATA_CHANNEL_SRC})
+  add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${WEBRTC_CLIENT_STREAMING_SRC} ${WEBRTC_CLIENT_DATA_CHANNEL_SRC})
 
-target_link_libraries(
-  kvsWebrtcClient
-  PRIVATE kvspicUtils
-          kvspicState
-          ${CMAKE_THREAD_LIBS_INIT}
-          ${OPENSSL_SSL_LIBRARY}
-          ${OPENSSL_CRYPTO_LIBRARY}
-          ${SRTP_LIBRARIES}
-          ${MBEDTLS_LIBRARIES}
-          ${EXTRA_DEPS})
+  target_link_libraries(
+    kvsWebrtcClient
+    PRIVATE kvspicUtils
+            kvspicState
+            ${CMAKE_THREAD_LIBS_INIT}
+            ${OPENSSL_SSL_LIBRARY}
+            ${OPENSSL_CRYPTO_LIBRARY}
+            ${SRTP_LIBRARIES}
+            ${MBEDTLS_LIBRARIES}
+            ${EXTRA_DEPS})
 
-if(ENABLE_DATA_CHANNEL)
-target_link_libraries(
-  kvsWebrtcClient
-  PRIVATE ${Usrsctp})
-endif()
+  if(ENABLE_STREAMING)
+    target_link_libraries(
+      kvsWebrtcClient
+      PRIVATE ${SRTP_LIBRARIES})
+  endif()
 
+  if(ENABLE_DATA_CHANNEL)
+    target_link_libraries(
+      kvsWebrtcClient
+      PRIVATE ${Usrsctp})
+  endif()
 endif()
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
 target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wno-format-truncation)
+
 target_link_libraries(
   kvsWebrtcSignalingClient
+  PUBLIC
+        ${LIBWEBSOCKETS_LIBRARIES} 
+        kvsCommonLws
   PRIVATE kvspicUtils
-          kvspicState
-          ${CMAKE_THREAD_LIBS_INIT}
-          ${LIBWEBSOCKETS_LIBRARIES}
-          ${EXTRA_DEPS}
-          ${OPENSSL_SSL_LIBRARY}
-          ${OPENSSL_CRYPTO_LIBRARY}
-          ${MBEDTLS_LIBRARIES}
-  PUBLIC kvsCommonLws)
+         kvspicState
+         ${CMAKE_THREAD_LIBS_INIT}
+         ${EXTRA_DEPS}
+         ${OPENSSL_SSL_LIBRARY}
+         ${OPENSSL_CRYPTO_LIBRARY}
+         ${MBEDTLS_LIBRARIES})
 
 if (WIN32)
   target_link_libraries(kvsWebrtcClient PRIVATE "Ws2_32" "iphlpapi")
@@ -382,8 +376,6 @@ install(TARGETS kvsWebrtcSignalingClient
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
-
-
 
 install(DIRECTORY ${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include/
   DESTINATION include

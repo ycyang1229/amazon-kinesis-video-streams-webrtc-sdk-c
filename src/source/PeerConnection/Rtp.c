@@ -1,8 +1,8 @@
+#ifdef ENABLE_STREAMING
 #define LOG_CLASS "RtcRtp"
 
 #include "../Include_i.h"
 
-#ifdef ENABLE_STREAMING
 /**
  * @brief 
  * 

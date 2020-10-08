@@ -138,12 +138,11 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
 #else
     //#error "need to add the network interface."
     extern char* esp_get_ip(void);
-    DLOGD("external getifaddrs.");
     destIpList[ipCount].isPointToPoint = 0;
     destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV4;
     destIpList[ipCount].port = 0;
     MEMCPY(destIpList[ipCount].address, esp_get_ip(), IPV4_ADDRESS_LENGTH);
-    DLOGD("kvs ip => %d:%d:%d:%d", destIpList[ipCount].address[0], 
+    DLOGD("Acquried IP: %d:%d:%d:%d", destIpList[ipCount].address[0], 
                                    destIpList[ipCount].address[1], 
                                    destIpList[ipCount].address[2], 
                                    destIpList[ipCount].address[3]);

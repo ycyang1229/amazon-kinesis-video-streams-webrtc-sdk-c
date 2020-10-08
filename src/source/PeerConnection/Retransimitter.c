@@ -1,8 +1,8 @@
+#ifdef ENABLE_STREAMING
 #define LOG_CLASS "Retransmitter"
 
 #include "../Include_i.h"
 
-#ifdef ENABLE_STREAMING
 STATUS createRetransmitter(UINT32 seqNumListLen, UINT32 validIndexListLen, PRetransmitter* ppRetransmitter)
 {
     ENTERS();

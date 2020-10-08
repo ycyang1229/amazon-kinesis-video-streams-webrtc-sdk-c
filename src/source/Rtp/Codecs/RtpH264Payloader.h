@@ -10,8 +10,6 @@ H264 RTP Payloader include file
 extern "C" {
 #endif
 
-
-
 /**
  * @brief NAL Unit Octet Usage
  *       +---------------+

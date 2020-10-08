@@ -43,7 +43,7 @@ extern "C" {
 #include <mbedtls/sha256.h>
 #endif
 
-#if (BUILD_CLIENT)
+#ifdef ENABLE_STREAMING
 //#include <srtp2/srtp.h>
 #include <srtp.h>
 #endif
@@ -127,7 +127,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 ////////////////////////////////////////////////////
 // Project internal includes
 ////////////////////////////////////////////////////
-#if (BUILD_CLIENT)
+#ifdef BUILD_CLIENT
 #include "Crypto/IOBuffer.h"
 #include "Crypto/Crypto.h"
 #include "Crypto/Dtls.h"

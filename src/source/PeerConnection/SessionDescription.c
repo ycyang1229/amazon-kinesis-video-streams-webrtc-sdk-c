@@ -29,10 +29,9 @@ STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescri
     inputSize = *sessionDescriptionJSONLen;
     *sessionDescriptionJSONLen = 0;
 
-    amountWritten = SNPRINTF(sessionDescriptionJSON, 
-                             sessionDescriptionJSON == NULL ? 0 : inputSize - *sessionDescriptionJSONLen,
-                             SESSION_DESCRIPTION_INIT_TEMPLATE_HEAD, 
-                             pSessionDescriptionInit->type == SDP_TYPE_OFFER ? SDP_OFFER_VALUE : SDP_ANSWER_VALUE);
+    amountWritten =
+        SNPRINTF(sessionDescriptionJSON, sessionDescriptionJSON == NULL ? 0 : inputSize - *sessionDescriptionJSONLen,
+                 SESSION_DESCRIPTION_INIT_TEMPLATE_HEAD, pSessionDescriptionInit->type == SDP_TYPE_OFFER ? SDP_OFFER_VALUE : SDP_ANSWER_VALUE);
     CHK(sessionDescriptionJSON == NULL || ((inputSize - *sessionDescriptionJSONLen) >= amountWritten), STATUS_BUFFER_TOO_SMALL);
     *sessionDescriptionJSONLen += amountWritten;
 
@@ -46,13 +45,9 @@ STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescri
             lineLen--;
         }
 
-        amountWritten = SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen, 
-                                 sessionDescriptionJSON == NULL ? 0 : inputSize - *sessionDescriptionJSONLen,
-                                 "%*.*s%s", 
-                                 lineLen, 
-                                 lineLen, 
-                                 curr, 
-                                 SESSION_DESCRIPTION_INIT_LINE_ENDING);
+        amountWritten =
+            SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen, sessionDescriptionJSON == NULL ? 0 : inputSize - *sessionDescriptionJSONLen,
+                     "%*.*s%s", lineLen, lineLen, curr, SESSION_DESCRIPTION_INIT_LINE_ENDING);
         CHK(sessionDescriptionJSON == NULL || ((inputSize - *sessionDescriptionJSONLen) >= amountWritten), STATUS_BUFFER_TOO_SMALL);
 
         *sessionDescriptionJSONLen += amountWritten;
@@ -60,8 +55,7 @@ STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescri
     }
 
     amountWritten = SNPRINTF(sessionDescriptionJSON + *sessionDescriptionJSONLen,
-                             sessionDescriptionJSON == NULL ? 0 : inputSize - *sessionDescriptionJSONLen, 
-                             SESSION_DESCRIPTION_INIT_TEMPLATE_TAIL);
+                             sessionDescriptionJSON == NULL ? 0 : inputSize - *sessionDescriptionJSONLen, SESSION_DESCRIPTION_INIT_TEMPLATE_TAIL);
     CHK(sessionDescriptionJSON == NULL || ((inputSize - *sessionDescriptionJSONLen) >= amountWritten), STATUS_BUFFER_TOO_SMALL);
     *sessionDescriptionJSONLen += (amountWritten + 1); // NULL terminator
 

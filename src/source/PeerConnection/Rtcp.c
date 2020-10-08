@@ -1,8 +1,8 @@
+#ifdef ENABLE_STREAMING
 #define LOG_CLASS "RtcRtcp"
 
 #include "../Include_i.h"
 
-#ifdef ENABLE_STREAMING
 // TODO handle FIR packet https://tools.ietf.org/html/rfc2032#section-5.2.1
 static STATUS onRtcpFIRPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
