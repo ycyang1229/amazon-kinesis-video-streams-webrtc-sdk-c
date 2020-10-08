@@ -18,6 +18,7 @@ option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destin
 option(BUILD_SAMPLE "Build available samples" ON)
 option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)## withhout sample code. experimental option.
 option(ENABLE_STREAMING "Enable support for streaming" ON)## withhout sample code. experimental option.
+option(BUILD_CLIENT "Build client." ON)## withhout sample code. experimental option.
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -254,6 +255,9 @@ endif()
 # Uncomment below line for very verbose logging
 # add_definitions(-DLOG_STREAMING)
 
+if(BUILD_CLIENT)
+  add_definitions(-DBUILD_CLIENT)
+endif()
 if (ENABLE_STREAMING)
   add_definitions(-DENABLE_STREAMING)
 endif()
@@ -290,28 +294,31 @@ include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/ice)
 
-add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES})
+if(BUILD_CLIENT)
+  add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES})
 
-target_link_libraries(
-  kvsWebrtcClient
-  PRIVATE kvspicUtils
-          kvspicState
-          ${CMAKE_THREAD_LIBS_INIT}
-          ${OPENSSL_SSL_LIBRARY}
-          ${OPENSSL_CRYPTO_LIBRARY}
-          ${MBEDTLS_LIBRARIES}
-          ${EXTRA_DEPS})
-
-if(ENABLE_STREAMING)
   target_link_libraries(
     kvsWebrtcClient
-    PRIVATE ${SRTP_LIBRARIES})
-endif()
+    PRIVATE kvspicUtils
+            kvspicState
+            ${CMAKE_THREAD_LIBS_INIT}
+            ${OPENSSL_SSL_LIBRARY}
+            ${OPENSSL_CRYPTO_LIBRARY}
+            ${SRTP_LIBRARIES}
+            ${MBEDTLS_LIBRARIES}
+            ${EXTRA_DEPS})
 
-if(ENABLE_DATA_CHANNEL)
-  target_link_libraries(
-    kvsWebrtcClient
-    PRIVATE ${Usrsctp})
+  if(ENABLE_STREAMING)
+    target_link_libraries(
+      kvsWebrtcClient
+      PRIVATE ${SRTP_LIBRARIES})
+  endif()
+
+  if(ENABLE_DATA_CHANNEL)
+    target_link_libraries(
+      kvsWebrtcClient
+      PRIVATE ${Usrsctp})
+  endif()
 endif()
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
@@ -338,7 +345,14 @@ if(COMPILER_WARNINGS)
   target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wall -Werror -pedantic -Wextra -Wno-unknown-warning-option)
 endif()
 
-install(TARGETS kvsWebrtcClient kvsWebrtcSignalingClient
+if(BUILD_CLIENT)
+install(TARGETS kvsWebrtcClient
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
+endif()
+
+install(TARGETS kvsWebrtcSignalingClient
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
 )
