@@ -16,7 +16,9 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
     PIP_ADAPTER_ADDRESSES adapterAddresses, aa = NULL;
     PIP_ADAPTER_UNICAST_ADDRESS ua;
 #else
+#ifdef KVSWEBRTC_HAVE_IFADDRS_H
     struct ifaddrs *ifaddr = NULL, *ifa = NULL;
+#endif
 #endif
     struct sockaddr_in* pIpv4Addr = NULL;
     struct sockaddr_in6* pIpv6Addr = NULL;
@@ -79,6 +81,7 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
         }
     }
 #else
+#ifdef KVSWEBRTC_HAVE_GETIFADDRS
     CHK(getifaddrs(&ifaddr) != -1, STATUS_GET_LOCAL_IP_ADDRESSES_FAILED);
     for (ifa = ifaddr; ifa != NULL && ipCount < destIpListLen; ifa = ifa->ifa_next) {
         if (ifa->ifa_addr != NULL && (ifa->ifa_flags & IFF_LOOPBACK) == 0 && // ignore loopback interface
@@ -121,6 +124,17 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
             }
         }
     }
+#else
+    //#error "need to add the network interface."
+    extern char* esp_get_ip(void);
+    destIpList[ipCount].isPointToPoint = 0;
+    destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV4;
+    destIpList[ipCount].port = 0;
+    MEMCPY(destIpList[ipCount].address, esp_get_ip(), IPV4_ADDRESS_LENGTH);
+    DLOGD("Acquried IP: %d:%d:%d:%d", destIpList[ipCount].address[0], destIpList[ipCount].address[1], destIpList[ipCount].address[2],
+          destIpList[ipCount].address[3]);
+    ipCount++;
+#endif
 #endif
 
 CleanUp:
@@ -130,11 +144,12 @@ CleanUp:
         SAFE_MEMFREE(adapterAddresses);
     }
 #else
+#ifdef KVSWEBRTC_HAVE_GETIFADDRS
     if (ifaddr != NULL) {
         freeifaddrs(ifaddr);
     }
 #endif
-
+#endif
     if (pDestIpListLen != NULL) {
         *pDestIpListLen = ipCount;
     }
