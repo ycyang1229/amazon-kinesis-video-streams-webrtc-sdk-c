@@ -536,7 +536,11 @@ STATUS lookForSslCert(PSampleConfiguration* ppSampleConfiguration)
     PSampleConfiguration pSampleConfiguration = *ppSampleConfiguration;
 
     MEMSET(certName, 0x0, ARRAY_SIZE(certName));
+#ifdef KVSWEBRTC_HAVE_GETENV
     pSampleConfiguration->pCaCertPath = getenv(CACERT_PATH_ENV_VAR);
+#else
+    pSampleConfiguration->pCaCertPath = NULL;
+#endif
 
     // if ca cert path is not set from the environment, try to use the one that cmake detected
     if (pSampleConfiguration->pCaCertPath == NULL) {
@@ -571,32 +575,48 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
                                  PSampleConfiguration* ppSampleConfiguration)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PCHAR pAccessKey, pSecretKey, pSessionToken, pLogLevel;
+    PCHAR pAccessKey = NULL, pSecretKey = NULL, pSessionToken, pLogLevel;
     PSampleConfiguration pSampleConfiguration = NULL;
     UINT32 logLevel = LOG_LEVEL_DEBUG;
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
-
+#ifdef KVSWEBRTC_HAVE_GETENV
     CHK_ERR((pAccessKey = getenv(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
     CHK_ERR((pSecretKey = getenv(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
     pSessionToken = getenv(SESSION_TOKEN_ENV_VAR);
+#else
+    CHK_ERR(pAccessKey != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
+    CHK_ERR(pSecretKey != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
+    pSessionToken = NULL;
+#endif
+
     pSampleConfiguration->enableFileLogging = FALSE;
+#ifdef KVSWEBRTC_HAVE_GETENV
     if (NULL != getenv(ENABLE_FILE_LOGGING)) {
         pSampleConfiguration->enableFileLogging = TRUE;
     }
+#endif
+#ifdef KVSWEBRTC_HAVE_GETENV
     if ((pSampleConfiguration->channelInfo.pRegion = getenv(DEFAULT_REGION_ENV_VAR)) == NULL) {
         pSampleConfiguration->channelInfo.pRegion = DEFAULT_AWS_REGION;
     }
+#else
+    pSampleConfiguration->channelInfo.pRegion = DEFAULT_AWS_REGION;
+#endif
 
     CHK_STATUS(lookForSslCert(&pSampleConfiguration));
 
-    // Set the logger log level
+// Set the logger log level
+#ifdef KVSWEBRTC_HAVE_GETENV
     if (NULL == (pLogLevel = getenv(DEBUG_LOG_LEVEL_ENV_VAR)) || STATUS_SUCCESS != STRTOUI32(pLogLevel, NULL, 10, &logLevel) ||
         logLevel < LOG_LEVEL_VERBOSE || logLevel > LOG_LEVEL_SILENT) {
         logLevel = LOG_LEVEL_WARN;
     }
+#else
+    logLevel = LOG_LEVEL_WARN;
+#endif
 
     SET_LOGGER_LOG_LEVEL(logLevel);
 

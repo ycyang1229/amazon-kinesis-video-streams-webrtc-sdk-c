@@ -9,8 +9,8 @@ project(KinesisVideoWebRTCClient LANGUAGES C)
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
 option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)
-option(USE_OPENSSL "Use openssl as crypto library" ON)
-option(USE_MBEDTLS "Use mbedtls as crypto library" OFF)
+option(USE_OPENSSL "Use openssl as crypto library" OFF)
+option(USE_MBEDTLS "Use mbedtls as crypto library" ON)
 option(BUILD_STATIC_LIBS "Build all libraries statically. (This includes third-party libraries.)" OFF)
 option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" OFF)
 option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platform" OFF)
@@ -36,6 +36,12 @@ CHECK_FUNCTION_EXISTS(getifaddrs    KVSWEBRTC_HAVE_GETIFADDRS)
 if(NOT KVSWEBRTC_HAVE_GETIFADDRS)
   message(FATAL_ERROR "Platform should support getifaddrs API.")
 endif()
+
+CHECK_FUNCTION_EXISTS(getenv KVSWEBRTC_HAVE_GETENV)
+if(KVSWEBRTC_HAVE_GETENV)
+  add_definitions(-DKVSWEBRTC_HAVE_GETENV)
+endif()
+
 endif()
 
 set(CMAKE_MACOSX_RPATH TRUE)
