@@ -1,3 +1,4 @@
+#ifdef ENABLE_STREAMING
 #define LOG_CLASS "RtcRtp"
 
 #include "../Include_i.h"
@@ -431,3 +432,4 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
     return retStatus;
 }
+#endif

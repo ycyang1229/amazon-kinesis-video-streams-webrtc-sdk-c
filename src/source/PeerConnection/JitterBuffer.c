@@ -1,3 +1,4 @@
+#ifdef ENABLE_STREAMING
 #define LOG_CLASS "JitterBuffer"
 
 #include "../Include_i.h"
@@ -304,3 +305,4 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+#endif

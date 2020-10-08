@@ -129,7 +129,7 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+#ifdef ENABLE_STREAMING
 /*
  * Populate map with PayloadTypes if we are offering
  */
@@ -290,6 +290,7 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+#endif
 
 PCHAR fmtpForPayloadType(UINT64 payloadType, PSessionDescription pSessionDescription)
 {
