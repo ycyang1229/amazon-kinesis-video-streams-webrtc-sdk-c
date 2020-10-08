@@ -58,6 +58,12 @@ get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}" ABSOLUTE)
 # static settings
 if(BUILD_STATIC_LIBS OR WIN32)
   set(LINKAGE STATIC)
+  # Force CMake to find static libs
+  if(WIN32)
+    SET(CMAKE_FIND_LIBRARY_SUFFIXES .lib .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+  else()
+    SET(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+  endif()
 else()
   set(LINKAGE SHARED)
 endif()
@@ -155,22 +161,11 @@ else()
   endif()
 endif()
 
-##
-if (KVS_MBEDTLS_LIBRARIES)
-set(MBEDTLS_LIBRARIES ${KVS_MBEDTLS_LIBRARIES})
-endif()
-if (KVS_MBEDTLS_INCLUDE_DIRS)
-set(MBEDTLS_INCLUDE_DIRS ${KVS_MBEDTLS_INCLUDE_DIRS})
-endif()
-
-if (DEFINED MBEDTLS_INCLUDE_DIRS)
-include_directories(${MBEDTLS_INCLUDE_DIRS})
-endif()
-if (ENABLE_STREAMING)
+if (ENABLE_STREAMING AND NOT KVS_PLAT_FREERTOS)
   if (OPEN_SRC_INSTALL_PREFIX)
     find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
   else()
-    #find_library(SRTP_LIBRARIES srtp2 REQUIRED )
+      find_library(SRTP_LIBRARIES srtp2 REQUIRED )
   endif()
 endif()
 
@@ -182,7 +177,7 @@ else()
   else()
     if(KVS_LIBWEBSOCKETS_INCLUDE_DIRS)
       set(LIBWEBSOCKETS_INCLUDE_DIRS ${KVS_LIBWEBSOCKETS_INCLUDE_DIRS})
-    endif()
+  endif()
   endif()
 endif()
 
@@ -195,9 +190,8 @@ if(ENABLE_DATA_CHANNEL)
     PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib)
 endif()
 
-set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS} 
-                          ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS} ${LIBKVSPIC_INCLUDE_DIRS} ${LIBKVSCOMMONLWS_INCLUDE_DIRS})
-
+set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS}
+                          ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS})
 
 link_directories(${LIBSRTP_LIBRARY_DIRS})
 link_directories(${LIBWEBSOCKETS_LIBRARY_DIRS})
@@ -309,12 +303,9 @@ include_directories(${OPEN_SRC_INCLUDE_DIRS})
 include_directories(${OPEN_SRC_INSTALL_PREFIX}/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/include)
 include_directories(${KINESIS_VIDEO_WEBRTC_CLIENT_SRC}/src/ice)
-include_directories(${LIBKVSWEBRTC_INCLUDE_DIRS})
-include_directories(${KVS_LIBSRTP_INCLUDE_DIRS})
-include_directories(${KVS_USRSCTP_INCLUDE_DIRS})
 
 if(BUILD_CLIENT)
-  add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES} ${WEBRTC_CLIENT_STREAMING_SRC} ${WEBRTC_CLIENT_DATA_CHANNEL_SRC})
+  add_library(kvsWebrtcClient ${LINKAGE} ${WEBRTC_CLIENT_SOURCE_FILES})
 
   target_link_libraries(
     kvsWebrtcClient
