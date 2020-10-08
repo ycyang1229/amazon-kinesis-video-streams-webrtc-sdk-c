@@ -16,7 +16,8 @@ option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" O
 option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platform" OFF)
 option(BUILD_LIBSRTP_DESTINATION_PLATFORM "If buildng LibSRTP what is the destination platform" OFF)
 option(BUILD_SAMPLE "Build available samples" ON)
-option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)
+option(ENABLE_DATA_CHANNEL "Enable support for data channel" ON)## withhout sample code. experimental option.
+option(ENABLE_STREAMING "Enable support for streaming" OFF)## withhout sample code. experimental option.
 
 # Developer Flags
 option(BUILD_TEST "Build the testing tree." OFF)
@@ -114,17 +115,17 @@ if(BUILD_DEPENDENCIES)
                  -DUSE_OPENSSL=${USE_OPENSSL}
                  -DUSE_MBEDTLS=${USE_MBEDTLS})
   build_dependency(websockets ${BUILD_ARGS})
-
-  set(BUILD_ARGS
-      -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-      -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
-      -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM}
-      -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM}
-      -DUSE_OPENSSL=${USE_OPENSSL}
-      -DUSE_MBEDTLS=${USE_MBEDTLS}
-  )
-  build_dependency(srtp ${BUILD_ARGS})
-
+  if(ENABLE_STREAMING)
+    set(BUILD_ARGS
+        -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
+        -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
+        -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM}
+        -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM}
+        -DUSE_OPENSSL=${USE_OPENSSL}
+        -DUSE_MBEDTLS=${USE_MBEDTLS}
+    )
+    build_dependency(srtp ${BUILD_ARGS})
+  endif()
   if(ENABLE_DATA_CHANNEL)
     build_dependency(usrsctp)
   endif()
@@ -155,10 +156,12 @@ else()
   set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${MBEDTLS_INCLUDE_DIRS})
 endif()
 
-if (OPEN_SRC_INSTALL_PREFIX)
-  find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
-else()
-  find_library(SRTP_LIBRARIES srtp2 REQUIRED )
+if (ENABLE_STREAMING)
+  if (OPEN_SRC_INSTALL_PREFIX)
+    find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
+  else()
+    find_library(SRTP_LIBRARIES srtp2 REQUIRED )
+  endif()
 endif()
 
 if (WIN32)
@@ -251,6 +254,9 @@ endif()
 # Uncomment below line for very verbose logging
 # add_definitions(-DLOG_STREAMING)
 
+if (ENABLE_STREAMING)
+  add_definitions(-DENABLE_STREAMING)
+endif()
 if (ENABLE_DATA_CHANNEL)
   add_definitions(-DENABLE_DATA_CHANNEL)
 endif()
@@ -292,10 +298,15 @@ target_link_libraries(
           kvspicState
           ${CMAKE_THREAD_LIBS_INIT}
           ${OPENSSL_SSL_LIBRARY}
-          ${OPENSSL_CRYPTO_LIBRARY}
-          ${SRTP_LIBRARIES}
+          ${OPENSSL_CRYPTO_LIBRARY}          
           ${MBEDTLS_LIBRARIES}
           ${EXTRA_DEPS})
+
+if(ENABLE_STREAMING)
+  target_link_libraries(
+    kvsWebrtcClient
+    PRIVATE ${SRTP_LIBRARIES})
+endif()
 
 if(ENABLE_DATA_CHANNEL)
   target_link_libraries(
