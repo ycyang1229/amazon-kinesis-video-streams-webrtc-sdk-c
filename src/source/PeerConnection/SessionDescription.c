@@ -13,7 +13,7 @@ STATUS serializeSessionDescriptionInit(PRtcSessionDescriptionInit pSessionDescri
     PCHAR curr, tail, next;
     UINT32 lineLen, inputSize = 0, amountWritten;
 
-    CHK(pSessionDescriptionInit != NULL && sessionDescriptionJSONLen != NULL, STATUS_NULL_ARG);
+    CHK(pSessionDescriptionInit != NULL && sessionDescriptionJSONLen != NULL, STATUS_SDP_NULL_ARG);
 
     inputSize = *sessionDescriptionJSONLen;
     *sessionDescriptionJSONLen = 0;
@@ -65,7 +65,7 @@ STATUS deserializeSessionDescriptionInit(PCHAR sessionDescriptionJSON, UINT32 se
     INT32 j, tokenCount, lineLen;
     PCHAR curr, next, tail;
 
-    CHK(pSessionDescriptionInit != NULL && sessionDescriptionJSON != NULL, STATUS_NULL_ARG);
+    CHK(pSessionDescriptionInit != NULL && sessionDescriptionJSON != NULL, STATUS_SDP_NULL_ARG);
     MEMSET(pSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
 
     jsmn_init(&parser);
@@ -764,7 +764,7 @@ STATUS copyTransceiverWithCodec(PKvsPeerConnection pKvsPeerConnection, RTC_CODEC
     PKvsRtpTransceiver pTargetKvsRtpTransceiver = NULL, pKvsRtpTransceiver;
     UINT64 data;
 
-    CHK(pKvsPeerConnection != NULL && pDidFindCodec != NULL, STATUS_NULL_ARG);
+    CHK(pKvsPeerConnection != NULL && pDidFindCodec != NULL, STATUS_SDP_NULL_ARG);
 
     *pDidFindCodec = FALSE;
 
@@ -882,7 +882,7 @@ STATUS deserializeRtcIceCandidateInit(PCHAR pJson, UINT32 jsonLen, PRtcIceCandid
     INT8 i;
     INT32 tokenCount;
 
-    CHK(pRtcIceCandidateInit != NULL && pJson != NULL, STATUS_NULL_ARG);
+    CHK(pRtcIceCandidateInit != NULL && pJson != NULL, STATUS_SDP_ICE_CANDIDATE_NULL_ARG);
     MEMSET(pRtcIceCandidateInit->candidate, 0x00, MAX_ICE_CANDIDATE_INIT_CANDIDATE_LEN + 1);
 
     CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT * SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
