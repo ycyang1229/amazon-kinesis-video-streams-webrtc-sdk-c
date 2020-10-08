@@ -458,7 +458,7 @@ extern "C" {
 /**
  * Maximum length of a MediaStream's ID
  */
-#define MAX_MEDIA_STREAM_ID_LEN 255
+#define MAX_MEDIA_STREAM_ID_LEN 64
 
 /**
  * Max certificates an RtcConfiguration can accept
