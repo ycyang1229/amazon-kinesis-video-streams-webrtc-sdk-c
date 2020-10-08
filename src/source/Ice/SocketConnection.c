@@ -171,7 +171,7 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
     locked = TRUE;
 
     /* Should have a valid buffer */
-    CHK(pBuf != NULL && bufLen > 0, STATUS_INVALID_ARG);
+    CHK(pBuf != NULL && bufLen > 0, STATUS_SOCKET_INVALID_ARG);
     if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP && pSocketConnection->secureConnection) {
         CHK_STATUS(tlsSessionPutApplicationData(pSocketConnection->pTlsSession, pBuf, bufLen));
     } else if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP) {
