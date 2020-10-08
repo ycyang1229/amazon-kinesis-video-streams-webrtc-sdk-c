@@ -5,7 +5,7 @@ STATUS dtlsSessionOnOutBoundData(PDtlsSession pDtlsSession, UINT64 customData, D
 {
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(pDtlsSession != NULL && callbackFn != NULL, STATUS_NULL_ARG);
+    CHK(pDtlsSession != NULL && callbackFn != NULL, STATUS_DTLS_NULL_ARG);
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     pDtlsSession->dtlsSessionCallbacks.outboundPacketFn = callbackFn;
@@ -21,7 +21,7 @@ STATUS dtlsSessionOnStateChange(PDtlsSession pDtlsSession, UINT64 customData, Dt
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(pDtlsSession != NULL && callbackFn != NULL, STATUS_NULL_ARG);
+    CHK(pDtlsSession != NULL && callbackFn != NULL, STATUS_DTLS_NULL_ARG);
 
     MUTEX_LOCK(pDtlsSession->sslLock);
     pDtlsSession->dtlsSessionCallbacks.stateChangeFn = callbackFn;
@@ -58,7 +58,7 @@ STATUS dtlsSessionChangeState(PDtlsSession pDtlsSession, RTC_DTLS_TRANSPORT_STAT
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(pDtlsSession != NULL, STATUS_NULL_ARG);
+    CHK(pDtlsSession != NULL, STATUS_DTLS_NULL_ARG);
     CHK(pDtlsSession->state != newState, retStatus);
 
     if (pDtlsSession->state == CONNECTING && newState == CONNECTED) {

@@ -610,8 +610,7 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     mbedtls_mpi serial;
     mbedtls_x509write_cert* pWriteCert = NULL;
 
-    CHK(pCert != NULL && pKey != NULL, STATUS_NULL_ARG);
-
+    CHK(pCert != NULL && pKey != NULL, STATUS_DTLS_NULL_ARG);
     CHK(NULL != (pCertBuf = (PCHAR) MEMALLOC(GENERATED_CERTIFICATE_MAX_SIZE)), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pEntropy = (mbedtls_entropy_context*) MEMALLOC(SIZEOF(mbedtls_entropy_context))), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pCtrDrbg = (mbedtls_ctr_drbg_context*) MEMALLOC(SIZEOF(mbedtls_ctr_drbg_context))), STATUS_NOT_ENOUGH_MEMORY);
@@ -625,34 +624,33 @@ STATUS createCertificateAndKey(INT32 certificateBits, BOOL generateRSACertificat
     mbedtls_x509_crt_init(pCert);
     mbedtls_pk_init(pKey);
     initialized = TRUE;
-    CHK(mbedtls_ctr_drbg_seed(pCtrDrbg, mbedtls_entropy_func, pEntropy, NULL, 0) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+    CHK(mbedtls_ctr_drbg_seed(pCtrDrbg, mbedtls_entropy_func, pEntropy, NULL, 0) == 0, STATUS_DTLS_DRBG_SEED_FAILED);
 
     // generate a key
     if (generateRSACertificate) {
         CHK(mbedtls_pk_setup(pKey, mbedtls_pk_info_from_type(MBEDTLS_PK_RSA)) == 0 &&
                 mbedtls_rsa_gen_key(mbedtls_pk_rsa(*pKey), mbedtls_ctr_drbg_random, pCtrDrbg, certificateBits, KVS_RSA_F4) == 0,
-            STATUS_CERTIFICATE_GENERATION_FAILED);
+            STATUS_DTLS_RSA_GEN_KEY_FAILED);
     } else {
         CHK(mbedtls_pk_setup(pKey, mbedtls_pk_info_from_type(MBEDTLS_PK_ECKEY)) == 0 &&
                 mbedtls_ecp_gen_key(MBEDTLS_ECP_DP_SECP256R1, mbedtls_pk_ec(*pKey), mbedtls_ctr_drbg_random, pCtrDrbg) == 0,
-            STATUS_CERTIFICATE_GENERATION_FAILED);
+            STATUS_DTLS_ECP_GEN_KEY_FAILED);
     }
 
     // generate a new certificate
-    CHK(mbedtls_mpi_read_string(&serial, 10, STR(GENERATED_CERTIFICATE_SERIAL)) == 0, STATUS_CERTIFICATE_GENERATION_FAILED);
+    CHK(mbedtls_mpi_read_string(&serial, 10, STR(GENERATED_CERTIFICATE_SERIAL)) == 0, STATUS_DTLS_MPI_READ_FAILED);
 
     now = GETTIME();
-    CHK(generateTimestampStr(now, "%Y%m%d%H%M%S", notBeforeBuf, SIZEOF(notBeforeBuf), &written) == STATUS_SUCCESS,
-        STATUS_CERTIFICATE_GENERATION_FAILED);
+    CHK(generateTimestampStr(now, "%Y%m%d%H%M%S", notBeforeBuf, SIZEOF(notBeforeBuf), &written) == STATUS_SUCCESS, STATUS_DTLS_GEN_TIME_FAILED);
+
     notAfter = now + GENERATED_CERTIFICATE_DAYS * HUNDREDS_OF_NANOS_IN_A_DAY;
-    CHK(generateTimestampStr(notAfter, "%Y%m%d%H%M%S", notAfterBuf, SIZEOF(notAfterBuf), &written) == STATUS_SUCCESS,
-        STATUS_CERTIFICATE_GENERATION_FAILED);
+    CHK(generateTimestampStr(notAfter, "%Y%m%d%H%M%S", notAfterBuf, SIZEOF(notAfterBuf), &written) == STATUS_SUCCESS, STATUS_DTLS_GEN_TIME_FAILED);
 
     CHK(mbedtls_x509write_crt_set_serial(pWriteCert, &serial) == 0 &&
             mbedtls_x509write_crt_set_validity(pWriteCert, notBeforeBuf, notAfterBuf) == 0 &&
             mbedtls_x509write_crt_set_subject_name(pWriteCert, "O=" GENERATED_CERTIFICATE_NAME ",CN=" GENERATED_CERTIFICATE_NAME) == 0 &&
             mbedtls_x509write_crt_set_issuer_name(pWriteCert, "O=" GENERATED_CERTIFICATE_NAME ",CN=" GENERATED_CERTIFICATE_NAME) == 0,
-        STATUS_CERTIFICATE_GENERATION_FAILED);
+        STATUS_DTLS_X509_SET_FAILED);
     // void functions, it must succeed
     mbedtls_x509write_crt_set_version(pWriteCert, MBEDTLS_X509_CRT_VERSION_3);
     mbedtls_x509write_crt_set_subject_key(pWriteCert, pKey);
