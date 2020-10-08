@@ -1023,11 +1023,11 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     }
     CHK_STATUS(setTransceiverPayloadTypes(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pKvsPeerConnection->pTransceivers));
     CHK_STATUS(setReceiversSsrc(pSessionDescription, pKvsPeerConnection->pTransceivers));
-
+#ifdef KVSWEBRTC_HAVE_GETENV
     if (NULL != getenv(DEBUG_LOG_SDP)) {
         DLOGD("REMOTE_SDP:%s\n", pSessionDescriptionInit->sdp);
     }
-
+#endif
 CleanUp:
 
     LEAVES();
@@ -1099,10 +1099,11 @@ STATUS setLocalDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescri
     CHK(pKvsPeerConnection != NULL && pSessionDescriptionInit != NULL, STATUS_NULL_ARG);
 
     CHK_STATUS(iceAgentStartGathering(pKvsPeerConnection->pIceAgent));
-
+#ifdef KVSWEBRTC_HAVE_GETENV
     if (NULL != getenv(DEBUG_LOG_SDP)) {
         DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
     }
+#endif
 CleanUp:
 
     LEAVES();
