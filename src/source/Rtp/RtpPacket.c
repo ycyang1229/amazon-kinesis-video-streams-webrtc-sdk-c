@@ -35,7 +35,7 @@ STATUS setRtpPacket(UINT8 version, BOOL padding, BOOL extension, UINT8 csrcCount
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(pRtpPacket != NULL && (extension == FALSE || extensionPayload != NULL), STATUS_NULL_ARG);
+    CHK(pRtpPacket != NULL && (extension == FALSE || extensionPayload != NULL), STATUS_RTP_NULL_ARG);
 
     pRtpPacket->header.version = version;
     pRtpPacket->header.padding = padding;
@@ -69,7 +69,7 @@ STATUS freeRtpPacket(PRtpPacket* ppRtpPacket)
 
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(ppRtpPacket != NULL, STATUS_NULL_ARG);
+    CHK(ppRtpPacket != NULL, STATUS_RTP_NULL_ARG);
 
     if (*ppRtpPacket != NULL) {
         SAFE_MEMFREE((*ppRtpPacket)->pRawPacket);
@@ -174,7 +174,7 @@ STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pR
     PBYTE extensionPayload = NULL;
     UINT32 currOffset = 0;
 
-    CHK(pRtpPacket != NULL && rawPacket != NULL, STATUS_NULL_ARG);
+    CHK(pRtpPacket != NULL && rawPacket != NULL, STATUS_RTP_NULL_ARG);
     CHK(packetLength >= MIN_HEADER_LENGTH, STATUS_RTP_INPUT_PACKET_TOO_SMALL);
 
     version = (rawPacket[0] >> VERSION_SHIFT) & VERSION_MASK;
@@ -217,7 +217,7 @@ STATUS createBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, PUINT32
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 packetLength = 0;
 
-    CHK(pRtpPacket != NULL && pPacketLength != NULL, STATUS_NULL_ARG);
+    CHK(pRtpPacket != NULL && pPacketLength != NULL, STATUS_RTP_NULL_ARG);
 
     packetLength = RTP_GET_RAW_PACKET_SIZE(pRtpPacket);
 
@@ -225,7 +225,7 @@ STATUS createBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, PUINT32
     CHK(pRawPacket != NULL, retStatus);
 
     // Otherwise, check if the specified size is enough
-    CHK(*pPacketLength >= packetLength, STATUS_NOT_ENOUGH_MEMORY);
+    CHK(*pPacketLength >= packetLength, STATUS_RTP_NOT_ENOUGH_MEMORY);
 
     CHK_STATUS(setBytesFromRtpPacket(pRtpPacket, pRawPacket, packetLength));
 
@@ -248,7 +248,7 @@ STATUS setBytesFromRtpPacket(PRtpPacket pRtpPacket, PBYTE pRawPacket, UINT32 pac
     PBYTE pCurPtr = pRawPacket;
     UINT8 i;
 
-    CHK(pRtpPacket != NULL && pRawPacket != NULL, STATUS_NULL_ARG);
+    CHK(pRtpPacket != NULL && pRawPacket != NULL, STATUS_RTP_NULL_ARG);
 
     packetLengthNeeded = RTP_GET_RAW_PACKET_SIZE(pRtpPacket);
     CHK(packetLength >= packetLengthNeeded, STATUS_BUFFER_TOO_SMALL);
@@ -329,7 +329,7 @@ STATUS constructRtpPackets(PPayloadArray pPayloadArray, UINT8 payloadType, UINT1
     UINT32 i = 0;
 
     CHK(pPayloadArray != NULL && pPayloadArray->payloadLength > 0, retStatus);
-    CHK(pPackets != NULL, STATUS_NULL_ARG);
+    CHK(pPackets != NULL, STATUS_RTP_BUFFER_TOO_SMALL);
     CHK(pPayloadArray->payloadSubLenSize <= packetCount, STATUS_BUFFER_TOO_SMALL);
 
     curPtrInPayload = pPayloadArray->payloadBuffer;

@@ -58,10 +58,10 @@ STATUS rtpRollingBufferAddRtpPacket(PRtpRollingBuffer pRollingBuffer, PRtpPacket
     PRtpPacket pRtpPacketCopy = NULL;
     PBYTE pRawPacketCopy = NULL;
     UINT64 index = 0;
-    CHK(pRollingBuffer != NULL && pRtpPacket != NULL, STATUS_NULL_ARG);
+    CHK(pRollingBuffer != NULL && pRtpPacket != NULL, STATUS_RTP_NULL_ARG);
 
     pRawPacketCopy = (PBYTE) MEMALLOC(pRtpPacket->rawPacketLength);
-    CHK(pRawPacketCopy != NULL, STATUS_NOT_ENOUGH_MEMORY);
+    CHK(pRawPacketCopy != NULL, STATUS_RTP_NOT_ENOUGH_MEMORY);
     MEMCPY(pRawPacketCopy, pRtpPacket->pRawPacket, pRtpPacket->rawPacketLength);
     CHK_STATUS(createRtpPacketFromBytes(pRawPacketCopy, pRtpPacket->rawPacketLength, &pRtpPacketCopy));
 
