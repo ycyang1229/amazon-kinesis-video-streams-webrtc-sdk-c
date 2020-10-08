@@ -116,14 +116,14 @@ STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
     mbedtls_ssl_conf_ca_chain(&pTlsSession->sslCtxConfig, &pTlsSession->cacert, NULL);
     mbedtls_ssl_conf_authmode(&pTlsSession->sslCtxConfig, MBEDTLS_SSL_VERIFY_REQUIRED);
     mbedtls_ssl_conf_rng(&pTlsSession->sslCtxConfig, mbedtls_ctr_drbg_random, &pTlsSession->ctrDrbg);
-    CHK(mbedtls_ssl_setup(&pTlsSession->sslCtx, &pTlsSession->sslCtxConfig) == 0, STATUS_SSL_CTX_CREATION_FAILED);
+    CHK(mbedtls_ssl_setup(&pTlsSession->sslCtx, &pTlsSession->sslCtxConfig) == 0, STATUS_TLS_SSL_CTX_SETUP_FAILED);
     mbedtls_ssl_set_mtu(&pTlsSession->sslCtx, DEFAULT_MTU_SIZE);
     mbedtls_ssl_set_bio(&pTlsSession->sslCtx, pTlsSession, tlsSessionSendCallback, tlsSessionReceiveCallback, NULL);
 
     /* init and send handshake */
     tlsSessionChangeState(pTlsSession, TLS_SESSION_STATE_CONNECTING);
     sslRet = mbedtls_ssl_handshake(&pTlsSession->sslCtx);
-    CHK(sslRet == MBEDTLS_ERR_SSL_WANT_READ || sslRet == MBEDTLS_ERR_SSL_WANT_WRITE, STATUS_SSL_CTX_CREATION_FAILED);
+    CHK(sslRet == MBEDTLS_ERR_SSL_WANT_READ || sslRet == MBEDTLS_ERR_SSL_WANT_WRITE, STATUS_TLS_SSL_HANDSHAKE_FAILED);
     LOG_MBEDTLS_ERROR("mbedtls_ssl_handshake", sslRet);
 
 CleanUp:
