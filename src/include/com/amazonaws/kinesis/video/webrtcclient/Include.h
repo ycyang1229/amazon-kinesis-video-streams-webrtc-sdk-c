@@ -452,7 +452,8 @@ extern "C" {
 /**
  * Maximum length of SDP member in RtcSessionDescriptionInit
  */
-#define MAX_SESSION_DESCRIPTION_INIT_SDP_LEN 25000
+/** #memory. */
+#define MAX_SESSION_DESCRIPTION_INIT_SDP_LEN 15 * 1024
 
 /**
  * Maximum length of a MediaStream's ID
