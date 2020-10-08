@@ -64,7 +64,9 @@ extern "C" {
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#ifdef KVSWEBRTC_HAVE_NETINET_TCP_H
 #include <netinet/tcp.h>
+#endif
 #endif
 
 // Max uFrag and uPwd length as documented in https://tools.ietf.org/html/rfc5245#section-15.4
