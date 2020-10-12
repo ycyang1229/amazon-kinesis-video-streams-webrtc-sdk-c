@@ -25,6 +25,7 @@ extern "C" {
 #define PROTOCOL_INDEX_WSS   1
 
 // API postfix definitions
+// https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_CreateSignalingChannel.html
 #define CREATE_SIGNALING_CHANNEL_API_POSTFIX       "/createSignalingChannel"
 #define DESCRIBE_SIGNALING_CHANNEL_API_POSTFIX     "/describeSignalingChannel"
 #define GET_SIGNALING_CHANNEL_ENDPOINT_API_POSTFIX "/getSignalingChannelEndpoint"
@@ -72,6 +73,8 @@ extern "C" {
     "\n}"
 
 // Parameter names for Signaling connect URL
+// https://docs.aws.amazon.com/zh_tw/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis-1.html
+// https://docs.aws.amazon.com/zh_tw/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis-2.html
 #define SIGNALING_ROLE_PARAM_NAME         "X-Amz-Role"
 #define SIGNALING_CHANNEL_NAME_PARAM_NAME "X-Amz-ChannelName"
 #define SIGNALING_CHANNEL_ARN_PARAM_NAME  "X-Amz-ChannelARN"
@@ -212,6 +215,9 @@ STATUS createLwsCallInfo(PSignalingClient, PRequestInfo, UINT32, PLwsCallInfo*);
 STATUS freeLwsCallInfo(PLwsCallInfo*);
 
 PVOID receiveLwsMessageWrapper(PVOID);
+#ifdef KVS_PLAT_ESP_FREERTOS
+STATUS dispatchLwsMsg(PVOID pMessage);
+#endif
 
 STATUS sendLwsMessage(PSignalingClient, PCHAR, PCHAR, PCHAR, UINT32, PCHAR, UINT32);
 STATUS writeLwsData(PSignalingClient, BOOL);
