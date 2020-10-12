@@ -402,7 +402,6 @@ extern "C" {
  * Maximum allowed ICE configuration password length
  * https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_AWSAcuitySignalingService_IceServer.html#KinesisVideo-Type-AWSAcuitySignalingService_IceServer-Password
  */
-//#define MAX_ICE_CONFIG_CREDENTIAL_LEN 512
 #define MAX_ICE_CONFIG_CREDENTIAL_LEN 256
 
 /**
