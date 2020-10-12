@@ -164,11 +164,11 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
 
         CHK_STATUS(dtlsSessionIsInitFinished(pKvsPeerConnection->pDtlsSession, &isDtlsConnected));
         if (isDtlsConnected) {
-            #ifdef ENABLE_STREAMING
+#ifdef ENABLE_STREAMING
             if (pKvsPeerConnection->pSrtpSession == NULL) {
                 CHK_STATUS(allocateSrtp(pKvsPeerConnection));
             }
-            #endif
+#endif
 
 #ifdef ENABLE_DATA_CHANNEL
             if (pKvsPeerConnection->pSctpSession == NULL) {
@@ -178,7 +178,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
         }
 
     } else if ((buff[0] > 127 && buff[0] < 192) && (pKvsPeerConnection->pSrtpSession != NULL)) {
-        #ifdef ENABLE_STREAMING
+#ifdef ENABLE_STREAMING
         if (buff[1] >= 192 && buff[1] <= 223) {
             if (STATUS_FAILED(retStatus = decryptSrtcpPacket(pKvsPeerConnection->pSrtpSession, buff, &signedBuffLen))) {
                 DLOGW("decryptSrtcpPacket failed with 0x%08x", retStatus);
@@ -189,7 +189,7 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
         } else {
             CHK_STATUS(sendPacketToRtpReceiver(pKvsPeerConnection, buff, signedBuffLen));
         }
-        #endif
+#endif
     }
 
 CleanUp:
@@ -374,7 +374,7 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
     }
 
 CleanUp:
-
+    CHK_LOG_ERR(retStatus);
     return retStatus;
 }
 
@@ -650,8 +650,7 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
 
     // check if ice agent is connected, reschedule in 200msec if not
     ready = pKvsPeerConnection->pSrtpSession != NULL &&
-            currentTime - pKvsRtpTransceiver->sender.firstFrameWallClockTime >= 2500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
-
+        currentTime - pKvsRtpTransceiver->sender.firstFrameWallClockTime >= 2500 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND;
     if (!ready) {
         DLOGV("sender report no frames sent %u", ssrc);
     } else {
@@ -848,7 +847,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 #endif
     CHK_LOG_ERR(freeIceAgent(&pKvsPeerConnection->pIceAgent));
 
-    #ifdef ENABLE_STREAMING
+#ifdef ENABLE_STREAMING
     // free transceivers
     CHK_LOG_ERR(doubleListGetHeadNode(pKvsPeerConnection->pTransceievers, &pCurNode));
     while (pCurNode != NULL) {
@@ -857,7 +856,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 
         pCurNode = pCurNode->pNext;
     }
-    #endif
+#endif
 
 #ifdef ENABLE_DATA_CHANNEL
     // Free DataChannels
@@ -865,21 +864,20 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pDataChannels));
 #endif
 
-    // free rest of structs
-    #ifdef ENABLE_STREAMING
+// free rest of structs
+#ifdef ENABLE_STREAMING
     CHK_LOG_ERR(freeSrtpSession(&pKvsPeerConnection->pSrtpSession));
-    #endif
+#endif
 
     CHK_LOG_ERR(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
-
-    #ifdef ENABLE_STREAMING
+#ifdef ENABLE_STREAMING
     CHK_LOG_ERR(doubleListFree(pKvsPeerConnection->pTransceievers));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pCodecTable));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pRtxTable));
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->pSrtpSessionLock)) {
         MUTEX_FREE(pKvsPeerConnection->pSrtpSessionLock);
     }
-    #endif
+#endif
 
     if (IS_VALID_MUTEX_VALUE(pKvsPeerConnection->peerConnectionObjLock)) {
         MUTEX_FREE(pKvsPeerConnection->peerConnectionObjLock);
@@ -1151,18 +1149,18 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
                                   pKvsPeerConnection->remoteIceUfrag,
                                   pKvsPeerConnection->remoteIcePwd,
                                   pKvsPeerConnection->isOffer));
-    #ifdef ENABLE_STREAMING
+#ifdef ENABLE_STREAMING
     if (!pKvsPeerConnection->isOffer) {
         CHK_STATUS(setPayloadTypesFromOffer(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pSessionDescription));
     }
     CHK_STATUS(setTransceiverPayloadTypes(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pKvsPeerConnection->pTransceievers));
     CHK_STATUS(setReceiversSsrc(pSessionDescription, pKvsPeerConnection->pTransceievers));
-    #endif
-    #ifdef KVSWEBRTC_HAVE_GETENV
+#endif
+#ifdef KVSWEBRTC_HAVE_GETENV
     if (NULL != getenv(DEBUG_LOG_SDP)) {
         DLOGD("REMOTE_SDP:%s\n", pSessionDescriptionInit->sdp);
     }
-    #endif
+#endif
 CleanUp:
 
     LEAVES();
@@ -1199,9 +1197,9 @@ STATUS createOffer(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionIni
 #ifdef ENABLE_DATA_CHANNEL
     pKvsPeerConnection->sctpIsEnabled = TRUE;
 #endif
-    #ifdef ENABLE_STREAMING
+#ifdef ENABLE_STREAMING
     CHK_STATUS(setPayloadTypesForOffer(pKvsPeerConnection->pCodecTable));
-    #endif
+#endif
 
     CHK_STATUS(populateSessionDescription(pKvsPeerConnection, &(pKvsPeerConnection->remoteSessionDescription), pSessionDescription));
     CHK_STATUS(serializeSessionDescription(pSessionDescription, NULL, &serializeLen));
@@ -1296,7 +1294,7 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection,
                       PRtcRtpTransceiverInit pRtcRtpTransceiverInit,
                       PRtcRtpTransceiver* ppRtcRtpTransceiver)
 {
-    //UNUSED_PARAM(pRtcRtpTransceiverInit);
+    UNUSED_PARAM(pRtcRtpTransceiverInit);
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PKvsRtpTransceiver pKvsRtpTransceiver = NULL;
@@ -1305,11 +1303,11 @@ STATUS addTransceiver(PRtcPeerConnection pPeerConnection,
     DepayRtpPayloadFunc depayFunc;
     UINT32 clockRate = 0;
     UINT32 ssrc = (UINT32) RAND(), rtxSsrc = (UINT32) RAND();
-    //RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
-    //RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_RECVONLY;
+    #ifdef KVS_PLAT_ESP_FREERTOS
     RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
-    
-
+    #else
+    RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    #endif
     if (pRtcRtpTransceiverInit != NULL) {
         direction = pRtcRtpTransceiverInit->direction;
     }
@@ -1507,9 +1505,9 @@ STATUS initKvsWebRtc(VOID)
 
     SRAND(GETTIME());
 
-    #ifdef ENABLE_STREAMING
+#ifdef ENABLE_STREAMING
     CHK(srtp_init() == srtp_err_status_ok, STATUS_SRTP_INIT_FAILED);
-    #endif
+#endif
 
     // init endianness handling
     initializeEndianness();
@@ -1537,9 +1535,9 @@ STATUS deinitKvsWebRtc(VOID)
 #ifdef ENABLE_DATA_CHANNEL
     deinitSctpSession();
 #endif
-    #ifdef ENABLE_STREAMING
+#ifdef ENABLE_STREAMING
     srtp_shutdown();
-    #endif
+#endif
 
     ATOMIC_STORE_BOOL(&gKvsWebRtcInitialized, FALSE);
 

@@ -5,10 +5,6 @@
 #include "../Include_i.h"
 
 static BOOL gInterruptedFlagBySignalHandler;
-#if 1
-TID receivedTid = INVALID_TID_VALUE;
-QueueHandle_t tmpQ;
-#endif
 VOID lwsSignalHandler(INT32 signal)
 {
     UNUSED_PARAM(signal);
@@ -378,7 +374,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
             break;
 
         case LWS_CALLBACK_CLIENT_RECEIVE:
-            //DLOGD("Client receive %.*s", dataSize, (PCHAR) pDataIn);
+            // DLOGD("Client receive %.*s", dataSize, (PCHAR) pDataIn);
             DLOGD("Client receive %d", dataSize);
 
             // Check if it's a binary data
@@ -1553,6 +1549,9 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     UINT32 i, strLen, outLen = MAX_SIGNALING_MESSAGE_LEN;
     UINT32 tokenCount;
     PSignalingMessageWrapper pSignalingMessageWrapper = NULL;
+    #ifndef KVS_PLAT_ESP_FREERTOS
+    TID receivedTid = INVALID_TID_VALUE;
+    #endif
     BOOL parsedMessageType = FALSE, parsedStatusResponse = FALSE;
     PSignalingMessage pOngoingMessage;
 
@@ -1730,22 +1729,11 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     /**
      * #thread.
     */
-    #if 0
+    #ifndef KVS_PLAT_ESP_FREERTOS
     CHK_STATUS(THREAD_CREATE(&receivedTid, receiveLwsMessageWrapper, (PVOID) pSignalingMessageWrapper));
     CHK_STATUS(THREAD_DETACH(receivedTid));
     #else
-    if(receivedTid==INVALID_TID_VALUE){
-        tmpQ = xQueueCreate( 32, SIZEOF(PSignalingMessageWrapper));
-        CHK_STATUS(THREAD_CREATE(&receivedTid, receiveLwsMessageWrapper, (PVOID) NULL));
-        
-    }
-    UBaseType_t num = uxQueueSpacesAvailable(tmpQ);
-    DLOGD("unhandled num in q: %d", 32-num);
-    BaseType_t err = xQueueSend(tmpQ, &pSignalingMessageWrapper, 0);
-    if(err!=pdPASS){
-        DLOGD("send q failed.");
-    }
-    
+    CHK_STATUS(dispatchLwsMsg((PVOID) pSignalingMessageWrapper));
     #endif
 
 CleanUp:
@@ -1758,13 +1746,14 @@ CleanUp:
             retStatus = pSignalingClient->signalingClientCallbacks.errorReportFn(pSignalingClient->signalingClientCallbacks.customData, retStatus,
                                                                                  pMessage, messageLen);
         }
-
+        #ifndef KVS_PLAT_ESP_FREERTOS
         // Kill the receive thread on error
         if (IS_VALID_TID_VALUE(receivedTid)) {
             THREAD_CANCEL(receivedTid);
         }
 
         SAFE_MEMFREE(pSignalingMessageWrapper);
+        #endif
     }
     SAFE_MEMFREE(pTokens);
     LEAVES();
@@ -1862,45 +1851,29 @@ CleanUp:
 PVOID receiveLwsMessageWrapper(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    PSignalingMessageWrapper pSignalingMessageWrapper;
-    while(1)
-    {
-        BaseType_t err = xQueueReceive(tmpQ, &pSignalingMessageWrapper, 0xffffffffUL);
-        if(err != pdPASS){
-            //usleep(1000000);
-            DLOGD("get no q");
-        }else{
-            ENTERS();
-            DLOGD("handling wss");
-            retStatus = STATUS_SUCCESS;
-        
-            PSignalingClient pSignalingClient = NULL;
+    PSignalingMessageWrapper pSignalingMessageWrapper = (PSignalingMessageWrapper) args;
+    PSignalingClient pSignalingClient = NULL;
 
-            CHK(pSignalingMessageWrapper != NULL, STATUS_NULL_ARG);
+    CHK(pSignalingMessageWrapper != NULL, STATUS_NULL_ARG);
 
-            pSignalingClient = pSignalingMessageWrapper->pSignalingClient;
+    pSignalingClient = pSignalingMessageWrapper->pSignalingClient;
 
-            CHK(pSignalingClient != NULL, STATUS_INTERNAL_ERROR);
+    CHK(pSignalingClient != NULL, STATUS_INTERNAL_ERROR);
 
-            // Updating the diagnostics info before calling the client callback
-            ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesReceived);
+    // Updating the diagnostics info before calling the client callback
+    ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesReceived);
 
-            // Calling client receive message callback if specified
-            if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
-                CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
-                                                                                        &pSignalingMessageWrapper->receivedSignalingMessage));
-            }
-            LEAVES();
-        }
-        
+    // Calling client receive message callback if specified
+    if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
+        CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
+                                                                                &pSignalingMessageWrapper->receivedSignalingMessage));
     }
+
 CleanUp:
-    DLOGD("pthread exit");
     CHK_LOG_ERR(retStatus);
 
     SAFE_MEMFREE(pSignalingMessageWrapper);
-    
-    pthread_exit(NULL);
+
     return (PVOID)(ULONG_PTR) retStatus;
 }
 
@@ -1941,3 +1914,68 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+
+#ifdef KVS_PLAT_ESP_FREERTOS
+/** #YC_TBD, need to add the code of initialization. */
+TID receivedTid = INVALID_TID_VALUE;
+QueueHandle_t lwsMsgQ = NULL;
+#define KVSWEBRTC_LWS_MSGQ_LENGTH 32
+
+/**
+ * @brief for the original design, we create one thread for each message.
+ */
+PVOID handleLwsMsg(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingMessageWrapper pMsg;
+    while (1) {
+        BaseType_t err = xQueueReceive(lwsMsgQ, &pMsg, 0xffffffffUL);
+        if (err == pdPASS) {
+            DLOGD("handling wss");
+            retStatus = STATUS_SUCCESS;
+
+            PSignalingClient pSignalingClient = NULL;
+
+            CHK(pMsg != NULL, STATUS_NULL_ARG);
+
+            pSignalingClient = pMsg->pSignalingClient;
+
+            CHK(pSignalingClient != NULL, STATUS_INTERNAL_ERROR);
+            // Calling client receive message callback if specified
+            if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
+                CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
+                                                                                        &pMsg->receivedSignalingMessage));
+            }
+        CleanUp:
+            CHK_LOG_ERR(retStatus);
+            SAFE_MEMFREE(pMsg);
+        } else {
+            DLOGW("Did not get the lws msg.");
+        }
+    }
+    DLOGW("should not happen.");
+    return (PVOID)(ULONG_PTR) retStatus;
+}
+
+STATUS dispatchLwsMsg(PVOID pMessage)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingMessageWrapper msg = (PSignalingMessageWrapper) pMessage;
+
+    if (receivedTid == INVALID_TID_VALUE) {
+        lwsMsgQ = xQueueCreate(KVSWEBRTC_LWS_MSGQ_LENGTH, SIZEOF(PSignalingMessageWrapper));
+        CHK(lwsMsgQ != NULL, STATUS_SIGNALING_CREATE_MSGQ_FAILED);
+        CHK(THREAD_CREATE(&receivedTid, handleLwsMsg, (PVOID) NULL) == STATUS_SUCCESS, STATUS_SIGNALING_CREATE_THREAD_FAILED);
+    }
+    UBaseType_t num = uxQueueSpacesAvailable(lwsMsgQ);
+    DLOGD("unhandled num in q: %d", KVSWEBRTC_LWS_MSGQ_LENGTH - num);
+    CHK(xQueueSend(lwsMsgQ, &msg, 0) == pdPASS, STATUS_SIGNALING_DISPATCH_FAILED);
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    if (STATUS_FAILED(retStatus)) {
+        SAFE_MEMFREE(msg);
+    }
+    return retStatus;
+}
+#endif

@@ -44,8 +44,11 @@ extern "C" {
 #endif
 
 #ifdef ENABLE_STREAMING
-//#include <srtp2/srtp.h>
+#ifdef KVS_PLAT_ESP_FREERTOS
 #include <srtp.h>
+#else
+#include <srtp2/srtp.h>
+#endif
 #endif
 
 // INET/INET6 MUST be defined before usrsctp
