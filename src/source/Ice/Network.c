@@ -327,7 +327,11 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 
     errCode = getaddrinfo(hostname, NULL, NULL, &res);
     if (errCode != 0) {
+#ifdef KVS_PLAT_ESP_FREERTOS
+        errStr = errCode == EAI_SYSTEM ? strerror(errno) : "gai_strerror(errCode) not supported.";
+#else
         errStr = errCode == EAI_SYSTEM ? strerror(errno) : (PCHAR) gai_strerror(errCode);
+#endif
         CHK_ERR(FALSE, STATUS_RESOLVE_HOSTNAME_FAILED, "getaddrinfo() with errno %s", errStr);
     }
 
