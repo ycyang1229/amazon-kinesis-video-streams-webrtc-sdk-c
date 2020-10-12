@@ -29,6 +29,12 @@ option(MEMORY_SANITIZER "Build with MemorySanitizer." OFF)
 option(THREAD_SANITIZER "Build with ThreadSanitizer." OFF)
 option(UNDEFINED_BEHAVIOR_SANITIZER "Build with UndefinedBehaviorSanitizer." OFF)
 
+option(KVS_PLAT_ESP_FREERTOS "Build for ESP FreeRTOS" OFF)
+
+if(KVS_PLAT_ESP_FREERTOS)
+  add_definitions(-DKVS_PLAT_ESP_FREERTOS)
+endif()
+
 if(NOT WIN32)
 CHECK_INCLUDE_FILES(ifaddrs.h KVSWEBRTC_HAVE_IFADDRS_H)
 if(KVSWEBRTC_HAVE_IFADDRS_H)
@@ -153,11 +159,13 @@ if (USE_OPENSSL)
   find_package(OpenSSL REQUIRED)
   set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${OPENSSL_INCLUDE_DIR})
 else()
-  find_package(MbedTLS REQUIRED)
-  set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${MBEDTLS_INCLUDE_DIRS})
+  if(NOT KVS_PLAT_ESP_FREERTOS)
+    find_package(MbedTLS REQUIRED)
+    set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${MBEDTLS_INCLUDE_DIRS})
+  endif()
 endif()
 
-if (ENABLE_STREAMING)
+if (ENABLE_STREAMING AND NOT KVS_PLAT_ESP_FREERTOS)
   if (OPEN_SRC_INSTALL_PREFIX)
     find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
   else()
@@ -168,7 +176,9 @@ endif()
 if (WIN32)
   SET(LIBWEBSOCKETS_LIBRARIES "websockets.lib")
 else()
-  pkg_check_modules(LIBWEBSOCKETS REQUIRED libwebsockets)
+  if(NOT KVS_PLAT_ESP_FREERTOS)
+    pkg_check_modules(LIBWEBSOCKETS REQUIRED libwebsockets)
+  endif()
 endif()
 
 
@@ -322,6 +332,7 @@ if(BUILD_CLIENT)
 endif()
 
 add_library(kvsWebrtcSignalingClient ${LINKAGE} ${WEBRTC_SIGNALING_CLIENT_SOURCE_FILES})
+target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wno-format-truncation)
 
 target_link_libraries(
   kvsWebrtcSignalingClient
