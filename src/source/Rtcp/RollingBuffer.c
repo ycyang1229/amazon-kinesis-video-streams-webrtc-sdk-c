@@ -65,7 +65,13 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief
+ *
+ * @param[in]
+ * @param[in]
+ * @param[in]
+ */
 STATUS rollingBufferAppendData(PRollingBuffer pRollingBuffer, UINT64 data, PUINT64 pIndex)
 {
     ENTERS();

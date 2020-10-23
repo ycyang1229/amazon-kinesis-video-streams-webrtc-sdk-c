@@ -70,12 +70,12 @@ typedef struct __RtpPacketHeader RtpPacketHeader;
 typedef RtpPacketHeader* PRtpPacketHeader;
 
 struct __Payloads {
-    PBYTE payloadBuffer;
-    UINT32 payloadLength;
-    UINT32 maxPayloadLength;
-    PUINT32 payloadSubLength;
-    UINT32 payloadSubLenSize;
-    UINT32 maxPayloadSubLenSize;
+    PBYTE payloadBuffer;         //!< put all the fu-a payload sequentially.
+    UINT32 payloadLength;        //!< the current length of used payload buffer.
+    UINT32 maxPayloadLength;     //!< the maximum of payload buffer.
+    PUINT32 payloadSubLength;    //!< the length of each fu-a payload.
+    UINT32 payloadSubLenSize;    //!< the current number of fu-a payload.
+    UINT32 maxPayloadSubLenSize; //!< the maximum of fu-a payload.
 };
 typedef struct __Payloads PayloadArray;
 typedef PayloadArray* PPayloadArray;
