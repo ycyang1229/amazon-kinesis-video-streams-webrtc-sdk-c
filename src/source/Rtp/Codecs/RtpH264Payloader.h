@@ -61,6 +61,114 @@ extern "C" {
  * 27   MTAP24  24                  yes
  *
  *
+ * packetization-mode:0, Single NAL Unit Mode, Only single NAL unit packets MAY be used in this mode.
+ *                                             STAPs, MTAPs, and FUs MUST NOT be used.
+ * packetization-mode:1, Non-Interleaved Mode, Only single NAL unit packets, STAP-As, and FU-As MAY be used in this mode.
+ *                                             STAP-Bs, MTAPs, and FU-Bs MUST NOT be used.
+ * packetization-mode:2, Interleaved Mode, STAP-Bs, MTAPs, FU-As, and FU-Bs MAY be used.
+ *                                         STAP-As and single NAL unit packets MUST NOT be used.
+ */
+
+/**
+ *
+ *  Figure 7. An example of an RTP packet including an STAP-A
+ *  containing two single-time aggregation units
+ *   0                   1                   2                   3
+ *   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | RTP Header                                                    |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |STAP-A NAL HDR | NALU 1 Size                   | NALU 1 HDR    |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | NALU 1 Data                                                   |
+ *  :                                                               :
+ *  +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |               | NALU 2 Size                   | NALU 2 HDR    |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | NALU 2 Data                                                   |
+ *  :                                                               :
+ *  |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                               :...OPTIONAL RTP padding        |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ *
+ *  Figure 8. An example of an RTP packet including an STAP-B
+ *  containing two single-time aggregation units
+ *   0                   1                   2                   3
+ *   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | RTP Header                                                    |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |STAP-B NAL HDR | DON                           | NALU 1 Size   |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | NALU 1 Size   | NALU 1 HDR    | NALU 1 Data                   |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               +
+ *  :                                                               :
+ *  +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |               | NALU 2 Size                   | NALU 2 HDR    |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | NALU 2 Data                                                   |
+ *  :                                                               :
+ *  |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                               :...OPTIONAL RTP padding        |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ */
+
+/**
+ *
+ *  Figure 12. An RTP packet including a multi-time aggregation
+ *  packet of type MTAP16 containing two multi-time
+ *  aggregation units
+ *   0                   1                   2                   3
+ *   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | RTP Header                                                    |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |MTAP16 NAL HDR | decoding order number base    | NALU 1 Size   |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | NALU 1 Size   | NALU 1 DOND   | NALU 1 TS offset              |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | NALU 1 HDR    | NALU 1 DATA                                   |
+ *  +-+-+-+-+-+-+-+-+                                               +
+ *  :                                                               :
+ *  +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |               | NALU 2 SIZE                   | NALU 2 DOND   |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | NALU 2 TS offset              | NALU 2 HDR    | NALU 2 DATA   |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               |
+ *  :                                                               :
+ *  |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                               :...OPTIONAL RTP padding        |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ *  Figure 13. An RTP packet including a multi-time aggregation
+ *  packet of type MTAP24 containing two multi-time
+ *  aggregation units
+ *   0                   1                   2                   3
+ *   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | RTP Header                                                    |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |MTAP24 NAL HDR | decoding order number base    | NALU 1 Size   |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | NALU 1 Size   | NALU 1 DOND   | NALU 1 TS offs                |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |NALU 1 TS offs | NALU 1 HDR    | NALU 1 DATA                   |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               +
+ *  :                                                               :
+ *  +               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |               | NALU 2 SIZE                   | NALU 2 DOND   |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | NALU 2 TS offset                              | NALU 2 HDR    |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | NALU 2 DATA                                                   |
+ *  :                                                               :
+ *  |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |                               :...OPTIONAL RTP padding        |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ *
  */
 
 /*
