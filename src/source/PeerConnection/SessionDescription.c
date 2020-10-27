@@ -129,7 +129,8 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-#ifdef ENABLE_STREAMING
+//#ifdef ENABLE_STREAMING
+#if 1 // def ENABLE_STREAMING
 /*
  * Populate map with PayloadTypes if we are offering
  */

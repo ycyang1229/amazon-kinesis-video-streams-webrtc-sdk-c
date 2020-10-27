@@ -68,9 +68,9 @@ CleanUp:
 /**
  * @brief
  *
- * @param[in]
- * @param[in]
- * @param[in]
+ * @param[in] pRollingBuffer the buffer of this rolling buffer.
+ * @param[in] data the buffer of the element in this rolling buffer.
+ * @param[out] pIndex the index of the element in this rolling buffer.
  */
 STATUS rollingBufferAppendData(PRollingBuffer pRollingBuffer, UINT64 data, PUINT64 pIndex)
 {

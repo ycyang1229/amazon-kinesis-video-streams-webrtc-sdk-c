@@ -3,9 +3,12 @@
 #include "../../Include_i.h"
 
 /**
+ * @brief create the rtp payload accroding to rfc6184 for h264.
  *
+ * @param[in] mtu the maximum transmission unit
  * @param[in] nalus the buffer of nalu.
  * @param[in] nalusLength the length of the nalu buffer.
+ * @param[]
  */
 STATUS createPayloadForH264(UINT32 mtu, PBYTE nalus, UINT32 nalusLength, PBYTE payloadBuffer, PUINT32 pPayloadLength, PUINT32 pPayloadSubLength,
                             PUINT32 pPayloadSubLenSize)

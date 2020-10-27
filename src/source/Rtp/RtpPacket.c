@@ -27,7 +27,13 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief setup the rtp packet according to related parameters.
+ *
+ * @param[in] payload
+ * @param[in] payloadLength
+ * @param[out] pRtpPacket the buffer keeps rtp header and rtp payload.
+ */
 STATUS setRtpPacket(UINT8 version, BOOL padding, BOOL extension, UINT8 csrcCount, BOOL marker, UINT8 payloadType, UINT16 sequenceNumber,
                     UINT32 timestamp, UINT32 ssrc, PUINT32 csrcArray, UINT16 extensionProfile, UINT32 extensionLength, PBYTE extensionPayload,
                     PBYTE payload, UINT32 payloadLength, PRtpPacket pRtpPacket)
@@ -62,7 +68,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ *
+ */
 STATUS freeRtpPacket(PRtpPacket* ppRtpPacket)
 {
     ENTERS();
@@ -83,7 +91,13 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief
+ *
+ * @param[in] rawPacket
+ * @param[in] packetLength the lenght of packet.
+ * @param[out] ppRtpPacket the output of packet buffer.
+ */
 STATUS createRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket* ppRtpPacket)
 {
     ENTERS();
@@ -155,6 +169,15 @@ CleanUp:
     return retStatus;
 }
 
+//#define RTP_GET_VERSION(byte0) (byte0 >> VERSION_SHIFT) & VERSION_MASK
+//#define RTP_GET_PADDING(byte0)
+/**
+ * @brief retrieve the parameter from raw packet and return rtp header and rtp payload.
+ *
+ * @param[in] rawPacket the buffer of raw packet.
+ * @param[in] packetLength the length of raw packet.
+ * @param[out] pRtpPacket the buffer of transferred rtp header.
+ */
 STATUS setRtpPacketFromBytes(PBYTE rawPacket, UINT32 packetLength, PRtpPacket pRtpPacket)
 {
     ENTERS();
@@ -317,7 +340,19 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief construct rtp packets according to the array of payload.
+ *
+ * @param[in] pPayloadArray the payload of rtp packets.
+ * @param[in] payloadType the payload type from sdp.
+ * @param[in] startSequenceNumber the initial sequence number for the header of rtp packets.
+ * @param[in] timestamp
+ * @param[in] ssrc synchronization source (SSRC) identifier for the header of rtp packets.
+ * @param[in/out] pPackets the buffer for the rtp header of packets.
+ * @param[in] packetCount the number of rtp packets.
+ *
+ *
+ */
 STATUS constructRtpPackets(PPayloadArray pPayloadArray, UINT8 payloadType, UINT16 startSequenceNumber, UINT32 timestamp, UINT32 ssrc,
                            PRtpPacket pPackets, UINT32 packetCount)
 {
