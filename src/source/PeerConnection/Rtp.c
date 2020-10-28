@@ -277,7 +277,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     CHK_STATUS(constructRtpPackets(pPayloadArray, pKvsRtpTransceiver->sender.payloadType, pKvsRtpTransceiver->sender.sequenceNumber, rtpTimestamp,
                                    pKvsRtpTransceiver->sender.ssrc, pPacketList, pPayloadArray->payloadSubLenSize));
     pKvsRtpTransceiver->sender.sequenceNumber = GET_UINT16_SEQ_NUM(pKvsRtpTransceiver->sender.sequenceNumber + pPayloadArray->payloadSubLenSize);
-
+    // decide the type of packet inside the rolling buffer.
     bufferAfterEncrypt = (pKvsRtpTransceiver->sender.payloadType == pKvsRtpTransceiver->sender.rtxPayloadType);
     DLOGD("pPayloadArray->payloadSubLenSize:%d", pPayloadArray->payloadSubLenSize);
     for (i = 0; i < pPayloadArray->payloadSubLenSize; i++) {
@@ -377,7 +377,11 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief encrpt the rtp packet and send the packet.
+ *
+ * @param
+ */
 STATUS writeRtpPacket(PKvsPeerConnection pKvsPeerConnection, PRtpPacket pRtpPacket)
 {
     STATUS retStatus = STATUS_SUCCESS;

@@ -1,4 +1,5 @@
-#ifdef ENABLE_STREAMING
+//#ifdef ENABLE_STREAMING
+#if 1 // def ENABLE_STREAMING
 #define LOG_CLASS "Retransmitter"
 
 #include "../Include_i.h"
@@ -40,7 +41,10 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief handle the generic nack message.
+ *
+ */
 STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
     ENTERS();
@@ -57,6 +61,7 @@ STATUS resendPacketOnNack(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerCo
     UINT32 retransmittedPacketsSent = 0, retransmittedBytesSent = 0, nackCount = 0;
 
     CHK(pKvsPeerConnection != NULL && pRtcpPacket != NULL, STATUS_NULL_ARG);
+    // the calculation of buffer size.
     CHK_STATUS(rtcpNackListGet(pRtcpPacket->payload, pRtcpPacket->payloadLength, &senderSsrc, &receiverSsrc, NULL, &filledLen));
 
     tmpStatus = findTransceiverBySsrc(pKvsPeerConnection, &pSenderTranceiver, receiverSsrc);

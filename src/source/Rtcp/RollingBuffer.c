@@ -143,7 +143,13 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief retrieve the buffer and  invalidate it in the rolling buffer.
+ *
+ * @param[in]
+ * @param[in] index
+ * @param[out] pData
+ */
 STATUS rollingBufferExtractData(PRollingBuffer pRollingBuffer, UINT64 index, PUINT64 pData)
 {
     ENTERS();

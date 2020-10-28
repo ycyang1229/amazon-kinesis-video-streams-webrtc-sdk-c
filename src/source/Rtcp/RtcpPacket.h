@@ -46,23 +46,90 @@ extern "C" {
 // is set to 5 seconds.
 #define RTCP_FIRST_REPORT_DELAY (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
+/**
+ * 5.2.1. Full INTRA-frame Request (FIR) packet
+ * https://tools.ietf.org/html/rfc2032#section-5.2.1
+ *   0                   1                   2                   3
+ *   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |V=2|P| MBZ     | PT=RTCP_FIR   | length                        |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | SSRC                                                          |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ */
+
+/**
+ * 5.2.2.  Negative ACKnowledgements (NACK) packet
+ * https://tools.ietf.org/html/rfc2032#section-5.2.2
+ *   0 1 2 3
+ *   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |V=2|P| MBZ     | PT=RTCP_NACK  | length                        |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | SSRC                                                          |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | FSN                           | BLP                           |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ */
+
+/**
+ * 12.1 RTCP Packet Types
+ * abbrev.  name                 value
+ * SR       sender report          200
+ * RR       receiver report        201
+ * SDES     source description     202
+ * BYE      goodbye                203
+ * APP      application-defined    204
+ */
 typedef enum {
-    RTCP_PACKET_TYPE_FIR = 192, // https://tools.ietf.org/html/rfc2032#section-5.2.1
+    RTCP_PACKET_TYPE_FIR = 192, //!< Full INTRA-frame Request (FIR) packet
+                                //!< https://tools.ietf.org/html/rfc2032#section-5.2.1
     RTCP_PACKET_TYPE_SENDER_REPORT = 200,
     RTCP_PACKET_TYPE_RECEIVER_REPORT = 201, // https://tools.ietf.org/html/rfc3550#section-6.4.2
     RTCP_PACKET_TYPE_SOURCE_DESCRIPTION = 202,
-    RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK = 205,
+    RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK = 205, // https://tools.ietf.org/html/rfc4585#section-6.1
     RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK = 206,
 } RTCP_PACKET_TYPE;
 
+/**
+ * https://tools.ietf.org/html/rfc4585#section-6.1
+ * Common Packet Format for Feedback Messages
+ *   0                   1                   2                   3
+ *   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |V=2|P| FMT     | PT            | length                        |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | SSRC of packet sender                                         |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | SSRC of media source                                          |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  : Feedback Control Information (FCI)                            :
+ *  :                                                               :
+ *
+ * Name  | Value | Brief Description
+ * ----------+-------+------------------------------------
+ * RTPFB | 205   | Transport layer FB message
+ * PSFB  | 206   | Payload-specific FB message
+ *
+ */
+/**
+ * Figure 4: Syntax for the Generic NACK message
+ *   0                   1                   2                   3
+ *   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | PID                           | BLP                           |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *
+ */
 typedef enum {
-    RTCP_FEEDBACK_MESSAGE_TYPE_NACK = 1,
-    RTCP_PSFB_PLI = 1, // https://tools.ietf.org/html/rfc4585#section-6.3
-    RTCP_PSFB_SLI = 2, // https://tools.ietf.org/html/rfc4585#section-6.3.2
+    RTCP_FEEDBACK_MESSAGE_TYPE_NACK = 1, //!< Transport layer FB messages
+                                         //!< // https://tools.ietf.org/html/rfc4585#section-6.2.1
+    RTCP_PSFB_PLI = 1,                   // https://tools.ietf.org/html/rfc4585#section-6.3
+    RTCP_PSFB_SLI = 2,                   // https://tools.ietf.org/html/rfc4585#section-6.3.2
     RTCP_FEEDBACK_MESSAGE_TYPE_APPLICATION_LAYER_FEEDBACK = 15,
 } RTCP_FEEDBACK_MESSAGE_TYPE;
 
-/*
+/**
  *
  *  0                   1                   2                   3
  *  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -70,7 +137,9 @@ typedef enum {
  * |V=2|P|    Count   |       PT      |             length         |
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
-
+/*@brief https://tools.ietf.org/html/rfc3550#section-6.4.1
+ *
+ */
 typedef struct {
     UINT8 version;
     UINT8 receptionReportCount;
@@ -87,6 +156,9 @@ typedef struct {
 } RtcpPacket, *PRtcpPacket;
 
 STATUS setRtcpPacketFromBytes(PBYTE, UINT32, PRtcpPacket);
+/**
+ *
+ */
 STATUS rtcpNackListGet(PBYTE, UINT32, PUINT32, PUINT32, PUINT16, PUINT32);
 STATUS rembValueGet(PBYTE, UINT32, PDOUBLE, PUINT32, PUINT8);
 STATUS isRembPacket(PBYTE, UINT32);

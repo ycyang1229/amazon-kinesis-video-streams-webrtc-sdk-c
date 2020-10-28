@@ -25,7 +25,7 @@ typedef struct {
     UINT8 payloadType;
     UINT8 rtxPayloadType;
     UINT16 sequenceNumber;
-    UINT16 rtxSequenceNumber;
+    UINT16 rtxSequenceNumber; //!< the sequence number of re-transmission.
     UINT32 ssrc;
     UINT32 rtxSsrc;
     PayloadArray payloadArray;

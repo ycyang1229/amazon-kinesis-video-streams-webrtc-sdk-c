@@ -159,7 +159,8 @@ VOID onInboundPacket(UINT64 customData, PBYTE buff, UINT32 buffLen)
         }
 
     } else if ((buff[0] > 127 && buff[0] < 192) && (pKvsPeerConnection->pSrtpSession != NULL)) {
-#ifdef ENABLE_STREAMING
+//#ifdef ENABLE_STREAMING
+#if 1 // def ENABLE_STREAMING
         if (buff[1] >= 192 && buff[1] <= 223) {
             if (STATUS_FAILED(retStatus = decryptSrtcpPacket(pKvsPeerConnection->pSrtpSession, buff, &signedBuffLen))) {
                 DLOGW("decryptSrtcpPacket failed with 0x%08x", retStatus);

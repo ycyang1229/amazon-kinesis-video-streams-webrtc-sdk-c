@@ -1,9 +1,16 @@
-#ifdef ENABLE_STREAMING
+//#ifdef ENABLE_STREAMING
+#if 1 // def ENABLE_STREAMING
 #define LOG_CLASS "RtcRtcp"
 
 #include "../Include_i.h"
 
 // TODO handle FIR packet https://tools.ietf.org/html/rfc2032#section-5.2.1
+/**
+ * @brief Receiver needs Full INTRA-frame Request (FIR) packet.
+ *
+ * @param[in]
+ * @param[in]
+ */
 static STATUS onRtcpFIRPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -139,7 +146,13 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief the handler of rtcp packets.
+ *
+ * @param[in]
+ * @param[in]
+ * @param[in]
+ */
 STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 buffLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -174,9 +187,11 @@ STATUS onRtcpPacket(PKvsPeerConnection pKvsPeerConnection, PBYTE pBuff, UINT32 b
                     DLOGW("unhandled packet type RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK %d", rtcpPacket.header.receptionReportCount);
                 }
                 break;
+            // https://tools.ietf.org/html/rfc3550#section-6.4.1
             case RTCP_PACKET_TYPE_SENDER_REPORT:
                 CHK_STATUS(onRtcpSenderReport(&rtcpPacket, pKvsPeerConnection));
                 break;
+            // https://tools.ietf.org/html/rfc3550#section-6.4.2
             case RTCP_PACKET_TYPE_RECEIVER_REPORT:
                 CHK_STATUS(onRtcpReceiverReport(&rtcpPacket, pKvsPeerConnection));
                 break;

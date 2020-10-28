@@ -51,6 +51,21 @@ typedef STATUS (*DepayRtpPayloadFunc)(PBYTE, UINT32, PBYTE, PUINT32, PBOOL);
  * +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
 
+/**
+ * https://tools.ietf.org/html/rfc4588#section-4
+ * The format of a retransmission packet is shown below:
+ *   0                   1                   2                   3
+ *   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | RTP Header                                                    |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | OSN                           |                               |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               |
+ *  | Original RTP Packet Payload                                   |
+ *  |                                                               |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ */
+
 struct __RtpPacketHeader {
     UINT8 version;
     BOOL padding;
@@ -70,12 +85,12 @@ typedef struct __RtpPacketHeader RtpPacketHeader;
 typedef RtpPacketHeader* PRtpPacketHeader;
 
 struct __Payloads {
-    PBYTE payloadBuffer;         //!< put all the fu-a payload sequentially.
+    PBYTE payloadBuffer;         //!< put all the rtp payload sequentially.
     UINT32 payloadLength;        //!< the current length of used payload buffer.
     UINT32 maxPayloadLength;     //!< the maximum of payload buffer.
-    PUINT32 payloadSubLength;    //!< the length of each fu-a payload.
-    UINT32 payloadSubLenSize;    //!< the current number of fu-a payload.
-    UINT32 maxPayloadSubLenSize; //!< the maximum of fu-a payload.
+    PUINT32 payloadSubLength;    //!< the length of each rtp payload.
+    UINT32 payloadSubLenSize;    //!< the current number of rtp payload.
+    UINT32 maxPayloadSubLenSize; //!< the maximum of rtp payload.
 };
 typedef struct __Payloads PayloadArray;
 typedef PayloadArray* PPayloadArray;

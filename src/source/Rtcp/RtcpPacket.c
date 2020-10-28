@@ -2,6 +2,9 @@
 
 #include "../Include_i.h"
 
+/**
+ * @brief retrieve the related information from rawacket
+ */
 STATUS setRtcpPacketFromBytes(PBYTE pRawPacket, UINT32 pRawPacketsLen, PRtcpPacket pRtcpPacket)
 {
     ENTERS();
@@ -23,7 +26,8 @@ STATUS setRtcpPacketFromBytes(PBYTE pRawPacket, UINT32 pRawPacketsLen, PRtcpPack
     pRtcpPacket->header.receptionReportCount = pRawPacket[0] & RTCP_PACKET_RRC_BITMASK;
     pRtcpPacket->header.packetType = pRawPacket[RTCP_PACKET_TYPE_OFFSET];
     pRtcpPacket->header.packetLength = packetLen;
-
+    // The length of this RTCP packet in 32-bit words minus one, including the header and any padding.
+    // we do not need to add one since we are calculating the length of payload.
     pRtcpPacket->payloadLength = packetLen * RTCP_PACKET_LEN_WORD_SIZE;
     pRtcpPacket->payload = pRawPacket + RTCP_PACKET_LEN_WORD_SIZE;
 

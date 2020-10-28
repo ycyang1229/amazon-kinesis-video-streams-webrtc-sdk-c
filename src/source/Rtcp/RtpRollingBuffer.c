@@ -79,7 +79,15 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief search the packets from rolling buffer according to sequence number.
+ *
+ * @param[in] pRollingBuffer
+ * @param[in] pSequenceNumberList
+ * @param[in] sequenceNumberListLen
+ * @param[out] pValidSeqIndexList the result of found packets.
+ * @param[out] pValidIndexListLen
+ */
 STATUS rtpRollingBufferGetValidSeqIndexList(PRtpRollingBuffer pRollingBuffer, PUINT16 pSequenceNumberList, UINT32 sequenceNumberListLen,
                                             PUINT64 pValidSeqIndexList, PUINT32 pValidIndexListLen)
 {
