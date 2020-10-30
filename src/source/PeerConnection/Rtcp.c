@@ -211,7 +211,11 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief REMB (Receiver Estimated Maximum Bitrate)
+ * https://tools.ietf.org/html/draft-alvestrand-rmcat-remb-03
+ * GCC, google congestion control, https://tools.ietf.org/html/draft-ietf-rmcat-gcc-02 #YC_TBD.
+ */
 STATUS onRtcpRembPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -239,7 +243,7 @@ CleanUp:
 
     return retStatus;
 }
-
+// handle PLI packet https://tools.ietf.org/html/rfc4585#section-6.3.1
 STATUS onRtcpPLIPacket(PRtcpPacket pRtcpPacket, PKvsPeerConnection pKvsPeerConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;

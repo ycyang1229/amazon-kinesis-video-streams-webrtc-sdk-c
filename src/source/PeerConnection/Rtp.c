@@ -279,6 +279,7 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     pKvsRtpTransceiver->sender.sequenceNumber = GET_UINT16_SEQ_NUM(pKvsRtpTransceiver->sender.sequenceNumber + pPayloadArray->payloadSubLenSize);
     // decide the type of packet inside the rolling buffer.
     bufferAfterEncrypt = (pKvsRtpTransceiver->sender.payloadType == pKvsRtpTransceiver->sender.rtxPayloadType);
+    DLOGD("bufferAfterEncrypt: (%d -- %d)", pKvsRtpTransceiver->sender.payloadType, pKvsRtpTransceiver->sender.rtxPayloadType);
     DLOGD("pPayloadArray->payloadSubLenSize:%d", pPayloadArray->payloadSubLenSize);
     for (i = 0; i < pPayloadArray->payloadSubLenSize; i++) {
         pRtpPacket = pPacketList + i;

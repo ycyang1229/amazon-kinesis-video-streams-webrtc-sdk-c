@@ -45,7 +45,7 @@ STATUS createPayloadForH264(UINT32 mtu, PBYTE nalus, UINT32 nalusLength, PBYTE p
 
     do {
 // looking for the nalu header.
-#if 0
+#if 1
         CHK_STATUS(getNextNaluLength(curPtrInNalus, remainNalusLength, &startIndex, &nextNaluLength));
         curPtrInNalus += startIndex;
         remainNalusLength -= startIndex;

@@ -81,14 +81,49 @@ extern "C" {
  * BYE      goodbye                203
  * APP      application-defined    204
  */
+
+/**
+ * REMB
+ * The message is an RTCP message with payload type 206. RFC 3550 [RFC3550] defines the range, RFC 4585 defines the specific PT value 206 and the FMT
+ * value 15.
+ *
+ *   0                   1                   2                   3
+ *   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  |V=2|P| FMT=15  | PT=206        | length                        |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | SSRC of packet sender                                         |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | SSRC of media source                                          |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | Unique identifier ’R’ ’E’ ’M’ ’B’                             |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | Num SSRC      | BR Exp         | BR Mantissa                  |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | SSRC feedback                                                 |
+ *  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ *  | ...
+ */
+/**
+ * Payload-Specific Feedback Messages
+ *  0: unassigned
+ *  1: Picture Loss Indication (PLI)
+ *  2: Slice Loss Indication (SLI)
+ *  3: Reference Picture Selection Indication (RPSI)
+ *  4-14: unassigned
+ *  15: Application layer FB (AFB) message
+ *  16-30: unassigned
+ *  31: reserved for future expansion of the sequence number space
+ *
+ */
 typedef enum {
     RTCP_PACKET_TYPE_FIR = 192, //!< Full INTRA-frame Request (FIR) packet
                                 //!< https://tools.ietf.org/html/rfc2032#section-5.2.1
     RTCP_PACKET_TYPE_SENDER_REPORT = 200,
     RTCP_PACKET_TYPE_RECEIVER_REPORT = 201, // https://tools.ietf.org/html/rfc3550#section-6.4.2
     RTCP_PACKET_TYPE_SOURCE_DESCRIPTION = 202,
-    RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK = 205, // https://tools.ietf.org/html/rfc4585#section-6.1
-    RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK = 206,
+    RTCP_PACKET_TYPE_GENERIC_RTP_FEEDBACK = 205,      // https://tools.ietf.org/html/rfc4585#section-6.1
+    RTCP_PACKET_TYPE_PAYLOAD_SPECIFIC_FEEDBACK = 206, //!< https://tools.ietf.org/html/draft-alvestrand-rmcat-remb-03
 } RTCP_PACKET_TYPE;
 
 /**
@@ -124,8 +159,9 @@ typedef enum {
 typedef enum {
     RTCP_FEEDBACK_MESSAGE_TYPE_NACK = 1, //!< Transport layer FB messages
                                          //!< // https://tools.ietf.org/html/rfc4585#section-6.2.1
-    RTCP_PSFB_PLI = 1,                   // https://tools.ietf.org/html/rfc4585#section-6.3
-    RTCP_PSFB_SLI = 2,                   // https://tools.ietf.org/html/rfc4585#section-6.3.2
+    RTCP_PSFB_PLI = 1,                   //!< https://tools.ietf.org/html/rfc4585#section-6.3.1
+    RTCP_PSFB_SLI = 2,                   //!< https://tools.ietf.org/html/rfc4585#section-6.3.2
+    RTCP_PSFB_RPSI = 3,                  //!< https://tools.ietf.org/html/rfc4585#section-6.3.3
     RTCP_FEEDBACK_MESSAGE_TYPE_APPLICATION_LAYER_FEEDBACK = 15,
 } RTCP_FEEDBACK_MESSAGE_TYPE;
 

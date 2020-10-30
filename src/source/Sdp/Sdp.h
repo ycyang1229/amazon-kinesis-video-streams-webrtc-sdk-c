@@ -17,6 +17,13 @@ extern "C" {
 #define SDP_EMAIL_ADDRESS_MARKER          "e="
 #define SDP_ENCRYPTION_KEY_MARKER         "k="
 
+#define SDP_ATTRIBUTE_MSID_SEMANTIC "msid-semantic"
+#define SDP_ATTRIBUTE_FMTP          "fmtp"
+#define SDP_ATTRIBUTE_RTPMAP        "rtpmap"
+#define SDP_ATTRIBUTE_RTCP_FB       "rtcp-fb"
+#define SDP_ATTRIBUTE_FINGER_PRINT  "fingerprint"
+#define SDP_ATTRIBUTE_SSRC          "ssrc"
+#define SDP_ATTRIBUTE_ICE_OPTIONS   "ice-options"
 // Media title information or Session information
 #define SDP_INFORMATION_MARKER "i="
 

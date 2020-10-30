@@ -977,15 +977,15 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     CHK_STATUS(deserializeSessionDescription(pSessionDescription, pSessionDescriptionInit->sdp));
 
     for (i = 0; i < pSessionDescription->sessionAttributesCount; i++) {
-        if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "fingerprint") == 0) {
+        if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, SDP_ATTRIBUTE_FINGER_PRINT) == 0) {
             STRNCPY(pKvsPeerConnection->remoteCertificateFingerprint, pSessionDescription->sdpAttributes[i].attributeValue + 8,
                     CERTIFICATE_FINGERPRINT_LENGTH);
-        } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "ice-options") == 0 &&
+        } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, SDP_ATTRIBUTE_ICE_OPTIONS) == 0 &&
                    STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "trickle") == 0) {
             NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
         } else if (pKvsPeerConnection->isOffer && STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "setup") == 0) {
             pKvsPeerConnection->dtlsIsServer = STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "active") == 0;
-        } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "ice-options") == 0 &&
+        } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, SDP_ATTRIBUTE_ICE_OPTIONS) == 0 &&
                    STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "trickle") == 0) {
             NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
         }
@@ -1006,13 +1006,13 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
             } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "candidate") == 0) {
                 // Ignore the return value, we have candidates we don't support yet like TURN
                 iceAgentAddRemoteCandidate(pKvsPeerConnection->pIceAgent, pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue);
-            } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "fingerprint") == 0) {
+            } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, SDP_ATTRIBUTE_FINGER_PRINT) == 0) {
                 STRNCPY(pKvsPeerConnection->remoteCertificateFingerprint,
                         pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue + 8, CERTIFICATE_FINGERPRINT_LENGTH);
             } else if (pKvsPeerConnection->isOffer &&
                        STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "setup") == 0) {
                 pKvsPeerConnection->dtlsIsServer = STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, "active") == 0;
-            } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "ice-options") == 0 &&
+            } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, SDP_ATTRIBUTE_ICE_OPTIONS) == 0 &&
                        STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, "trickle") == 0) {
                 NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
                 // This code is only here because Chrome does NOT adhere to the standard and adds ice-options as a media level attribute
