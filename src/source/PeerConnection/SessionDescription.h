@@ -28,12 +28,27 @@ extern "C" {
 #define SSRC_KEY      "ssrc"
 #define BUNDLE_KEY    "BUNDLE"
 
-#define H264_VALUE      "H264/90000"
-#define OPUS_VALUE      "opus/48000"
-#define VP8_VALUE       "VP8/90000"
-#define MULAW_VALUE     "PCMU/8000"
-#define ALAW_VALUE      "PCMA/8000"
-#define RTX_VALUE       "rtx/90000"
+#define H264_VALUE  "H264/90000"
+#define OPUS_VALUE  "opus/48000"
+#define VP8_VALUE   "VP8/90000"
+#define MULAW_VALUE "PCMU/8000"
+#define ALAW_VALUE  "PCMA/8000"
+#define RTX_VALUE   "rtx/90000"
+// https://tools.ietf.org/html/rfc4588#section-8.1
+// associated payload type
+// #YC_TBD, An OPTIONAL payload-format-specific parameter, "rtx-time", indicates
+// the maximum time a sender will keep an original RTP packet in its
+// buffers available for retransmission.
+// a=fmtp:<number> apt=<apt-value>;rtx-time=<rtx-time-val>
+//   a=rtpmap:108 H264/90000\r\n
+//   a=rtcp-fb:108 goog-remb\r\n
+//   a=rtcp-fb:108 transport-cc\r\n
+//   a=rtcp-fb:108 ccm fir\r\n
+//   a=rtcp-fb:108 nack\r\n
+//   a=rtcp-fb:108 nack pli\r\n
+//   a=fmtp:108 level-asymmetry-allowed=1;packetization-mode=0;profile-level-id=42e01f\r\n
+//   a=rtpmap:109 rtx/90000\r\n
+//   a=fmtp:109 apt=108\r\n
 #define RTX_CODEC_VALUE "apt="
 
 #define DEFAULT_PAYLOAD_MULAW (UINT64) 0

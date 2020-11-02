@@ -137,8 +137,10 @@ CleanUp:
 }
 //#ifdef ENABLE_STREAMING
 #if 1 // def ENABLE_STREAMING
-/*
- * Populate map with PayloadTypes if we are offering
+/**
+ * @brief Populate map with PayloadTypes if we are offering
+ *
+ * #YC_TBD, should be dynamic.
  */
 STATUS setPayloadTypesForOffer(PHashTable codecTable)
 {
