@@ -51,14 +51,17 @@ extern "C" {
 //   a=fmtp:109 apt=108\r\n
 #define RTX_CODEC_VALUE "apt="
 
+// https://en.wikipedia.org/wiki/RTP_payload_formats
+// https://www.iana.org/assignments/rtp-parameters/rtp-parameters.xhtml
 #define DEFAULT_PAYLOAD_MULAW (UINT64) 0
 #define DEFAULT_PAYLOAD_ALAW  (UINT64) 8
 #define DEFAULT_PAYLOAD_OPUS  (UINT64) 111
 #define DEFAULT_PAYLOAD_VP8   (UINT64) 96
 #define DEFAULT_PAYLOAD_H264  (UINT64) 125
-
+// ITU-T G.711 PCM μ-Law audio 64 kbit/s
 #define DEFAULT_PAYLOAD_MULAW_STR (PCHAR) "0"
-#define DEFAULT_PAYLOAD_ALAW_STR  (PCHAR) "8"
+// ITU-T G.711 PCM A-Law audio 64 kbit/s
+#define DEFAULT_PAYLOAD_ALAW_STR (PCHAR) "8"
 
 #define DEFAULT_H264_FMTP (PCHAR) "level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f"
 #define DEFAULT_OPUS_FMTP (PCHAR) "minptime=10;useinbandfec=1"

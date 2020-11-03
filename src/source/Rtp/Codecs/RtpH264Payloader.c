@@ -41,7 +41,7 @@ STATUS createPayloadForH264(UINT32 mtu, PBYTE nalus, UINT32 nalusLength, PBYTE p
     payloadArray.payloadBuffer = payloadBuffer;
     payloadArray.payloadSubLength = pPayloadSubLength;
     // slice nalus into several payload according to mtu.
-    DLOGD("nalusLength:%u", nalusLength);
+    // DLOGD("nalusLength:%u", nalusLength);
 
     do {
 // looking for the nalu header.
@@ -95,7 +95,7 @@ STATUS createPayloadForH264(UINT32 mtu, PBYTE nalus, UINT32 nalusLength, PBYTE p
 
         remainNalusLength -= nextNaluLength;
         curPtrInNalus += nextNaluLength;
-        DLOGD("remainNalusLength%u, nextNaluLength:%u", remainNalusLength, nextNaluLength);
+        // DLOGD("remainNalusLength%u, nextNaluLength:%u", remainNalusLength, nextNaluLength);
     } while (remainNalusLength != 0);
 
 CleanUp:

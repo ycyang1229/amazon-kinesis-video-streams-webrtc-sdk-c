@@ -279,8 +279,8 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
     pKvsRtpTransceiver->sender.sequenceNumber = GET_UINT16_SEQ_NUM(pKvsRtpTransceiver->sender.sequenceNumber + pPayloadArray->payloadSubLenSize);
     // decide the type of packet inside the rolling buffer.
     bufferAfterEncrypt = (pKvsRtpTransceiver->sender.payloadType == pKvsRtpTransceiver->sender.rtxPayloadType);
-    DLOGD("bufferAfterEncrypt: (%d -- %d)", pKvsRtpTransceiver->sender.payloadType, pKvsRtpTransceiver->sender.rtxPayloadType);
-    DLOGD("pPayloadArray->payloadSubLenSize:%d", pPayloadArray->payloadSubLenSize);
+    // DLOGD("bufferAfterEncrypt: (%d -- %d)", pKvsRtpTransceiver->sender.payloadType, pKvsRtpTransceiver->sender.rtxPayloadType);
+    // DLOGD("pPayloadArray->payloadSubLenSize:%d", pPayloadArray->payloadSubLenSize);
     for (i = 0; i < pPayloadArray->payloadSubLenSize; i++) {
         pRtpPacket = pPacketList + i;
 
@@ -297,9 +297,9 @@ STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
             pRtpPacket->rawPacketLength = packetLen;
             CHK_STATUS(rtpRollingBufferAddRtpPacket(pKvsRtpTransceiver->sender.packetBuffer, pRtpPacket));
         }
-        DLOGD("1 packetLen:%d", packetLen);
+        // DLOGD("1 packetLen:%d", packetLen);
         CHK_STATUS(encryptRtpPacket(pKvsPeerConnection->pSrtpSession, rawPacket, (PINT32) &packetLen));
-        DLOGD("2 packetLen:%d", packetLen);
+        // DLOGD("2 packetLen:%d", packetLen);
         sendStatus = iceAgentSendPacket(pKvsPeerConnection->pIceAgent, rawPacket, packetLen);
         if (sendStatus == STATUS_SEND_DATA_FAILED) {
             packetsDiscardedOnSend++;

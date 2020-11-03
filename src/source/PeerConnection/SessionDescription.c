@@ -347,6 +347,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     // DTLS with the Datagram Congestion Control Protocol (DCCP), then
     // the token SHALL be DCCP/TLS/RTP/SAVP or DCCP/TLS/RTP/SAVPF
     // respectively.
+    DLOGD("media name: %s", pSdpMediaDescription->mediaName);
     if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE ||
         pRtcMediaStreamTrack->codec == RTC_CODEC_VP8) {
         if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
@@ -358,15 +359,20 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         CHK(retStatus == STATUS_SUCCESS || retStatus == STATUS_HASH_KEY_NOT_PRESENT, retStatus);
         containRtx = (retStatus == STATUS_SUCCESS);
         retStatus = STATUS_SUCCESS;
+
         if (containRtx) {
             SPRINTF(pSdpMediaDescription->mediaName, "video 9 UDP/TLS/RTP/SAVPF %" PRId64 " %" PRId64, payloadType, rtxPayloadType);
+            DLOGD("contain rtx %" PRId64 " %" PRId64, payloadType, rtxPayloadType);
         } else {
             SPRINTF(pSdpMediaDescription->mediaName, "video 9 UDP/TLS/RTP/SAVPF %" PRId64, payloadType);
+            DLOGD("does not contain rtx %" PRId64, payloadType);
         }
     } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_OPUS || pRtcMediaStreamTrack->codec == RTC_CODEC_MULAW ||
                pRtcMediaStreamTrack->codec == RTC_CODEC_ALAW) {
         SPRINTF(pSdpMediaDescription->mediaName, "audio 9 UDP/TLS/RTP/SAVPF %" PRId64, payloadType);
+        DLOGD("audio does not contain rtx %" PRId64, payloadType);
     }
+    DLOGD("media name: %s", pSdpMediaDescription->mediaName);
 
     CHK_STATUS(iceAgentPopulateSdpMediaDescriptionCandidates(pKvsPeerConnection->pIceAgent, pSdpMediaDescription, MAX_SDP_ATTRIBUTE_VALUE_LENGTH,
                                                              &attributeCount));
@@ -823,6 +829,7 @@ STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection pKvsPeerConnecti
 
         // Scan the media section name for any codecs we support
         attributeValue = pMediaDescription->mediaName;
+        DLOGD("%s", attributeValue);
 
         do {
             if ((end = STRCHR(attributeValue, ' ')) != NULL) {
@@ -848,12 +855,13 @@ STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection pKvsPeerConnecti
             if (end != NULL) {
                 attributeValue = end + 1;
             }
+            DLOGD("while");
         } while (end != NULL && !foundMediaSectionWithCodec);
 
         // Scan the media section attributes for codecs we support
         for (currentAttribute = 0; currentAttribute < pMediaDescription->mediaAttributesCount && !foundMediaSectionWithCodec; currentAttribute++) {
             attributeValue = pMediaDescription->sdpAttributes[currentAttribute].attributeValue;
-
+            DLOGD("%s", attributeValue);
             if (STRSTR(attributeValue, H264_VALUE) != NULL) {
                 supportCodec = TRUE;
                 rtcCodec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;

@@ -669,7 +669,7 @@ STATUS iceAgentPopulateSdpMediaDescriptionCandidates(PIceAgent pIceAgent, PSdpMe
         CHK_STATUS(doubleListGetNodeData(pCurNode, &data));
         pCurNode = pCurNode->pNext;
 
-        STRCPY(pSdpMediaDescription->sdpAttributes[attrIndex].attributeName, "candidate");
+        STRCPY(pSdpMediaDescription->sdpAttributes[attrIndex].attributeName, SDP_ATTRIBUTE_CANDIDATE);
         CHK_STATUS(iceCandidateSerialize((PIceCandidate) data, pSdpMediaDescription->sdpAttributes[attrIndex].attributeValue, &attrBufferLen));
         attrIndex++;
     }

@@ -99,6 +99,8 @@ extern "C" {
 #define SDP_ATTRIBUTE_RTCP          "rtcp"
 #define SDP_ATTRIBUTE_ICE_UFRAG     "ice-ufrag"
 #define SDP_ATTRIBUTE_ICE_PWD       "ice-pwd"
+#define SDP_ATTRIBUTE_CANDIDATE     "candidate"
+
 // Media title information or Session information
 #define SDP_INFORMATION_MARKER "i="
 
