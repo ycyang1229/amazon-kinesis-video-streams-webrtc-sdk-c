@@ -983,7 +983,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
         } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, SDP_ATTRIBUTE_ICE_OPTIONS) == 0 &&
                    STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "trickle") == 0) {
             NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
-        } else if (pKvsPeerConnection->isOffer && STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "setup") == 0) {
+        } else if (pKvsPeerConnection->isOffer && STRCMP(pSessionDescription->sdpAttributes[i].attributeName, SDP_ATTRIBUTE_SETUP) == 0) {
             pKvsPeerConnection->dtlsIsServer = STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "active") == 0;
         } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, SDP_ATTRIBUTE_ICE_OPTIONS) == 0 &&
                    STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "trickle") == 0) {
@@ -1010,7 +1010,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
                 STRNCPY(pKvsPeerConnection->remoteCertificateFingerprint,
                         pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue + 8, CERTIFICATE_FINGERPRINT_LENGTH);
             } else if (pKvsPeerConnection->isOffer &&
-                       STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "setup") == 0) {
+                       STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, SDP_ATTRIBUTE_SETUP) == 0) {
                 pKvsPeerConnection->dtlsIsServer = STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, "active") == 0;
             } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, SDP_ATTRIBUTE_ICE_OPTIONS) == 0 &&
                        STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue, "trickle") == 0) {

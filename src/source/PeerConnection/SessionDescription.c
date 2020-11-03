@@ -69,7 +69,7 @@ STATUS deserializeSessionDescriptionInit(PCHAR sessionDescriptionJSON, UINT32 se
     MEMSET(pSessionDescriptionInit, 0x00, SIZEOF(RtcSessionDescriptionInit));
 
     jsmn_init(&parser);
-
+    // check the sdp format is always two object. #YC_TBD.
     tokenCount = jsmn_parse(&parser, sessionDescriptionJSON, sessionDescriptionJSONLen, tokens, ARRAY_SIZE(tokens));
     CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
     CHK(tokens[0].type == JSMN_OBJECT, STATUS_SESSION_DESCRIPTION_INIT_NOT_OBJECT);
@@ -341,7 +341,12 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     CHK_STATUS(hashTableGet(pKvsPeerConnection->pCodecTable, pRtcMediaStreamTrack->codec, &payloadType));
 
     currentFmtp = fmtpForPayloadType(payloadType, &(pKvsPeerConnection->remoteSessionDescription));
-
+    // m=<media> <port> <proto> <fmt> ...
+    // https://tools.ietf.org/html/rfc5764#section-8
+    // When a RTP/SAVP or RTP/SAVPF [RFC5124] stream is transported over
+    // DTLS with the Datagram Congestion Control Protocol (DCCP), then
+    // the token SHALL be DCCP/TLS/RTP/SAVP or DCCP/TLS/RTP/SAVPF
+    // respectively.
     if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE ||
         pRtcMediaStreamTrack->codec == RTC_CODEC_VP8) {
         if (pRtcMediaStreamTrack->codec == RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE) {
@@ -367,7 +372,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
                                                              &attributeCount));
 
     if (containRtx) {
-        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "msid");
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, SDP_ATTRIBUTE_MSID);
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%s %sRTX", pRtcMediaStreamTrack->streamId,
                 pRtcMediaStreamTrack->trackId);
         attributeCount++;
@@ -377,7 +382,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
                 pKvsRtpTransceiver->sender.rtxSsrc);
         attributeCount++;
     } else {
-        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "msid");
+        STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, SDP_ATTRIBUTE_MSID);
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%s %s", pRtcMediaStreamTrack->streamId,
                 pRtcMediaStreamTrack->trackId);
         attributeCount++;
@@ -425,15 +430,15 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
         attributeCount++;
     }
 
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp");
+    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, SDP_ATTRIBUTE_RTCP);
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "9 IN IP4 0.0.0.0");
     attributeCount++;
 
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ice-ufrag");
+    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, SDP_ATTRIBUTE_ICE_UFRAG);
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, pKvsPeerConnection->localIceUfrag);
     attributeCount++;
 
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ice-pwd");
+    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, SDP_ATTRIBUTE_ICE_PWD);
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, pKvsPeerConnection->localIcePwd);
     attributeCount++;
 
@@ -446,11 +451,11 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtp
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue + 8, pCertificateFingerprint);
     attributeCount++;
 
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "setup");
+    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, SDP_ATTRIBUTE_SETUP);
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, pDtlsRole);
     attributeCount++;
 
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "mid");
+    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, SDP_ATTRIBUTE_MID);
     SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%d", mediaSectionId);
     attributeCount++;
 
@@ -581,15 +586,15 @@ STATUS populateSessionDescriptionDataChannel(PKvsPeerConnection pKvsPeerConnecti
     CHK_STATUS(iceAgentPopulateSdpMediaDescriptionCandidates(pKvsPeerConnection->pIceAgent, pSdpMediaDescription, MAX_SDP_ATTRIBUTE_VALUE_LENGTH,
                                                              &attributeCount));
 
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "rtcp");
+    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, SDP_ATTRIBUTE_RTCP);
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "9 IN IP4 0.0.0.0");
     attributeCount++;
 
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ice-ufrag");
+    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, SDP_ATTRIBUTE_ICE_UFRAG);
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, pKvsPeerConnection->localIceUfrag);
     attributeCount++;
 
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "ice-pwd");
+    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, SDP_ATTRIBUTE_ICE_PWD);
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, pKvsPeerConnection->localIcePwd);
     attributeCount++;
 
@@ -598,11 +603,11 @@ STATUS populateSessionDescriptionDataChannel(PKvsPeerConnection pKvsPeerConnecti
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue + 8, pCertificateFingerprint);
     attributeCount++;
 
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "setup");
+    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, SDP_ATTRIBUTE_SETUP);
     STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, pDtlsRole);
     attributeCount++;
 
-    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "mid");
+    STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, SDP_ATTRIBUTE_MID);
     SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%d", mediaSectionId);
     attributeCount++;
 

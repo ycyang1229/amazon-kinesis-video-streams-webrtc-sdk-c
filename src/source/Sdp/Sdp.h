@@ -11,6 +11,75 @@
 extern "C" {
 #endif
 
+/**
+ * https://tools.ietf.org/id/draft-ietf-rtcweb-sdp-08.html
+ *
+ *                                                 +---------------------+
+ *                                                 |        v=           |
+ *                                                 +---------------------+
+ *                 +---------------------+         +---------------------+
+ *         ====    |   Session Metadata  |  =====  |        o=           |
+ *         |       +---------------------+         +----------------------
+ *         |                                       +---------------------+
+ *         |                                       |        t=           |
+ *         |                                       +---------------------+
+ *         |
+ *         |
+ *         |                                       +---------------------+
+ *         |                                       |        c=           |
+ *         |                                       +---------------------+
+ *         |       +---------------------+
+ *         ====    | Network Description |   =====
+ *         |       +---------------------+
+ *         |                                       +---------------------+
+ *         |                                       |    a=candidate      |
+ *         |                                       +---------------------+
+ *         |
+ *         |
+ *         |                                       +---------------------+
+ *         |                                       |        m=           |
+ *         |                                       +---------------------+
+ *         |        +---------------------+        +---------------------+
+ *         ====     | Stream Description  |  ===== |      a=rtpmap       |
+ *         |        +---------------------+        +----------------------
+ *         |                                       +---------------------+
+ *         |                                       |      a=fmtp         |
+ *         |                                       +---------------------+
+ *         |                                       +---------------------+
+ *         |                                       |      a=sendrecv..   |
+ *         |                                       +---------------------+
+ * +---------------+
+ * |    SEMANTIC   |
+ * | COMPONENTS OF |
+ * |     SDP       |
+ * +---------------+
+ *         |                                       +---------------------+
+ *         |                                       |      a=crypto       |
+ *         |                                       +---------------------+
+ *         |         +---------------------+       +---------------------+
+ *         ====      |Security Descriptions|  =====|      a=ice-frag     |
+ *         |         +---------------------+       +----------------------
+ *         |                                       +---------------------+
+ *         |                                       |      a=ice-pwd      |
+ *         |                                       +---------------------+
+ *         |                                       +---------------------+
+ *         |                                       |     a=fingerprint   |
+ *         |                                       +---------------------+
+ *         |
+ *         |
+ *         |
+ *         |                                       +---------------------+
+ *         |                                       |      a=rtcp-fb      |
+ *         |                                       +---------------------+
+ *         |         +---------------------+       +---------------------+
+ *         ====      |   Qos,Grouping      |       |                     |
+ *                   |   Descriptions      |  =====|       a=group       |
+ *                   +---------------------+       +----------------------
+ *                                                 +---------------------+
+ *                                                 |       a=rtcpmux     |
+ *                                                 +---------------------+
+ */
+
 #define SDP_ATTRIBUTE_MARKER              "a="
 #define SDP_BANDWIDTH_MARKER              "b="
 #define SDP_CONNECTION_INFORMATION_MARKER "c="
@@ -23,7 +92,13 @@ extern "C" {
 #define SDP_ATTRIBUTE_RTCP_FB       "rtcp-fb"
 #define SDP_ATTRIBUTE_FINGER_PRINT  "fingerprint"
 #define SDP_ATTRIBUTE_SSRC          "ssrc"
+#define SDP_ATTRIBUTE_MSID          "msid"
+#define SDP_ATTRIBUTE_SETUP         "setup"
+#define SDP_ATTRIBUTE_MID           "mid"
 #define SDP_ATTRIBUTE_ICE_OPTIONS   "ice-options"
+#define SDP_ATTRIBUTE_RTCP          "rtcp"
+#define SDP_ATTRIBUTE_ICE_UFRAG     "ice-ufrag"
+#define SDP_ATTRIBUTE_ICE_PWD       "ice-pwd"
 // Media title information or Session information
 #define SDP_INFORMATION_MARKER "i="
 
