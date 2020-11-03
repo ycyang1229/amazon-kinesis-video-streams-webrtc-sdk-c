@@ -999,9 +999,9 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
 #endif
 
         for (j = 0; j < pSessionDescription->mediaDescriptions[i].mediaAttributesCount; j++) {
-            if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "ice-ufrag") == 0) {
+            if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, SDP_ATTRIBUTE_ICE_UFRAG) == 0) {
                 remoteIceUfrag = pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue;
-            } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "ice-pwd") == 0) {
+            } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, SDP_ATTRIBUTE_ICE_PWD) == 0) {
                 remoteIcePwd = pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeValue;
             } else if (STRCMP(pSessionDescription->mediaDescriptions[i].sdpAttributes[j].attributeName, "candidate") == 0) {
                 // Ignore the return value, we have candidates we don't support yet like TURN
