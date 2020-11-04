@@ -84,7 +84,7 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
 
     while ((next = STRNCHR(curr, tail - curr, '\n')) != NULL) {
         lineLen = (UINT32)(next - curr);
-
+        // eliminate the \\r\\n
         if (lineLen > 0 && curr[lineLen - 1] == '\r') {
             lineLen--;
         }
@@ -105,41 +105,47 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
             }
         } else {
             // SDP Session Name
+
+            char temp[1024];
+            MEMCPY(temp, curr, lineLen);
+            temp[lineLen] = '\0';
+            DLOGD("%s", temp);
             if (0 == STRNCMP(curr, SDP_SESSION_NAME_MARKER, (ARRAY_SIZE(SDP_SESSION_NAME_MARKER) - 1))) {
                 STRNCPY(pSessionDescription->sessionName, (curr + SDP_ATTRIBUTE_LENGTH),
                         MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
             }
-
-            // SDP Session Name
+            DLOGD("%d", __LINE__);
+            // SDP Session Information
             if (0 == STRNCMP(curr, SDP_INFORMATION_MARKER, (ARRAY_SIZE(SDP_INFORMATION_MARKER) - 1))) {
                 STRNCPY(pSessionDescription->sessionInformation, (curr + SDP_ATTRIBUTE_LENGTH),
                         MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
             }
-
+            DLOGD("%d", __LINE__);
             // SDP URI
             if (0 == STRNCMP(curr, SDP_URI_MARKER, (ARRAY_SIZE(SDP_URI_MARKER) - 1))) {
                 STRNCPY(pSessionDescription->uri, (curr + SDP_ATTRIBUTE_LENGTH), MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
             }
-
+            DLOGD("%d", __LINE__);
             // SDP Email Address
             if (0 == STRNCMP(curr, SDP_EMAIL_ADDRESS_MARKER, (ARRAY_SIZE(SDP_EMAIL_ADDRESS_MARKER) - 1))) {
                 STRNCPY(pSessionDescription->emailAddress, (curr + SDP_ATTRIBUTE_LENGTH),
                         MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
             }
-
+            DLOGD("%d", __LINE__);
             // SDP Phone number
             if (0 == STRNCMP(curr, SDP_PHONE_NUMBER_MARKER, (ARRAY_SIZE(SDP_PHONE_NUMBER_MARKER) - 1))) {
                 STRNCPY(pSessionDescription->phoneNumber, (curr + SDP_ATTRIBUTE_LENGTH),
                         MIN(MAX_SDP_MEDIA_NAME_LENGTH, lineLen - SDP_ATTRIBUTE_LENGTH));
             }
-
+            DLOGD("%d", __LINE__);
             if (0 == STRNCMP(curr, SDP_VERSION_MARKER, (ARRAY_SIZE(SDP_VERSION_MARKER) - 1))) {
                 STRTOUI64(curr + SDP_ATTRIBUTE_LENGTH, curr + MIN(lineLen, MAX_SDP_TOKEN_LENGTH), 10, &pSessionDescription->version);
             }
-
+            DLOGD("%d", __LINE__);
             if (0 == STRNCMP(curr, SDP_ATTRIBUTE_MARKER, (ARRAY_SIZE(SDP_ATTRIBUTE_MARKER) - 1))) {
                 CHK_STATUS(parseSessionAttributes(pSessionDescription, curr, lineLen));
             }
+            DLOGD("%d", __LINE__);
         }
 
         curr = next + 1;

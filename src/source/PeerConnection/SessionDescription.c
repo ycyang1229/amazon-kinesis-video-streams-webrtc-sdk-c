@@ -53,7 +53,10 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief   #memory. we separate the sdp info into several pieces, and copy them to the buffer of session description.
+ *          #YC_TBD, this may not be needed in c sdk, we should enhanace this, and prevent the operatino of #memcpy.
+ */
 STATUS deserializeSessionDescriptionInit(PCHAR sessionDescriptionJSON, UINT32 sessionDescriptionJSONLen,
                                          PRtcSessionDescriptionInit pSessionDescriptionInit)
 {

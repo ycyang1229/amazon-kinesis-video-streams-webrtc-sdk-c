@@ -80,6 +80,17 @@ extern "C" {
  *                                                 +---------------------+
  */
 
+// Media title information or Session information
+#define SDP_INFORMATION_MARKER      "i="
+#define SDP_VERSION_MARKER          "v="
+#define SDP_ORIGIN_MARKER           "o="
+#define SDP_SESSION_NAME_MARKER     "s="
+#define SDP_TIME_DESCRIPTION_MARKER "t="
+// the information fo media follows after the media name(m=).
+#define SDP_MEDIA_NAME_MARKER             "m="
+#define SDP_PHONE_NUMBER_MARKER           "p="
+#define SDP_TIMEZONE_MARKER               "z="
+#define SDP_URI_MARKER                    "u="
 #define SDP_ATTRIBUTE_MARKER              "a="
 #define SDP_BANDWIDTH_MARKER              "b="
 #define SDP_CONNECTION_INFORMATION_MARKER "c="
@@ -100,18 +111,6 @@ extern "C" {
 #define SDP_ATTRIBUTE_ICE_UFRAG     "ice-ufrag"
 #define SDP_ATTRIBUTE_ICE_PWD       "ice-pwd"
 #define SDP_ATTRIBUTE_CANDIDATE     "candidate"
-
-// Media title information or Session information
-#define SDP_INFORMATION_MARKER "i="
-
-#define SDP_MEDIA_NAME_MARKER       "m="
-#define SDP_ORIGIN_MARKER           "o="
-#define SDP_PHONE_NUMBER_MARKER     "p="
-#define SDP_SESSION_NAME_MARKER     "s="
-#define SDP_TIME_DESCRIPTION_MARKER "t="
-#define SDP_TIMEZONE_MARKER         "z="
-#define SDP_URI_MARKER              "u="
-#define SDP_VERSION_MARKER          "v="
 
 // The sequence CRLF (0x0d0a) is used to end a record, although parsers SHOULD be
 // tolerant and also accept records terminated with a single newline
