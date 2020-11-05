@@ -1,6 +1,30 @@
-[submodule "open-source/amazon-kinesis-video-streams-pic"]
-	path = open-source/amazon-kinesis-video-streams-pic
-	url = https://github.com/awslabs/amazon-kinesis-video-streams-pic.git
-[submodule "open-source/amazon-kinesis-video-streams-producer-c"]
-	path = open-source/amazon-kinesis-video-streams-producer-c
-	url = https://github.com/awslabs/amazon-kinesis-video-streams-producer-c.git
+
+
+
+
+
+
+[submodule "third-party/amazon-kinesis-video-streams-producer-c"]
+	path = third-party/amazon-kinesis-video-streams-producer-c
+	url = git@github.com:awslabs/amazon-kinesis-video-streams-producer-c.git
+[submodule "third-party/jsmn"]
+	path = third-party/jsmn
+	url = git@github.com:zserge/jsmn.git
+[submodule "third-party/googletest"]
+	path = third-party/googletest
+	url = git@github.com:google/googletest.git
+[submodule "third-party/mbedtls"]
+	path = third-party/mbedtls
+	url = git@github.com:lherman-cs/mbedtls.git
+[submodule "third-party/openssl"]
+	path = third-party/openssl
+	url = git@github.com:openssl/openssl.git
+[submodule "third-party/libsrtp"]
+	path = third-party/libsrtp
+	url = git@github.com:cisco/libsrtp.git
+[submodule "third-party/usrsctp"]
+	path = third-party/usrsctp
+	url = git@github.com:sctplab/usrsctp.git
+[submodule "third-party/libwebsockets"]
+	path = third-party/libwebsockets
+	url = git@github.com:warmcat/libwebsockets.git
