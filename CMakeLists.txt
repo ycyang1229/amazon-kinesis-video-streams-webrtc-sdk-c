@@ -9,8 +9,8 @@ project(KinesisVideoWebRTCClient LANGUAGES C)
 # User Flags
 option(ADD_MUCLIBC "Add -muclibc c flag" OFF)
 option(BUILD_DEPENDENCIES "Whether or not to build depending libraries from source" ON)
-option(USE_OPENSSL "Use openssl as crypto library" ON)
-option(USE_MBEDTLS "Use mbedtls as crypto library" OFF)
+option(USE_OPENSSL "Use openssl as crypto library" OFF)
+option(USE_MBEDTLS "Use mbedtls as crypto library" ON)
 option(BUILD_STATIC_LIBS "Build all libraries statically. (This includes third-party libraries.)" OFF)
 option(BUILD_OPENSSL_PLATFORM "If buildng OpenSSL what is the target platform" OFF)
 option(BUILD_LIBSRTP_HOST_PLATFORM "If buildng LibSRTP what is the current platform" OFF)
@@ -96,7 +96,24 @@ if(BUILD_DEPENDENCIES)
     set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
   elseif(USE_MBEDTLS)
     set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS})
-    build_dependency(mbedtls ${BUILD_ARGS})
+    #build_dependency(mbedtls ${BUILD_ARGS})
+
+    if (BUILD_STATIC_LIBS)
+    set(BUILD_SHARED 0)
+    else()
+    set(BUILD_SHARED 1)
+    endif()
+
+    if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    set(CMAKE_MACOSX_RPATH 1)
+    else()
+    set(CMAKE_MACOSX_RPATH 0)
+    endif()
+    set(CMAKE_INSTALL_PREFIX ${OPEN_SRC_INSTALL_PREFIX})
+    set(USE_SHARED_MBEDTLS_LIBRARY ${BUILD_SHARED})
+    set(CMAKE_BUILD_TYPE Release)
+    set(ENABLE_TESTING OFF)
+    add_subdirectory(third-party/mbedtls)
   endif()
 
 
@@ -104,30 +121,82 @@ if(BUILD_DEPENDENCIES)
                  -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
                  -DUSE_OPENSSL=${USE_OPENSSL}
                  -DUSE_MBEDTLS=${USE_MBEDTLS})
-  build_dependency(websockets ${BUILD_ARGS})
+  #build_dependency(websockets ${BUILD_ARGS})
+  set(CMAKE_INSTALL_PREFIX ${OPEN_SRC_INSTALL_PREFIX})
+  if (BUILD_STATIC_LIBS)
+    set(LWS_WITH_STATIC 1)
+    set(LWS_WITH_SHARED 0)
+  else()
+    set(LWS_WITH_STATIC 0)
+    set(LWS_WITH_SHARED 1)
+  endif()
 
-  set(BUILD_ARGS
-      -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
-      -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
-      -DBUILD_LIBSRTP_HOST_PLATFORM=${BUILD_LIBSRTP_HOST_PLATFORM}
-      -DBUILD_LIBSRTP_DESTINATION_PLATFORM=${BUILD_LIBSRTP_DESTINATION_PLATFORM}
-      -DUSE_OPENSSL=${USE_OPENSSL}
-      -DUSE_MBEDTLS=${USE_MBEDTLS}
-  )
-  build_dependency(srtp ${BUILD_ARGS})
+  if (USE_OPENSSL)
+    set(LWS_WITH_MBEDTLS OFF)
+  else()
+    set(LWS_WITH_MBEDTLS ON)
+  endif()
+  
+  set(LWS_WITH_HTTP2 1)
+  set(LWS_HAVE_HMAC_CTX_new 1)
+  set(LWS_HAVE_SSL_EXTRA_CHAIN_CERTS 1)
+  set(LWS_HAVE_OPENSSL_ECDH_H 1)
+  set(LWS_HAVE_EVP_MD_CTX_free 1)
+  set(LWS_WITHOUT_SERVER 1)
+  set(LWS_WITHOUT_TESTAPPS 1)
+  set(LWS_WITH_THREADPOOL 1)
+  set(LWS_WITHOUT_TEST_SERVER_EXTPOLL 1)
+  set(LWS_WITHOUT_TEST_PING 1)
+  set(LWS_WITHOUT_TEST_CLIENT 1)
+  set(LWS_STATIC_PIC 1)
+  set(LWS_WITH_ZLIB 0)
+  set(LWS_HAVE_EVENTFD 0)
+# enable for debug output        -DCMAKE_BUILD_TYPE=DEBUG
+  set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
+  add_subdirectory(third-party/libwebsockets)
 
-  build_dependency(usrsctp)
+  #build_dependency(srtp ${BUILD_ARGS})
+  if (BUILD_STATIC_LIBS OR WIN32)
+    set(LIBSRTP_SHARED_LIBS OFF)
+  else()
+    set(LIBSRTP_SHARED_LIBS ON)
+  endif()
+
+  if (USE_OPENSSL)
+    set(LIBSRTP_ENABLE_OPENSSL ON)
+  else()
+    set(LIBSRTP_ENABLE_OPENSSL OFF)
+  endif()
+
+  set(CMAKE_BUILD_TYPE:STRING ${CMAKE_BUILD_TYPE})
+  set(CMAKE_INSTALL_PREFIX:STRING=${OPEN_SRC_INSTALL_PREFIX})
+  set(ENABLE_OPENSSL ${LIBSRTP_ENABLE_OPENSSL})
+  set(OPENSSL_ROOT_DIR ${OPEN_SRC_INSTALL_PREFIX})
+  add_subdirectory(third-party/libsrtp)
+
+  #build_dependency(usrsctp)
+  set(CMAKE_INSTALL_PREFIX ${OPEN_SRC_INSTALL_PREFIX})
+  set(sctp_werror 0)
+  add_subdirectory(third-party/usrsctp)
   if(BUILD_TEST)
    build_dependency(gtest)
   endif()
 
   # building kvsCommonLws also builds kvspic
-  set(BUILD_ARGS
-      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-      -DUSE_OPENSSL=${USE_OPENSSL}
-      -DUSE_MBEDTLS=${USE_MBEDTLS})
-  build_dependency(kvsCommonLws ${BUILD_ARGS})
-
+  #set(BUILD_ARGS
+  #    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+  #    -DUSE_OPENSSL=${USE_OPENSSL}
+  #    -DUSE_MBEDTLS=${USE_MBEDTLS})
+  #build_dependency(kvsCommonLws ${BUILD_ARGS})
+  set(CMAKE_INSTALL_PREFIX ${OPEN_SRC_INSTALL_PREFIX})
+  set(BUILD_COMMON_LWS ON)
+  set(BUILD_COMMON_CURL OFF)
+  set(BUILD_DEPENDENCIES FALSE)
+  set(OPEN_SRC_INSTALL_PREFIX ${OPEN_SRC_INSTALL_PREFIX})
+  set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE})
+  set(USE_OPENSSL ${USE_OPENSSL})
+  set(USE_MBEDTLS ${USE_MBEDTLS})
+  add_subdirectory(third-party/amazon-kinesis-video-streams-producer-c)
   message(STATUS "Finished building dependencies.")
 endif()
 
