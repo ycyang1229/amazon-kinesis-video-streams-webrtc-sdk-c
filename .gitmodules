@@ -28,3 +28,6 @@
 [submodule "third-party/libwebsockets"]
 	path = third-party/libwebsockets
 	url = git@github.com:warmcat/libwebsockets.git
+[submodule "third-party/amazon-kinesis-video-streams-pic"]
+	path = third-party/amazon-kinesis-video-streams-pic
+	url = git@github.com:awslabs/amazon-kinesis-video-streams-pic.git
