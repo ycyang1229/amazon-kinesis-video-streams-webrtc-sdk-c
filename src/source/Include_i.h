@@ -44,7 +44,7 @@ extern "C" {
 #endif
 
 #ifdef ENABLE_STREAMING
-#ifdef KVS_PLAT_ESP_FREERTOS
+#if defined(KVS_PLAT_ESP_FREERTOS) || defined(KVS_PLAT_RTK_FREERTOS)
 #include <srtp.h>
 #else
 #include <srtp2/srtp.h>
@@ -71,8 +71,8 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include <net/if.h>
-#include <arpa/inet.h>
+//#include <net/if.h>//////////////////////////
+//#include <arpa/inet.h>/////////////////////////
 #include <fcntl.h>
 #ifdef KVSWEBRTC_HAVE_NETINET_TCP_H
 #include <netinet/tcp.h>

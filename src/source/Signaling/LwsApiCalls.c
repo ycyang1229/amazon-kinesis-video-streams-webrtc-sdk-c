@@ -1612,7 +1612,7 @@ STATUS receiveLwsMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 
                     // Parse the status code
                     CHK_STATUS(STRTOUI32(pMessage + pTokens[i + 1].start, pMessage + pTokens[i + 1].end, 10,
-                                         &pSignalingMessageWrapper->receivedSignalingMessage.statusCode));
+                                         (PUINT32)&pSignalingMessageWrapper->receivedSignalingMessage.statusCode));
 
                     i++;
                 } else if (compareJsonString(pMessage, &pTokens[i], JSMN_STRING, (PCHAR) "description")) {
