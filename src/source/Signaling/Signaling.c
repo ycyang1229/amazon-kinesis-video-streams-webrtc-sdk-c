@@ -75,9 +75,9 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
     // Prepare the signaling channel protocols array
     pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS].name = HTTPS_SCHEME_NAME;
-    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS].callback = lwsHttpCallbackRoutine;
+    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS].callback = (lws_callback_function*)lwsHttpCallbackRoutine;
     pSignalingClient->signalingProtocols[PROTOCOL_INDEX_WSS].name = WSS_SCHEME_NAME;
-    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_WSS].callback = lwsWssCallbackRoutine;
+    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_WSS].callback = (lws_callback_function*)lwsWssCallbackRoutine;
 
     MEMSET(&creationInfo, 0x00, SIZEOF(struct lws_context_creation_info));
     creationInfo.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
