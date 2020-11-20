@@ -310,7 +310,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
 
     if (pDestIp != NULL) {
         if (IS_IPV4_ADDR(pDestIp)) {
-            CHK(NULL != (pIpv4Addr = (PCHAR) MEMALLOC(SIZEOF(struct sockaddr_in))), STATUS_NOT_ENOUGH_MEMORY);
+            CHK(NULL != (pIpv4Addr =(struct sockaddr_in*) (PCHAR) MEMALLOC(SIZEOF(struct sockaddr_in))), STATUS_NOT_ENOUGH_MEMORY);
             addrLen = SIZEOF(struct sockaddr_in);
             MEMSET(pIpv4Addr, 0x00, SIZEOF(struct sockaddr_in));
             pIpv4Addr->sin_family = AF_INET;
@@ -319,7 +319,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
             destAddr = (struct sockaddr*) pIpv4Addr;
 
         } else {
-            CHK(NULL != (pIpv6Addr = (PCHAR) MEMALLOC(SIZEOF(struct sockaddr_in6))), STATUS_NOT_ENOUGH_MEMORY);
+            CHK(NULL != (pIpv6Addr = (struct sockaddr_in6*) (PCHAR) MEMALLOC(SIZEOF(struct sockaddr_in6))), STATUS_NOT_ENOUGH_MEMORY);
             addrLen = SIZEOF(struct sockaddr_in6);
             MEMSET(pIpv6Addr, 0x00, SIZEOF(struct sockaddr_in6));
             pIpv6Addr->sin6_family = AF_INET6;
@@ -365,7 +365,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     }
 
     if (result < 0) {
-        CLOSE_SOCKET_IF_CANT_RETRY(errorNum, pSocketConnection);
+        //CLOSE_SOCKET_IF_CANT_RETRY(errorNum, pSocketConnection);///////////////////
     }
 
     if (bytesWritten < bufLen) {

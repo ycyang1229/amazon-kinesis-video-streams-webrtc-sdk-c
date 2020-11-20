@@ -4,6 +4,7 @@
 #define LOG_CLASS "Network"
 #include "../Include_i.h"
 
+
 STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen, IceSetInterfaceFilterFunc filter, UINT64 customData)
 {
     ENTERS();
@@ -318,6 +319,18 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
     STATUS retStatus = STATUS_SUCCESS;
     INT32 errCode;
     PCHAR errStr;
+    /////////////////////////////////////
+    struct addrinfo {
+               int              ai_flags;
+               int              ai_family;
+               int              ai_socktype;
+               int              ai_protocol;
+               socklen_t        ai_addrlen;
+               struct sockaddr *ai_addr;
+               char            *ai_canonname;
+               struct addrinfo *ai_next;
+           };
+    ///////////////////////////////
     struct addrinfo *res, *rp;
     BOOL resolved = FALSE;
     struct sockaddr_in* ipv4Addr;
