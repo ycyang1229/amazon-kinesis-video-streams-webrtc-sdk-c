@@ -26,7 +26,7 @@ STATUS createTlsSession(PTlsSessionCallbacks pCallbacks, PTlsSession* ppTlsSessi
     mbedtls_ssl_config_init(&pTlsSession->sslCtxConfig);
     mbedtls_ssl_init(&pTlsSession->sslCtx);
     CHK(mbedtls_ctr_drbg_seed(&pTlsSession->ctrDrbg, mbedtls_entropy_func, &pTlsSession->entropy, NULL, 0) == 0, STATUS_CREATE_SSL_FAILED);
-    CHK(mbedtls_x509_crt_parse_file(&pTlsSession->cacert, KVS_CA_CERT_PATH) == 0, STATUS_INVALID_CA_CERT_PATH);
+    //CHK(mbedtls_x509_crt_parse_file(&pTlsSession->cacert, KVS_CA_CERT_PATH) == 0, STATUS_INVALID_CA_CERT_PATH);/////////////
 
 CleanUp:
     if (STATUS_FAILED(retStatus) && pTlsSession != NULL) {
@@ -118,7 +118,7 @@ STATUS tlsSessionStart(PTlsSession pTlsSession, BOOL isServer)
     mbedtls_ssl_conf_rng(&pTlsSession->sslCtxConfig, mbedtls_ctr_drbg_random, &pTlsSession->ctrDrbg);
     CHK(mbedtls_ssl_setup(&pTlsSession->sslCtx, &pTlsSession->sslCtxConfig) == 0, STATUS_TLS_SSL_CTX_SETUP_FAILED);
     mbedtls_ssl_set_mtu(&pTlsSession->sslCtx, DEFAULT_MTU_SIZE);
-    mbedtls_ssl_set_bio(&pTlsSession->sslCtx, pTlsSession, tlsSessionSendCallback, tlsSessionReceiveCallback, NULL);
+    mbedtls_ssl_set_bio(&pTlsSession->sslCtx, pTlsSession, (mbedtls_ssl_send_t*)tlsSessionSendCallback, (mbedtls_ssl_recv_t*)tlsSessionReceiveCallback, NULL);
 
     /* init and send handshake */
     tlsSessionChangeState(pTlsSession, TLS_SESSION_STATE_CONNECTING);
