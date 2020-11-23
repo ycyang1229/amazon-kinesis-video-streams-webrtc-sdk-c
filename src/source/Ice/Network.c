@@ -338,7 +338,8 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 
     CHK(hostname != NULL, STATUS_NULL_ARG);
 
-    errCode = getaddrinfo(hostname, NULL, NULL, &res);
+    //errCode = getaddrinfo(hostname, NULL, NULL, &res);
+    errCode = lwip_getaddrinfo(hostname, NULL, NULL, &res);
     if (errCode != 0) {
 #ifdef KVS_PLAT_ESP_FREERTOS
         errStr = errCode == EAI_SYSTEM ? strerror(errno) : "gai_strerror(errCode) not supported.";
@@ -362,7 +363,8 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
         }
     }
 
-    freeaddrinfo(res);
+    //freeaddrinfo(res);
+    lwip_freeaddrinfo(res);
     CHK_ERR(resolved, STATUS_HOSTNAME_NOT_FOUND, "could not find network address of %s", hostname);
 
 CleanUp:
