@@ -365,7 +365,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     }
 
     if (result < 0) {
-        CLOSE_SOCKET_IF_CANT_RETRY(errorNum, pSocketConnection);
+        // CLOSE_SOCKET_IF_CANT_RETRY(errorNum, pSocketConnection);
     }
 
     if (bytesWritten < bufLen) {
