@@ -321,6 +321,18 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
     STATUS retStatus = STATUS_SUCCESS;
     INT32 errCode;
     PCHAR errStr;
+    /////////////////////////////////////
+    struct addrinfo {
+               int              ai_flags;
+               int              ai_family;
+               int              ai_socktype;
+               int              ai_protocol;
+               socklen_t        ai_addrlen;
+               struct sockaddr *ai_addr;
+               char            *ai_canonname;
+               struct addrinfo *ai_next;
+           };
+    ///////////////////////////////
     struct addrinfo *res, *rp;
     BOOL resolved = FALSE;
     struct sockaddr_in* ipv4Addr;
@@ -328,7 +340,7 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
 
     CHK(hostname != NULL, STATUS_NULL_ARG);
 
-    errCode = getaddrinfo(hostname, NULL, NULL, &res);
+    errCode = lwip_getaddrinfo(hostname, NULL, NULL, &res);
 
     if (errCode != 0) {
 #ifdef KVS_PLAT_ESP_FREERTOS
@@ -353,7 +365,7 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
         }
     }
 
-    freeaddrinfo(res);
+    lwip_freeaddrinfo(res);
 
     CHK_ERR(resolved, STATUS_HOSTNAME_NOT_FOUND, "could not find network address of %s", hostname);
 
