@@ -61,7 +61,7 @@ STATUS initSctpSession()
 {
     STATUS retStatus = STATUS_SUCCESS;
 
-    usrsctp_init(0, &onSctpOutboundPacket, NULL);
+    usrsctp_init(0, (int (*)(void *, void *, SIZE_T, uint8_t, uint8_t))&onSctpOutboundPacket, NULL);
 
     // Disable Explicit Congestion Notification
     usrsctp_sysctl_set_sctp_ecn_enable(0);
@@ -101,7 +101,7 @@ STATUS createSctpSession(PSctpSessionCallbacks pSctpSessionCallbacks, PSctpSessi
     CHK_STATUS(initSctpAddrConn(pSctpSession, &localConn));
     CHK_STATUS(initSctpAddrConn(pSctpSession, &remoteConn));
 
-    CHK((pSctpSession->socket = usrsctp_socket(AF_CONN, SOCK_STREAM, IPPROTO_SCTP, onSctpInboundPacket, NULL, 0, pSctpSession)) != NULL,
+    CHK((pSctpSession->socket = usrsctp_socket(AF_CONN, SOCK_STREAM, IPPROTO_SCTP, (int (*)(struct socket *, union sctp_sockstore, void *, SIZE_T, struct sctp_rcvinfo, int, void *))onSctpInboundPacket, NULL, 0, pSctpSession)) != NULL,
         STATUS_SCTP_SO_CREATE_FAILED);
     usrsctp_register_address(pSctpSession);
     CHK_STATUS(configureSctpSocket(pSctpSession->socket));
