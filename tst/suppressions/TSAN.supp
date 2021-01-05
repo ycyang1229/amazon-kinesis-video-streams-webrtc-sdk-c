@@ -1,7 +1,7 @@
 # Some of these suppressions are heavy handed, but can't trace them down to a single cause
 race:freeIceAgent
 race:iceAgentSendPacket
-race:stepIceAgentStateMachine
+race:iceAgentFsmStep
 
 # WARNING: ThreadSanitizer: lock-order-inversion (potential deadlock) (pid=18891)
 #   Cycle in lock order graph: M1507 (0x7d0c0000e4f0) => M1502 (0x7d0c00008d60) => M1507

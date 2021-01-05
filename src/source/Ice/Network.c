@@ -132,7 +132,7 @@ STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen,
     destIpList[ipCount].family = KVS_IP_FAMILY_TYPE_IPV4;
     destIpList[ipCount].port = 0;
     MEMCPY(destIpList[ipCount].address, ameba_get_ip(), IPV4_ADDRESS_LENGTH);
-    DLOGD("Acquried IP: %d:%d:%d:%d", destIpList[ipCount].address[0], destIpList[ipCount].address[1], destIpList[ipCount].address[2],
+    DLOGD("Acquried IP: %d.%d.%d.%d", destIpList[ipCount].address[0], destIpList[ipCount].address[1], destIpList[ipCount].address[2],
           destIpList[ipCount].address[3]);
     ipCount++;
 #endif
@@ -158,7 +158,14 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @param - KVS_IP_FAMILY_TYPE - IN - Family for the socket. Must be one of KVS_IP_FAMILY_TYPE
+ * @param - KVS_SOCKET_PROTOCOL - IN - either tcp or udp
+ * @param - UINT32 - IN - send buffer size in bytes
+ * @param - PINT32 - OUT - PINT32 for the socketfd
+ *
+ * @return - STATUS status of execution
+ */
 STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol, UINT32 sendBufSize, PINT32 pOutSockFd)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -175,17 +182,17 @@ STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol,
         DLOGW("socket() failed to create socket with errno %s", getErrorString(getErrorCode()));
         CHK(FALSE, STATUS_CREATE_UDP_SOCKET_FAILED);
     }
-
+    
     optionValue = 1;
     if (setsockopt(sockfd, SOL_SOCKET, NO_SIGNAL, &optionValue, SIZEOF(optionValue)) < 0) {
-        DLOGD("setsockopt() failed with errno %s", getErrorString(getErrorCode()));
+        DLOGD("setsockopt() failed with errno %s", "NO_SIGNAL failed");
     }
 
     if (sendBufSize > 0 && setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &sendBufSize, SIZEOF(sendBufSize)) < 0) {
-        DLOGW("setsockopt() failed with errno %s", getErrorString(getErrorCode()));
+        DLOGW("setsockopt() failed with errno %s", "SO_SNDBUF failed");
         CHK(FALSE, STATUS_SOCKET_SET_SEND_BUFFER_SIZE_FAILED);
     }
-
+    
     *pOutSockFd = (INT32) sockfd;
 
 #ifdef _WIN32
@@ -207,7 +214,7 @@ STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol,
     /* disable Nagle algorithm to not delay sending packets. We should have enough density to justify using it. */
     optionValue = 1;
     if (setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &optionValue, SIZEOF(optionValue)) < 0) {
-        DLOGW("setsockopt() TCP_NODELAY failed with errno %s", getErrorString(getErrorCode()));
+        DLOGW("setsockopt() failed with errno %s", "TCP_NODELAY");
     }
 
 CleanUp:
@@ -377,7 +384,15 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief   get the string of this ip. 
+ * 
+ * @param[in] pKvsIpAddress
+ * @param[in] pBuffer
+ * @param[in] bufferLen
+ * 
+ * @return 
+*/
 STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -404,7 +419,16 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief   compare the addr1 with addr2.
+ * 
+ * @param[in] pAddr1
+ * @param[in] pAddr2
+ * @param[in] checkPort check the port or not.
+ * 
+ * @return 
+ * 
+*/
 BOOL isSameIpAddress(PKvsIpAddress pAddr1, PKvsIpAddress pAddr2, BOOL checkPort)
 {
     BOOL ret;

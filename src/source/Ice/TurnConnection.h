@@ -16,17 +16,17 @@ extern "C" {
 #define DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS 600
 // required by rfc5766 to be 300s
 #define TURN_PERMISSION_LIFETIME                 (300 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY (50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND)
+#define DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY (150 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) //!< 150ms
 #define DEFAULT_TURN_TIMER_INTERVAL_AFTER_READY  (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define DEFAULT_TURN_SEND_REFRESH_INVERVAL       (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
 // turn state timeouts
-#define DEFAULT_TURN_SOCKET_CONNECT_TIMEOUT    (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_GET_CREDENTIAL_TIMEOUT    (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_ALLOCATION_TIMEOUT        (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_BIND_CHANNEL_TIMEOUT      (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_CLEAN_UP_TIMEOUT          (10 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define DEFAULT_TURN_SOCKET_CONNECT_TIMEOUT    (10 * HUNDREDS_OF_NANOS_IN_A_SECOND) //!< 10 sec
+#define DEFAULT_TURN_GET_CREDENTIAL_TIMEOUT    (15 * HUNDREDS_OF_NANOS_IN_A_SECOND) //!< 15 sec
+#define DEFAULT_TURN_ALLOCATION_TIMEOUT        (5 * HUNDREDS_OF_NANOS_IN_A_SECOND) //!< 5 sec
+#define DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT (2 * HUNDREDS_OF_NANOS_IN_A_SECOND) //!< 2 sec
+#define DEFAULT_TURN_BIND_CHANNEL_TIMEOUT      (3 * HUNDREDS_OF_NANOS_IN_A_SECOND) //!< 3 sec
+#define DEFAULT_TURN_CLEAN_UP_TIMEOUT          (10 * HUNDREDS_OF_NANOS_IN_A_SECOND) //!< 10 sec
 
 #define DEFAULT_TURN_ALLOCATION_REFRESH_GRACE_PERIOD (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define DEFAULT_TURN_PERMISSION_REFRESH_GRACE_PERIOD (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -35,7 +35,7 @@ extern "C" {
 #define DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN MAX_TURN_CHANNEL_DATA_MESSAGE_SIZE
 #define DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN MAX_TURN_CHANNEL_DATA_MESSAGE_SIZE
 #define DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE             512
-#define DEFAULT_TURN_MAX_PEER_COUNT                       32
+#define DEFAULT_TURN_MAX_PEER_COUNT                       32 //!< 
 
 // all turn channel numbers must be greater than 0x4000 and less than 0x7FFF
 #define TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE (UINT16) 0x4000
@@ -56,7 +56,9 @@ extern "C" {
 #define TURN_STATE_UNKNOWN_STR                 (PCHAR) "TURN_STATE_UNKNOWN"
 
 typedef STATUS (*RelayAddressAvailableFunc)(UINT64, PKvsIpAddress, PSocketConnection);
-
+/**
+ * @brief   the state of local turn connection.
+*/
 typedef enum {
     TURN_STATE_NEW,
     TURN_STATE_CHECK_SOCKET_CONNECTION,
@@ -69,6 +71,9 @@ typedef enum {
     TURN_STATE_FAILED,
 } TURN_CONNECTION_STATE;
 
+/**
+ * @brief   the state of remote candidates.
+*/
 typedef enum {
     TURN_PEER_CONN_STATE_CREATE_PERMISSION,
     TURN_PEER_CONN_STATE_BIND_CHANNEL,
@@ -80,10 +85,10 @@ typedef enum {
     TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION,
     TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL,
 } TURN_CONNECTION_DATA_TRANSFER_MODE;
-
+// 4+4+24=32
 typedef struct {
-    PBYTE data;
-    UINT32 size;
+    PBYTE data;//!< the pointer of the buffer.
+    UINT32 size;//!< 
     KvsIpAddress senderAddr;
 } TurnChannelData, *PTurnChannelData;
 
@@ -113,7 +118,7 @@ struct __TurnConnection {
     volatile ATOMIC_BOOL stopTurnConnection;
     /* shutdown is complete when turn socket is closed */
     volatile ATOMIC_BOOL shutdownComplete;
-    volatile ATOMIC_BOOL hasAllocation;
+    volatile ATOMIC_BOOL hasAllocation;//!< get the allocation response of turn connection. It means we have the turn relay address.
     volatile SIZE_T timerCallbackId;
 
     // realm attribute in Allocation response
@@ -121,13 +126,13 @@ struct __TurnConnection {
     BYTE turnNonce[STUN_MAX_NONCE_LEN];
     UINT16 nonceLen;
     BYTE longTermKey[KVS_MD5_DIGEST_LENGTH];
-    BOOL credentialObtained;
-    BOOL relayAddressReported;
+    BOOL credentialObtained;//!< get the nonce and realm from 401 response. true: got the information.
+    BOOL relayAddressReported;//!< get the xor relay address.
 
-    PSocketConnection pControlChannel;
+    PSocketConnection pControlChannel;//!< the socket hanlder of this turn connection.
 
     TurnPeer turnPeerList[DEFAULT_TURN_MAX_PEER_COUNT];
-    UINT32 turnPeerCount;
+    UINT32 turnPeerCount;//!< the number of remote candidates for this turn connection.
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
 
@@ -137,18 +142,18 @@ struct __TurnConnection {
     MUTEX sendLock;
     CVAR freeAllocationCvar;
 
-    TURN_CONNECTION_STATE state;
+    TURN_CONNECTION_STATE state;//!< the state of turn fsm.
 
     UINT64 stateTimeoutTime;
 
     STATUS errorStatus;
-
+    // #YC_TBD, need to review this is necessary or not, since turn does not send this packet frequently.
     PStunPacket pTurnPacket;
-    PStunPacket pTurnCreatePermissionPacket;
-    PStunPacket pTurnChannelBindPacket;
-    PStunPacket pTurnAllocationRefreshPacket;
+    PStunPacket pTurnCreatePermissionPacket;//!< the packet of turn create-permission.
+    PStunPacket pTurnChannelBindPacket;//!< the packet of turn bind-channel.
+    PStunPacket pTurnAllocationRefreshPacket;//!< the packet of refresh-allocation.
 
-    KvsIpAddress hostAddress;
+    KvsIpAddress hostAddress;//!< the host address, but it seems to be null now. #YC_TBD, need to check the spec.
 
     KvsIpAddress relayAddress;
 
@@ -169,7 +174,7 @@ struct __TurnConnection {
     // to make room for subsequent partial channel data.
     PBYTE completeChannelDataBuffer;
 
-    UINT64 allocationExpirationTime;
+    UINT64 allocationExpirationTime;//!< the expiration time of this turn allocation. unit: nano.
     UINT64 nextAllocationRefreshTime;
 
     UINT64 currentTimerCallingPeriod;

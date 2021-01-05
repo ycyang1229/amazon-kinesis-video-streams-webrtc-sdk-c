@@ -4,6 +4,15 @@
 #define LOG_CLASS "ConnectionListener"
 #include "../Include_i.h"
 
+
+/**
+ * allocate the ConnectionListener struct
+ * Must create connection listener before creating the ice agent. 
+ *
+ * @param[in/out] - PConnectionListener* - IN/OUT - pointer to PConnectionListener being allocated
+ *
+ * @return - STATUS status of execution
+ */
 STATUS createConnectionListener(PConnectionListener* ppConnectionListener)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -11,7 +20,7 @@ STATUS createConnectionListener(PConnectionListener* ppConnectionListener)
     PConnectionListener pConnectionListener = NULL;
 
     CHK(ppConnectionListener != NULL, STATUS_NULL_ARG);
-
+    // context allocation.
     pConnectionListener = (PConnectionListener) MEMCALLOC(1, allocationSize);
     CHK(pConnectionListener != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
@@ -20,6 +29,7 @@ STATUS createConnectionListener(PConnectionListener* ppConnectionListener)
     ATOMIC_STORE_BOOL(&pConnectionListener->listenerRoutineStarted, FALSE);
     /* always update list when receiveDataRoutine first start */
     ATOMIC_STORE_BOOL(&pConnectionListener->connectionListChanged, TRUE);
+
     pConnectionListener->receiveDataRoutine = INVALID_TID_VALUE;
     pConnectionListener->lock = MUTEX_CREATE(FALSE);
     pConnectionListener->removeConnectionComplete = CVAR_CREATE();
@@ -41,7 +51,13 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * free the ConnectionListener struct and all its resources
+ *
+ * @param - PConnectionListener* - IN/OUT - pointer to PConnectionListener being freed
+ *
+ * @return - STATUS status of execution
+ */
 STATUS freeConnectionListener(PConnectionListener* ppConnectionListener)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -86,7 +102,14 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * add a new PSocketConnection to listen for incoming data
+ *
+ * @param[in] - PConnectionListener      - IN - the ConnectionListener struct to use
+ * @param[in] - PSocketConnection   - IN - new PSocketConnection to listen for incoming data
+ *
+ * @return - STATUS status of execution
+ */
 STATUS connectionListenerAddConnection(PConnectionListener pConnectionListener, PSocketConnection pSocketConnection)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -114,6 +137,14 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ * remove PSocketConnection from the list to listen for incoming data
+ *
+ * @param[in] - PConnectionListener      - IN - the ConnectionListener struct to use
+ * @param[in] - PSocketConnection   - IN - PSocketConnection to be removed
+ *
+ * @return - STATUS status of execution
+ */
 STATUS connectionListenerRemoveConnection(PConnectionListener pConnectionListener, PSocketConnection pSocketConnection)
 {
     STATUS retStatus = STATUS_SUCCESS, cvarWaitStatus = STATUS_SUCCESS;
@@ -144,8 +175,10 @@ STATUS connectionListenerRemoveConnection(PConnectionListener pConnectionListene
 
     /* make sure connectionListenerRemoveConnection return after connectionListenerReceiveDataRoutine has picked up
      * the change. */
-    while (ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted) && !ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) &&
-           ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged) && STATUS_SUCCEEDED(cvarWaitStatus)) {
+    while ( ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted) && 
+            !ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) &&
+            ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged) && 
+            STATUS_SUCCEEDED(cvarWaitStatus)) {
         cvarWaitStatus =
             CVAR_WAIT(pConnectionListener->removeConnectionComplete, pConnectionListener->lock, CONNECTION_AWAIT_CONNECTION_REMOVAL_TIMEOUT);
         /* CVAR_WAIT should never time out */
@@ -163,6 +196,13 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ * remove all listening PSocketConnection
+ *
+ * @param[in] - PConnectionListener      - IN - the ConnectionListener struct to use
+ *
+ * @return - STATUS status of execution
+ */
 STATUS connectionListenerRemoveAllConnection(PConnectionListener pConnectionListener)
 {
     STATUS retStatus = STATUS_SUCCESS, cvarWaitStatus = STATUS_SUCCESS;
@@ -188,8 +228,10 @@ STATUS connectionListenerRemoveAllConnection(PConnectionListener pConnectionList
 
     /* make sure connectionListenerRemoveAllConnection return after connectionListenerReceiveDataRoutine has picked up
      * the change. */
-    while (ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted) && !ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) &&
-           ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged) && STATUS_SUCCEEDED(cvarWaitStatus)) {
+    while ( ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted) && 
+            !ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) &&
+            ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged) && 
+            STATUS_SUCCEEDED(cvarWaitStatus)) {
         cvarWaitStatus =
             CVAR_WAIT(pConnectionListener->removeConnectionComplete, pConnectionListener->lock, CONNECTION_AWAIT_CONNECTION_REMOVAL_TIMEOUT);
         /* CVAR_WAIT should never time out */
@@ -206,7 +248,14 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * Spin off a listener thread that listen for incoming traffic for all PSocketConnection stored in connectionList.
+ * Whenever a PSocketConnection receives data, invoke ConnectionDataAvailableFunc passed in.
+ *
+ * @param[in] - PConnectionListener      - IN - the ConnectionListener struct to use
+ *
+ * @return - STATUS status of execution
+ */
 STATUS connectionListenerStart(PConnectionListener pConnectionListener)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -216,20 +265,26 @@ STATUS connectionListenerStart(PConnectionListener pConnectionListener)
     CHK(!ATOMIC_LOAD_BOOL(&pConnectionListener->terminate), retStatus);
     listenerRoutineStarted = ATOMIC_EXCHANGE_BOOL(&pConnectionListener->listenerRoutineStarted, TRUE);
     CHK(!listenerRoutineStarted, retStatus);
-    CHK_STATUS(THREAD_CREATE(&pConnectionListener->receiveDataRoutine, connectionListenerReceiveDataRoutine, (PVOID) pConnectionListener));
+    // start handling the packet from the connection list. 
+    CHK_STATUS(THREAD_CREATE_EX("connlist-listener", &pConnectionListener->receiveDataRoutine, connectionListenerReceiveDataRoutine, (PVOID) pConnectionListener, 1, 20*1024));
 
 CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief 
+ * 
+ * @param[in]
+*/
 PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PConnectionListener pConnectionListener = (PConnectionListener) arg;
     PDoubleListNode pCurNode = NULL, pNodeToDelete = NULL;
     PSocketConnection pSocketConnection;
-    BOOL locked = FALSE, iterate = TRUE, updateSocketList = FALSE, connectionListChanged = FALSE;
+    BOOL locked = FALSE, updateSocketList = FALSE, connectionListChanged = FALSE;
+    // #YC_TBD, #stack. not necessary to move this to heap. but it can be decreased.
     PSocketConnection socketList[CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION];
     UINT32 socketCount = 0, i;
 
@@ -262,6 +317,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
         // update connection list.
         connectionListChanged = ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged);
         if (connectionListChanged || updateSocketList) {
+            //
             MUTEX_LOCK(pConnectionListener->lock);
             locked = TRUE;
 
@@ -298,6 +354,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
             }
         }
 
+        // setup the fd of select().
         for (i = 0; i < socketCount; ++i) {
             pSocketConnection = socketList[i];
             if (socketConnectionIsClosed(pSocketConnection)) {
@@ -326,15 +383,24 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
         }
 
         for (i = 0; i < socketCount; ++i) {
+            BOOL iterate = TRUE;
             pSocketConnection = socketList[i];
             if (socketConnectionIsClosed(pSocketConnection)) {
                 /* update the connection list to remove the closed sockets */
                 updateSocketList = TRUE;
             } else if (FD_ISSET(pSocketConnection->localSocket, &rfds)) {
+
                 iterate = TRUE;
                 while (iterate) {
-                    readLen = recvfrom(pSocketConnection->localSocket, pConnectionListener->pBuffer, pConnectionListener->bufferLen, 0,
-                                       (struct sockaddr*) &srcAddrBuff, &srcAddrBuffLen);
+                    // #YC_TBD, #socket.
+                    
+                    readLen = recvfrom( pSocketConnection->localSocket,
+                                        pConnectionListener->pBuffer,
+                                        pConnectionListener->bufferLen,
+                                        0,
+                                        (struct sockaddr*) &srcAddrBuff,
+                                        &srcAddrBuffLen);
+                    //DLOGD("receive :%lld", readLen);
                     if (readLen < 0) {
                         switch (getErrorCode()) {
                             case EWOULDBLOCK:
@@ -352,11 +418,13 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                         CHK_STATUS(socketConnectionClosed(pSocketConnection));
                         iterate = FALSE;
                     } else if (/* readLen > 0 */
-                               ATOMIC_LOAD_BOOL(&pSocketConnection->receiveData) && pSocketConnection->dataAvailableCallbackFn != NULL &&
+                               ATOMIC_LOAD_BOOL(&pSocketConnection->receiveData) && 
+                               pSocketConnection->dataAvailableCallbackFn != NULL &&
                                /* data could be encrypted so they need to be decrypted through socketConnectionReadData
                                 * and get the decrypted data length. */
                                STATUS_SUCCEEDED(socketConnectionReadData(pSocketConnection, pConnectionListener->pBuffer,
                                                                          pConnectionListener->bufferLen, (PUINT32) &readLen))) {
+
                         if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
                             if (srcAddrBuff.ss_family == AF_INET) {
                                 srcAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
@@ -378,9 +446,12 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                         // readLen may be 0 if SSL does not emit any application data.
                         // in that case, no need to call dataAvailable callback
                         if (readLen > 0) {
-                            pSocketConnection->dataAvailableCallbackFn(pSocketConnection->dataAvailableCallbackCustomData, pSocketConnection,
-                                                                       pConnectionListener->pBuffer, (UINT32) readLen, pSrcAddr,
-                                                                       NULL); // no dest information available right now.
+                            pSocketConnection->dataAvailableCallbackFn( pSocketConnection->dataAvailableCallbackCustomData,
+                                                                        pSocketConnection,
+                                                                        pConnectionListener->pBuffer,
+                                                                        (UINT32) readLen,
+                                                                        pSrcAddr,
+                                                                        NULL); // no dest information available right now.
                         }
                     }
 

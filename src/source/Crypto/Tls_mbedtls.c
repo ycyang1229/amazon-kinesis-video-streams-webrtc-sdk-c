@@ -189,7 +189,14 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * Encrypt application data up to specified bytes. The encrypted data will be sent through specified callback during
+ * initialization. If NULL is specified, it'll only check for pending handshake buffer.
+ * NOT THREAD SAFE.
+ * @param PTlsSession - TlsSession object
+ * @param PBYTE - plain data
+ * @param UINT32 - the size of encrypted data
+ */
 STATUS tlsSessionPutApplicationData(PTlsSession pTlsSession, PBYTE pData, UINT32 dataLen)
 {
     ENTERS();
