@@ -24,13 +24,15 @@ STATUS createSignalingSync(PSignalingClientInfoInternal pClientInfo, PChannelInf
 
     // Allocate enough storage
     CHK(NULL != (pSignalingClient = (PSignalingClient) MEMCALLOC(1, SIZEOF(SignalingClient))), STATUS_NOT_ENOUGH_MEMORY);
-
+    
     // Initialize the listener and restarter thread trackers
     CHK_STATUS(initializeThreadTracker(&pSignalingClient->listenerTracker));
     CHK_STATUS(initializeThreadTracker(&pSignalingClient->reconnecterTracker));
 
     // Validate and store the input
+    
     CHK_STATUS(createValidateChannelInfo(pChannelInfo, &pSignalingClient->pChannelInfo));
+    
     CHK_STATUS(validateSignalingCallbacks(pSignalingClient, pCallbacks));
     CHK_STATUS(validateSignalingClientInfo(pSignalingClient, pClientInfo));
 

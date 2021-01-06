@@ -56,7 +56,10 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief    the initialization of sctp session.
+ * 
+*/
 STATUS initSctpSession()
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -270,7 +273,17 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief the outbound packet callback of sctp lib.
+ * 
+ * @param[in]
+ * @param[in]
+ * @param[in]
+ * @param[in]
+ * @param[in]
+ * 
+ * @return 
+*/
 INT32 onSctpOutboundPacket(PVOID addr, PVOID data, ULONG length, UINT8 tos, UINT8 set_df)
 {
     UNUSED_PARAM(tos);

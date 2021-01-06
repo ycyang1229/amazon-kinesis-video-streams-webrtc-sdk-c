@@ -50,7 +50,7 @@ typedef VOID (*DtlsSessionOnStateChange)(UINT64, RTC_DTLS_TRANSPORT_STATE);
 
 typedef struct {
     UINT64 outBoundPacketFnCustomData;
-    DtlsSessionOutboundPacketFunc outboundPacketFn;
+    DtlsSessionOutboundPacketFunc outboundPacketFn;//!< outBoundPacketFn is a required callback to tell DtlsSession how to send outbound packets
     UINT64 stateChangeFnCustomData;
     DtlsSessionOnStateChange stateChangeFn;
 } DtlsSessionCallbacks, *PDtlsSessionCallbacks;

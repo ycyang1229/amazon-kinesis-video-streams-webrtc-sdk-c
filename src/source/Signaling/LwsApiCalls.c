@@ -71,7 +71,6 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
 
     MUTEX_LOCK(pSignalingClient->lwsServiceLock);
     locked = TRUE;
-
     switch (reason) {
         case LWS_CALLBACK_CLIENT_CONNECTION_ERROR:
             pCurPtr = pDataIn == NULL ? "(None)" : (PCHAR) pDataIn;
@@ -143,6 +142,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
             pEndPtr = *ppStartPtr + dataSize - 1;
 
             // Iterate through the headers
+            // send the request header to lws.
             while (headerCount != 0) {
                 CHK_STATUS(singleListGetHeadNode(pRequestInfo->pRequestHeaders, &pCurNode));
                 CHK_STATUS(singleListGetNodeData(pCurNode, &item));
@@ -181,7 +181,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
             break;
 
         case LWS_CALLBACK_CLIENT_HTTP_WRITEABLE:
-            DLOGD("Sending the body %.*s, size %d", pRequestInfo->bodySize, pRequestInfo->body, pRequestInfo->bodySize);
+            //DLOGD("Sending the body %.*s, size %d", pRequestInfo->bodySize, pRequestInfo->body, pRequestInfo->bodySize);
             MEMCPY(pBuffer, pRequestInfo->body, pRequestInfo->bodySize);
 
             size = lws_write(wsi, (PBYTE) pBuffer, (SIZE_T) pRequestInfo->bodySize, LWS_WRITE_TEXT);
@@ -474,8 +474,9 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
 
     CHK_STATUS(requestRequiresSecureConnection(pCallInfo->callInfo.pRequestInfo->url, &secureConnection));
     DLOGV("Perform %s synchronous call for URL: %s", secureConnection ? "secure" : EMPTY_STRING, pCallInfo->callInfo.pRequestInfo->url);
-
+    
     if (pCallInfo->protocolIndex == PROTOCOL_INDEX_WSS) {
+        
         pVerb = NULL;
 
         // Remove the header as it will be added back by LWS
@@ -488,7 +489,7 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
         CHK_STATUS(removeRequestHeaders(pCallInfo->callInfo.pRequestInfo));
     } else {
         pVerb = HTTP_REQUEST_VERB_POST_STRING;
-
+        
         // Sign the request
         CHK_STATUS(signAwsRequestInfo(pCallInfo->callInfo.pRequestInfo));
 
@@ -503,9 +504,10 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     connectInfo.context = pContext;
     connectInfo.ssl_connection = LCCSCF_USE_SSL;
     connectInfo.port = SIGNALING_DEFAULT_SSL_PORT;
-
+    
     CHK_STATUS(getRequestHost(pCallInfo->callInfo.pRequestInfo->url, &pHostStart, &pHostEnd));
     CHK(pHostEnd == NULL || *pHostEnd == '/' || *pHostEnd == '?', STATUS_INTERNAL_ERROR);
+    
 
     // Store the pPath
     pPath[MAX_URI_CHAR_LEN] = '\0';
@@ -535,7 +537,9 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
 
     MUTEX_LOCK(pCallInfo->pSignalingClient->lwsServiceLock);
     locked = TRUE;
+    
     CHK(NULL != lws_client_connect_via_info(&connectInfo), STATUS_SIGNALING_LWS_CLIENT_CONNECT_FAILED);
+    
     MUTEX_UNLOCK(pCallInfo->pSignalingClient->lwsServiceLock);
     locked = FALSE;
 
@@ -591,6 +595,7 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
     STRCAT(pUrl, DESCRIBE_SIGNALING_CHANNEL_API_POSTFIX);
 
     // Prepare the json params for the call
+    // #YC_TBD, #memory.
     SNPRINTF(pParamsJson, MAX_JSON_PARAMETER_STRING_LEN, DESCRIBE_CHANNEL_PARAM_JSON_TEMPLATE, pSignalingClient->pChannelInfo->pChannelName);
 
     // Create the request info with the body
@@ -603,7 +608,6 @@ STATUS describeChannelLws(PSignalingClient pSignalingClient, UINT64 time)
 
     // Make a blocking call
     CHK_STATUS(lwsCompleteSync(pLwsCallInfo));
-
     // Set the service call result
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) pLwsCallInfo->callInfo.callResult);
     pResponseStr = pLwsCallInfo->callInfo.responseData;
@@ -924,7 +928,13 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-// https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_AWSAcuitySignalingService_GetIceServerConfig.html
+
+/**
+ * @brief   https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_AWSAcuitySignalingService_GetIceServerConfig.html
+ * 
+ * @param[in]
+ * @param[in]
+*/
 STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
@@ -1861,7 +1871,8 @@ CleanUp:
     return retStatus;
 }
 
-#ifdef KVS_PLAT_ESP_FREERTOS
+//#ifdef KVS_PLAT_ESP_FREERTOS
+#if 1//def KVS_PLAT_ESP_FREERTOS
 /** #YC_TBD, need to add the code of initialization. */
 TID receivedTid = INVALID_TID_VALUE;
 QueueHandle_t lwsMsgQ = NULL;

@@ -82,6 +82,7 @@ typedef UINT64 DOMHighResTimeStamp;
 
 /**
  * Type of ICE Candidate
+ * https://tools.ietf.org/html/rfc5245#section-4.1.1
  */
 typedef enum {
     ICE_CANDIDATE_TYPE_HOST = 0,             //!< ICE_CANDIDATE_TYPE_HOST
@@ -127,7 +128,7 @@ typedef enum {
     ICE_CANDIDATE_PAIR_STATE_FROZEN = 0,
     ICE_CANDIDATE_PAIR_STATE_WAITING = 1,
     ICE_CANDIDATE_PAIR_STATE_IN_PROGRESS = 2,
-    ICE_CANDIDATE_PAIR_STATE_SUCCEEDED = 3,
+    ICE_CANDIDATE_PAIR_STATE_SUCCEEDED = 3,//!< the ice candidate pair succeed after receiving the response of stun successfully.
     ICE_CANDIDATE_PAIR_STATE_FAILED = 4,
 } ICE_CANDIDATE_PAIR_STATE;
 

@@ -56,7 +56,9 @@ extern "C" {
 #define TURN_STATE_UNKNOWN_STR                 (PCHAR) "TURN_STATE_UNKNOWN"
 
 typedef STATUS (*RelayAddressAvailableFunc)(UINT64, PKvsIpAddress, PSocketConnection);
-
+/**
+ * @brief   the state of local turn connection.
+*/
 typedef enum {
     TURN_STATE_NEW,
     TURN_STATE_CHECK_SOCKET_CONNECTION,
@@ -69,6 +71,9 @@ typedef enum {
     TURN_STATE_FAILED,
 } TURN_CONNECTION_STATE;
 
+/**
+ * @brief   the state of remote candidates.
+*/
 typedef enum {
     TURN_PEER_CONN_STATE_CREATE_PERMISSION,
     TURN_PEER_CONN_STATE_BIND_CHANNEL,
@@ -80,10 +85,10 @@ typedef enum {
     TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION,
     TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL,
 } TURN_CONNECTION_DATA_TRANSFER_MODE;
-
+// 4+4+24=32
 typedef struct {
-    PBYTE data;
-    UINT32 size;
+    PBYTE data;//!< the pointer of the buffer.
+    UINT32 size;//!< 
     KvsIpAddress senderAddr;
 } TurnChannelData, *PTurnChannelData;
 
@@ -113,7 +118,7 @@ struct __TurnConnection {
     volatile ATOMIC_BOOL stopTurnConnection;
     /* shutdown is complete when turn socket is closed */
     volatile ATOMIC_BOOL shutdownComplete;
-    volatile ATOMIC_BOOL hasAllocation;
+    volatile ATOMIC_BOOL hasAllocation;//!< get the allocation response of turn connection. It means we have the turn relay address.
     volatile SIZE_T timerCallbackId;
 
     // realm attribute in Allocation response
@@ -121,13 +126,13 @@ struct __TurnConnection {
     BYTE turnNonce[STUN_MAX_NONCE_LEN];
     UINT16 nonceLen;
     BYTE longTermKey[KVS_MD5_DIGEST_LENGTH];
-    BOOL credentialObtained;
-    BOOL relayAddressReported;
+    BOOL credentialObtained;//!< get the nonce and realm from 401 response. true: got the information.
+    BOOL relayAddressReported;//!< get the xor relay address.
 
-    PSocketConnection pControlChannel;
+    PSocketConnection pControlChannel;//!< the socket hanlder of this turn connection.
 
     TurnPeer turnPeerList[DEFAULT_TURN_MAX_PEER_COUNT];
-    UINT32 turnPeerCount;
+    UINT32 turnPeerCount;//!< the number of remote candidates for this turn connection.
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
 
@@ -137,18 +142,18 @@ struct __TurnConnection {
     MUTEX sendLock;
     CVAR freeAllocationCvar;
 
-    TURN_CONNECTION_STATE state;
+    TURN_CONNECTION_STATE state;//!< the state of turn fsm.
 
     UINT64 stateTimeoutTime;
 
     STATUS errorStatus;
-
+    // #YC_TBD, need to review this is necessary or not, since turn does not send this packet frequently.
     PStunPacket pTurnPacket;
-    PStunPacket pTurnCreatePermissionPacket;
-    PStunPacket pTurnChannelBindPacket;
-    PStunPacket pTurnAllocationRefreshPacket;
+    PStunPacket pTurnCreatePermissionPacket;//!< the packet of turn create-permission.
+    PStunPacket pTurnChannelBindPacket;//!< the packet of turn bind-channel.
+    PStunPacket pTurnAllocationRefreshPacket;//!< the packet of refresh-allocation.
 
-    KvsIpAddress hostAddress;
+    KvsIpAddress hostAddress;//!< the host address, but it seems to be null now. #YC_TBD, need to check the spec.
 
     KvsIpAddress relayAddress;
 
@@ -169,7 +174,7 @@ struct __TurnConnection {
     // to make room for subsequent partial channel data.
     PBYTE completeChannelDataBuffer;
 
-    UINT64 allocationExpirationTime;
+    UINT64 allocationExpirationTime;//!< the expiration time of this turn allocation. unit: nano.
     UINT64 nextAllocationRefreshTime;
 
     UINT64 currentTimerCallingPeriod;

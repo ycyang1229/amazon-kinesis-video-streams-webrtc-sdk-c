@@ -591,7 +591,8 @@ CleanUp:
     return retStatus;
 }
 
-#ifdef ENABLE_STREAMING
+//#ifdef ENABLE_STREAMING
+#if 1//def ENABLE_STREAMING
 STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerId);
@@ -685,9 +686,10 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     CHK_STATUS(createDtlsSession(
         &dtlsSessionCallbacks, pKvsPeerConnection->timerQueueHandle, pConfiguration->kvsRtcConfiguration.generatedCertificateBits,
         pConfiguration->kvsRtcConfiguration.generateRSACertificate, pConfiguration->certificates, &pKvsPeerConnection->pDtlsSession));
-    CHK_STATUS(dtlsSessionOnOutBoundData(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsOutboundPacket));
+    CHK_STATUS(
+        dtlsSessionOnOutBoundData(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsOutboundPacket));
     CHK_STATUS(dtlsSessionOnStateChange(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsStateChange));
-
+    // #codec.
     CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pCodecTable));
     CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pDataChannels));
     CHK_STATUS(hashTableCreateWithParams(RTX_HASH_TABLE_BUCKET_COUNT, RTX_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pRtxTable));
@@ -707,8 +709,13 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     iceAgentCallbacks.newLocalCandidateFn = onNewIceLocalCandidate;
     CHK_STATUS(createConnectionListener(&pConnectionListener));
     // IceAgent will own the lifecycle of pConnectionListener;
-    CHK_STATUS(createIceAgent(pKvsPeerConnection->localIceUfrag, pKvsPeerConnection->localIcePwd, &iceAgentCallbacks, pConfiguration,
-                              pKvsPeerConnection->timerQueueHandle, pConnectionListener, &pKvsPeerConnection->pIceAgent));
+    CHK_STATUS(createIceAgent(  pKvsPeerConnection->localIceUfrag,
+                                pKvsPeerConnection->localIcePwd,
+                                &iceAgentCallbacks,
+                                pConfiguration,
+                                pKvsPeerConnection->timerQueueHandle,
+                                pConnectionListener,
+                                &pKvsPeerConnection->pIceAgent));
 
     NULLABLE_SET_EMPTY(pKvsPeerConnection->canTrickleIce);
 
@@ -789,7 +796,8 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 #endif
 
     CHK_LOG_ERR(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
-#ifdef ENABLE_STREAMING
+//#ifdef ENABLE_STREAMING
+#if 1//def ENABLE_STREAMING
     CHK_LOG_ERR(doubleListFree(pKvsPeerConnection->pTransceivers));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pCodecTable));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pRtxTable));
@@ -953,7 +961,17 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief Instructs the RtcPeerConnection to apply
+ * the supplied RtcSessionDescriptionInit as the remote description.
+ *
+ * Reference: https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-setremotedescription
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in,out] PRtcSessionDescriptionInit IN/RtcSessionDescriptionInit that becomes our new remote description
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescriptionInit pSessionDescriptionInit)
 {
     ENTERS();
@@ -1022,11 +1040,13 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     CHK(remoteIceUfrag != NULL && remoteIcePwd != NULL, STATUS_SESSION_DESCRIPTION_MISSING_ICE_VALUES);
     CHK(pKvsPeerConnection->remoteCertificateFingerprint[0] != '\0', STATUS_SESSION_DESCRIPTION_MISSING_CERTIFICATE_FINGERPRINT);
 
-    if (!IS_EMPTY_STRING(pKvsPeerConnection->remoteIceUfrag) && !IS_EMPTY_STRING(pKvsPeerConnection->remoteIcePwd) &&
+    if (!IS_EMPTY_STRING(pKvsPeerConnection->remoteIceUfrag) && 
+        !IS_EMPTY_STRING(pKvsPeerConnection->remoteIcePwd) &&
         STRNCMP(pKvsPeerConnection->remoteIceUfrag, remoteIceUfrag, MAX_ICE_UFRAG_LEN) != 0 &&
         STRNCMP(pKvsPeerConnection->remoteIcePwd, remoteIcePwd, MAX_ICE_PWD_LEN) != 0) {
         CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIceUfrag, LOCAL_ICE_UFRAG_LEN));
         CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIcePwd, LOCAL_ICE_PWD_LEN));
+        // setup the ice agent.
         CHK_STATUS(iceAgentRestart(pKvsPeerConnection->pIceAgent, pKvsPeerConnection->localIceUfrag, pKvsPeerConnection->localIcePwd));
         CHK_STATUS(iceAgentStartGathering(pKvsPeerConnection->pIceAgent));
     }
@@ -1036,7 +1056,8 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
 
     CHK_STATUS(iceAgentStartAgent(pKvsPeerConnection->pIceAgent, pKvsPeerConnection->remoteIceUfrag, pKvsPeerConnection->remoteIcePwd,
                                   pKvsPeerConnection->isOffer));
-#ifdef ENABLE_STREAMING
+//#ifdef ENABLE_STREAMING
+#if 1//def ENABLE_STREAMING
     if (!pKvsPeerConnection->isOffer) {
         CHK_STATUS(setPayloadTypesFromOffer(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pSessionDescription));
     }
@@ -1044,7 +1065,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     CHK_STATUS(setReceiversSsrc(pSessionDescription, pKvsPeerConnection->pTransceivers));
 #endif
 #ifdef KVSWEBRTC_HAVE_GETENV
-    if (NULL != getenv(DEBUG_LOG_SDP)) {
+    if (NULL != GETENV(DEBUG_LOG_SDP)) {
         DLOGD("REMOTE_SDP:%s\n", pSessionDescriptionInit->sdp);
     }
 #endif
@@ -1122,7 +1143,7 @@ STATUS setLocalDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescri
 
     CHK_STATUS(iceAgentStartGathering(pKvsPeerConnection->pIceAgent));
 #ifdef KVSWEBRTC_HAVE_GETENV
-    if (NULL != getenv(DEBUG_LOG_SDP)) {
+    if (NULL != GETENV(DEBUG_LOG_SDP)) {
         DLOGD("LOCAL_SDP:%s", pSessionDescriptionInit->sdp);
     }
 #endif
@@ -1132,9 +1153,12 @@ CleanUp:
     return retStatus;
 }
 
-#ifdef ENABLE_STREAMING
-STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack pRtcMediaStreamTrack, PRtcRtpTransceiverInit pRtcRtpTransceiverInit,
-                      PRtcRtpTransceiver* ppRtcRtpTransceiver)
+//#ifdef ENABLE_STREAMING
+#if 1//def ENABLE_STREAMING
+STATUS addTransceiver(  PRtcPeerConnection pPeerConnection,
+                        PRtcMediaStreamTrack pRtcMediaStreamTrack,
+                        PRtcRtpTransceiverInit pRtcRtpTransceiverInit,
+                        PRtcRtpTransceiver* ppRtcRtpTransceiver)
 {
     UNUSED_PARAM(pRtcRtpTransceiverInit);
     ENTERS();
@@ -1210,7 +1234,16 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief Adds to the list of codecs we support receiving.
+ *
+ * NOTE: The remote MUST only send codecs we declare
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in] RTC_CODEC Codec that we support receiving.
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS addSupportedCodec(PRtcPeerConnection pPeerConnection, RTC_CODEC rtcCodec)
 {
     ENTERS();

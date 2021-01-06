@@ -4,9 +4,31 @@
 #define LOG_CLASS "SocketConnection"
 #include "../Include_i.h"
 
-STATUS createSocketConnection(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol, PKvsIpAddress pBindAddr, PKvsIpAddress pPeerIpAddr,
-                              UINT64 customData, ConnectionDataAvailableFunc dataAvailableFn, UINT32 sendBufSize,
-                              PSocketConnection* ppSocketConnection)
+
+/**
+ * Create a SocketConnection object and store it in PSocketConnection. creates a socket based on KVS_SOCKET_PROTOCOL
+ * specified, and bind it to the host ip address. If the protocol is tcp, then peer ip address is required and it will
+ * try to establish the tcp connection.
+ *
+ * @param - KVS_IP_FAMILY_TYPE - IN - Family for the socket. Must be one of KVS_IP_FAMILY_TYPE
+ * @param - KVS_SOCKET_PROTOCOL - IN - socket protocol. TCP or UDP
+ * @param - PKvsIpAddress - IN - host ip address to bind to (OPTIONAL)
+ * @param - PKvsIpAddress - IN - peer ip address to connect in case of TCP (OPTIONAL)
+ * @param - UINT64 - IN - data available callback custom data
+ * @param - ConnectionDataAvailableFunc - IN - data available callback (OPTIONAL)
+ * @param - UINT32 - IN - send buffer size in bytes
+ * @param - PSocketConnection* - OUT - the resulting SocketConnection struct
+ *
+ * @return - STATUS - status of execution
+ */
+STATUS createSocketConnection(  KVS_IP_FAMILY_TYPE familyType,
+                                KVS_SOCKET_PROTOCOL protocol,
+                                PKvsIpAddress pBindAddr,
+                                PKvsIpAddress pPeerIpAddr,
+                                UINT64 customData,
+                                ConnectionDataAvailableFunc dataAvailableFn,
+                                UINT32 sendBufSize,
+                                PSocketConnection* ppSocketConnection)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -126,7 +148,14 @@ VOID socketConnectionTlsSessionOnStateChange(UINT64 customData, TLS_SESSION_STAT
             break;
     }
 }
-
+/**
+ * Given a created SocketConnection, initialize TLS or DTLS handshake depending on the socket protocol
+ *
+ * @param - PSocketConnection - IN - the SocketConnection struct
+ * @param - BOOL - IN - will SocketConnection act as server during the TLS or DTLS handshake
+ *
+ * @return - STATUS - status of execution
+ */
 STATUS socketConnectionInitSecureConnection(PSocketConnection pSocketConnection, BOOL isServer)
 {
     ENTERS();
@@ -152,7 +181,19 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * Given a created SocketConnection, send data through the underlying socket. If socket type is UDP, then destination
+ * address is required. If socket type is tcp, destination address is ignored and data is send to the peer address provided
+ * at SocketConnection creation. If socketConnectionInitSecureConnection has been called then data will be encrypted,
+ * otherwise data will be sent as is.
+ *
+ * @param - PSocketConnection - IN - the SocketConnection struct
+ * @param - PBYTE - IN - buffer containing unencrypted data
+ * @param - UINT32 - IN - length of buffer
+ * @param - PKvsIpAddress - IN - destination address. Required only if socket type is UDP.
+ *
+ * @return - STATUS - status of execution
+ */
 STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf, UINT32 bufLen, PKvsIpAddress pDestIp)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -172,6 +213,7 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
 
     /* Should have a valid buffer */
     CHK(pBuf != NULL && bufLen > 0, STATUS_SOCKET_INVALID_ARG);
+    //DLOGD("socket send:%d", pSocketConnection->protocol);
     if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP && pSocketConnection->secureConnection) {
         CHK_STATUS(tlsSessionPutApplicationData(pSocketConnection->pTlsSession, pBuf, bufLen));
     } else if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP) {
@@ -190,7 +232,17 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * If PSocketConnection is not secure then nothing happens, otherwise assuming the bytes passed in are encrypted, and
+ * the encryted data will be replaced with unencrypted data at function return.
+ *
+ * @param[in] - PSocketConnection - IN - the SocketConnection struct
+ * @param[in/out] - PBYTE - IN/OUT - buffer containing encrypted data. Will contain unencrypted on successful return
+ * @param[in] - UINT32 - IN - available length of buffer
+ * @param[in/out] - PUINT32 - IN/OUT - length of encrypted data. Will contain length of decrypted data on successful return
+ *
+ * @return - STATUS - status of execution
+ */
 STATUS socketConnectionReadData(PSocketConnection pSocketConnection, PBYTE pBuf, UINT32 bufferLen, PUINT32 pDataLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -289,7 +341,12 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
     DLOGW("socket connection check failed with errno %s", getErrorString(getErrorCode()));
     return FALSE;
 }
-
+/**
+ * @brief 
+ * 
+ * @param[]
+ * @param[]
+*/
 STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, UINT32 bufLen, PKvsIpAddress pDestIp, PUINT32 pBytesWritten)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -330,6 +387,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
     }
 
     while (socketWriteAttempt < MAX_SOCKET_WRITE_RETRY && bytesWritten < bufLen) {
+        // #socket.
         result = sendto(pSocketConnection->localSocket, buf, bufLen, NO_SIGNAL, destAddr, addrLen);
         if (result < 0) {
             errorNum = getErrorCode();
