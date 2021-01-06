@@ -42,7 +42,9 @@ typedef enum {
     RTC_RTX_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE = 1,
     RTC_RTX_CODEC_VP8 = 2,
 } RTX_CODEC;
-
+/**
+ * @brief internal structure for peer connection.
+*/
 typedef struct {
     RtcPeerConnection peerConnection;
     PIceAgent pIceAgent;
@@ -70,13 +72,13 @@ typedef struct {
 
     MUTEX peerConnectionObjLock;
 
-    BOOL isOffer;
+    BOOL isOffer;//!< the one creates the offer. 
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
 
     // Codecs that we support and their payloadTypes
-    // When offering we generate values starting from 96
-    // When answering this is populated from the remote offer
+    // When offering, we generate values starting from 96
+    // When answering, this is populated from the remote offer
     PHashTable pCodecTable;
 
     // Payload types that we use to retransmit data

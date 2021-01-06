@@ -108,6 +108,7 @@ typedef enum {
     KVS_IP_FAMILY_TYPE_IPV6 = (UINT16) 0x0002,
 } KVS_IP_FAMILY_TYPE;
 
+// 2+2+16+1, +3 = 24
 typedef struct {
     UINT16 family;
     UINT16 port;                       // port is stored in network byte order

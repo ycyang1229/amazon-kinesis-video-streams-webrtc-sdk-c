@@ -19,10 +19,10 @@ typedef struct {
     volatile ATOMIC_BOOL terminate;
     volatile ATOMIC_BOOL listenerRoutineStarted;
     volatile ATOMIC_BOOL connectionListChanged;
-    PDoubleList connectionList;
-    MUTEX lock;
-    TID receiveDataRoutine;
-    PBYTE pBuffer;
+    PDoubleList connectionList;//!< the connection list stores every socket connection.
+    MUTEX lock;//!< protect the data of connection listener.
+    TID receiveDataRoutine;//!< the thread id of this connnection listener.
+    PBYTE pBuffer;//!< the buffer to receive the tcp/udp packets.
     UINT64 bufferLen;
     CVAR removeConnectionComplete;
 } ConnectionListener, *PConnectionListener;

@@ -9,7 +9,7 @@ Ice Utils internal include file
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+// #YC_TBD, need to review this design.
 #define DEFAULT_MAX_STORED_TRANSACTION_ID_COUNT 20
 #define MAX_STORED_TRANSACTION_ID_COUNT         100
 
@@ -25,11 +25,11 @@ extern "C" {
  * Ring buffer storing transactionIds
  */
 typedef struct {
-    UINT32 maxTransactionIdsCount;
-    UINT32 nextTransactionIdIndex;
+    UINT32 maxTransactionIdsCount;//!< the capacity of this transaction id buffer.
+    UINT32 nextTransactionIdIndex;//!< the index of the next available buffer.
     UINT32 earliestTransactionIdIndex;
     UINT32 transactionIdCount;
-    PBYTE transactionIds;
+    PBYTE transactionIds;//!< the buffer of transaction.
 } TransactionIdStore, *PTransactionIdStore;
 
 STATUS createTransactionIdStore(UINT32, PTransactionIdStore*);

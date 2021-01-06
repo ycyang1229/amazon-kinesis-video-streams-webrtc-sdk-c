@@ -1,4 +1,5 @@
-#ifdef ENABLE_STREAMING
+//#ifdef ENABLE_STREAMING
+#if 1//def ENABLE_STREAMING
 #define LOG_CLASS "RtcRtp"
 
 #include "../Include_i.h"

@@ -66,7 +66,11 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief   serialize the s
+ * 
+ * @param[in]
+*/
 STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen, BOOL generateMessageIntegrity, BOOL generateFingerprint,
                            PBYTE pBuffer, PUINT32 pSize)
 {
@@ -513,7 +517,11 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief de-serialize the stun packet.
+ * 
+ * @param[in] 
+*/
 STATUS deserializeStunPacket(PBYTE pStunBuffer, UINT32 bufferSize, PBYTE password, UINT32 passwordLen, PStunPacket* ppStunPacket)
 {
     ENTERS();
@@ -1197,7 +1205,16 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * check if PStunPacket has an attribute of type STUN_ATTRIBUTE_TYPE. If so, return the first occurrence through
+ * PStunAttributeHeader*
+ * 
+ * @param[in] pStunPacket the buffer of stun packet.
+ * @param[in] attributeType the stun attribute we are looking for.
+ * @param[out] ppStunAttribute the buffer of stun attribute.
+ * 
+ * @return STATUS of operations
+ */
 STATUS getStunAttribute(PStunPacket pStunPacket, STUN_ATTRIBUTE_TYPE attributeType, PStunAttributeHeader* ppStunAttribute)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -1220,7 +1237,12 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief   xor the ip addres with the magic cookie, and xor the rest of ipv6 address with transaction id.
+ * 
+ * @param[in, out] pAddress the input/result of xor ip address.
+ * @param[in] pTransactionId
+*/
 STATUS xorIpAddress(PKvsIpAddress pAddress, PBYTE pTransactionId)
 {
     STATUS retStatus = STATUS_SUCCESS;

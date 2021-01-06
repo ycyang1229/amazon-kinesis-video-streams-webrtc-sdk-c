@@ -32,12 +32,12 @@ struct __SocketConnection {
     KvsIpAddress peerIpAddr;
     KvsIpAddress hostIpAddr;
 
-    BOOL secureConnection;
+    BOOL secureConnection;//!< indicate this socket connectino is secure or not.
     PTlsSession pTlsSession;
 
-    MUTEX lock;
+    MUTEX lock;//!< 
 
-    ConnectionDataAvailableFunc dataAvailableCallbackFn;
+    ConnectionDataAvailableFunc dataAvailableCallbackFn;//!< the callback when the data is ready.
     UINT64 dataAvailableCallbackCustomData;
     UINT64 tlsHandshakeStartTime;
 };

@@ -106,7 +106,15 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief   the callback of outboud for ssl library.
+ * 
+ * @param[in] customData
+ * @param[in] pBuf
+ * @param[in] len
+ * 
+ * @return 
+*/
 INT32 dtlsSessionSendCallback(PVOID customData, const unsigned char* pBuf, ULONG len)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -373,7 +381,12 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief  it is used for the outbound packet of sctp session. 
+ * 
+ * @param[in]
+ * @param[in]
+*/
 STATUS dtlsSessionPutApplicationData(PDtlsSession pDtlsSession, PBYTE pData, INT32 dataLen)
 {
     ENTERS();
