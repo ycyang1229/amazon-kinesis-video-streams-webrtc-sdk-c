@@ -206,7 +206,7 @@ STATUS iceAgentFsmCheckConnection(UINT64 customData, UINT64 time)
     // #YC_TBD, why this happen. basically leaving from new will set the state as check-connection.
     // 
     if (pIceAgent->iceAgentState != ICE_AGENT_STATE_CHECK_CONNECTION) {
-        CHK_STATUS(iceAgentCheckConnectionStateSetup(pIceAgent));
+        CHK_STATUS(iceAgentSetupFsmCheckConnection(pIceAgent));
         pIceAgent->iceAgentState = ICE_AGENT_STATE_CHECK_CONNECTION;
     }
 
@@ -296,7 +296,7 @@ STATUS iceAgentFsmConnected(UINT64 customData, UINT64 time)
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
-    CHK_STATUS(iceAgentConnectedStateSetup(pIceAgent));
+    CHK_STATUS(iceAgentSetupFsmConnected(pIceAgent));
 
     pIceAgent->iceAgentState = ICE_AGENT_STATE_CONNECTED;
 
@@ -373,7 +373,7 @@ STATUS iceAgentFsmNominating(UINT64 customData, UINT64 time)
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     // prepare the stun use-candidate packet if we are controlling ice agent.
     if (pIceAgent->iceAgentState != ICE_AGENT_STATE_NOMINATING) {
-        CHK_STATUS(iceAgentNominatingStateSetup(pIceAgent));
+        CHK_STATUS(iceAgentSetupFsmNominating(pIceAgent));
         pIceAgent->iceAgentState = ICE_AGENT_STATE_NOMINATING;
     }
 
@@ -473,7 +473,7 @@ STATUS iceAgentFsmReady(UINT64 customData, UINT64 time)
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
 
     if (pIceAgent->iceAgentState != ICE_AGENT_STATE_READY) {
-        CHK_STATUS(iceAgentReadyStateSetup(pIceAgent));
+        CHK_STATUS(iceAgentSetupFsmReady(pIceAgent));
         pIceAgent->iceAgentState = ICE_AGENT_STATE_READY;
     }
 
