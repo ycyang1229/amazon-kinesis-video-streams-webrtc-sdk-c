@@ -1025,7 +1025,7 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                 pTurnConnection->state = TURN_STATE_GET_CREDENTIALS;
                 pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_GET_CREDENTIAL_TIMEOUT;
             } else {
-                CHK(currentTime < pTurnConnection->stateTimeoutTime, STATUS_TURN_CONNECTION_STATE_TRANSITION_TIMEOUT);
+                CHK(currentTime < pTurnConnection->stateTimeoutTime, STATUS_TURN_CONNECTION_CHECK_CONN_TIMEOUT);
             }
 
         case TURN_STATE_GET_CREDENTIALS:
@@ -1056,7 +1056,7 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                 pTurnConnection->state = TURN_STATE_ALLOCATION;
                 pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_ALLOCATION_TIMEOUT;
             } else {
-                CHK(currentTime < pTurnConnection->stateTimeoutTime, STATUS_TURN_CONNECTION_STATE_TRANSITION_TIMEOUT);
+                CHK(currentTime < pTurnConnection->stateTimeoutTime, STATUS_TURN_CONNECTION_GET_CREDENTIALS_TIMEOUT);
             }
             break;
 
@@ -1111,7 +1111,7 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                 pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT;
 
             } else {
-                CHK(currentTime < pTurnConnection->stateTimeoutTime, STATUS_TURN_CONNECTION_STATE_TRANSITION_TIMEOUT);
+                CHK(currentTime < pTurnConnection->stateTimeoutTime, STATUS_TURN_CONNECTION_ALLOCATION_TIMEOUT);
             }
             break;
 

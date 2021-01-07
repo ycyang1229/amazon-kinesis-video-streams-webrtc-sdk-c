@@ -214,6 +214,10 @@ extern "C" {
 #define STATUS_ICE_NOT_ENOUGH_MEMORY                                       STATUS_ICE_BASE + 0x00000029
 #define STATUS_ICE_NULL_ARG                                                STATUS_ICE_BASE + 0x0000002A
 #define STATUS_ICE_NULL_NOMINATED_CANDIDATE_PAIR                           STATUS_ICE_BASE + 0x0000002B
+#define STATUS_TURN_CONNECTION_CHECK_CONN_TIMEOUT                          STATUS_ICE_BASE + 0x0000002C
+#define STATUS_TURN_CONNECTION_GET_CREDENTIALS_TIMEOUT                     STATUS_ICE_BASE + 0x0000002D
+#define STATUS_TURN_CONNECTION_ALLOCATION_TIMEOUT                          STATUS_ICE_BASE + 0x0000002E
+#define STATUS_ICE_CANDIDATE_STRING_MISSING_TYPE                           STATUS_ICE_BASE + 0x0000002F
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -754,6 +758,7 @@ typedef enum {
                                     //!< passing through a TURN server
 
     ICE_TRANSPORT_POLICY_ALL = 2, //!< The ICE Agent can use any type of candidate when this value is specified.
+    ICE_TRANSPORT_POLICY_INVALID = 0xFF //!< invalid value.
 } ICE_TRANSPORT_POLICY;
 
 /**
