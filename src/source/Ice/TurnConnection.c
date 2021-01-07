@@ -1189,7 +1189,7 @@ STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
                 currentTime >= pTurnConnection->stateTimeoutTime) {
                 // clean transactionId store for each turn peer, preserving the peers
                 for (i = 0; i < pTurnConnection->turnPeerCount; ++i) {
-                    transactionIdStoreClear(pTurnConnection->turnPeerList[i].pTransactionIdStore);
+                    transactionIdStoreReset(pTurnConnection->turnPeerList[i].pTransactionIdStore);
                 }
 
                 CHK_STATUS(turnConnectionFreePreAllocatedPackets(pTurnConnection));

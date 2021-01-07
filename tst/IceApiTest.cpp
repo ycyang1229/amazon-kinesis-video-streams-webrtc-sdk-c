@@ -72,7 +72,7 @@ TEST_F(IceApiTest, IceUtilApiTest)
     EXPECT_NE(STATUS_SUCCESS, freeTransactionIdStore(NULL));
     EXPECT_DEATH(transactionIdStoreInsert(NULL, testTransactionId), "");
     EXPECT_DEATH(transactionIdStoreHasId(NULL, testTransactionId), "");
-    EXPECT_DEATH(transactionIdStoreClear(NULL), "");
+    EXPECT_DEATH(transactionIdStoreReset(NULL), "");
     EXPECT_NE(STATUS_SUCCESS, iceUtilsGenerateTransactionId(NULL, STUN_TRANSACTION_ID_LEN));
     EXPECT_NE(STATUS_SUCCESS, iceUtilsGenerateTransactionId(testTransactionId, 0));
 
@@ -89,7 +89,7 @@ TEST_F(IceApiTest, IceUtilApiTest)
     EXPECT_EQ(STATUS_SUCCESS, createTransactionIdStore(20, &pTransactionIdStore));
     transactionIdStoreInsert(pTransactionIdStore, testTransactionId);
     transactionIdStoreHasId(pTransactionIdStore, testTransactionId);
-    transactionIdStoreClear(pTransactionIdStore);
+    transactionIdStoreReset(pTransactionIdStore);
     EXPECT_EQ(STATUS_SUCCESS, iceUtilsGenerateTransactionId(testTransactionId, STUN_TRANSACTION_ID_LEN));
     EXPECT_EQ(STATUS_SUCCESS, iceUtilsPackageStunPacket(pStunPacket, testPassword, testPasswordLen, testBuffer, &testBufferLen));
     EXPECT_EQ(STATUS_SUCCESS, iceUtilsPackageStunPacket(pStunPacket, NULL, 0, testBuffer, &testBufferLen));
