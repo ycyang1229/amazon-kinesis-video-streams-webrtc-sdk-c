@@ -2842,19 +2842,30 @@ STATUS incomingRelayedDataHandler(UINT64 customData, PSocketConnection pSocketCo
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidate pRelayedCandidate = (PIceCandidate) customData;
     // this should be more than enough. Usually the number of channel data in each tcp message is around 4
-    TurnChannelData turnChannelData[DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE];
-    UINT32 turnChannelDataCount = ARRAY_SIZE(turnChannelData), i = 0;
+    // #memory, #heap.
+    TurnChannelData* pTurnChannelData = NULL;
+    UINT32 turnChannelDataCount = DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE, i = 0;
 
     CHK(pRelayedCandidate != NULL && pSocketConnection != NULL, STATUS_NULL_ARG);
+    // 32*512 = 16384. 16k.
+    CHK(NULL != (pTurnChannelData = (TurnChannelData*) MEMALLOC(SIZEOF(TurnChannelData)*DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE)), STATUS_NOT_ENOUGH_MEMORY);
 
-    CHK_STATUS(turnConnectionIncomingDataHandler(pRelayedCandidate->pTurnConnection, pBuffer, bufferLen, pSrc, pDest, turnChannelData,
-                                                 &turnChannelDataCount));
+    //DLOGD("turn incoming data");
+    CHK_STATUS(turnConnectionIncomingDataHandler(pRelayedCandidate->pTurnConnection,
+                                                    pBuffer,
+                                                    bufferLen,
+                                                    pSrc,
+                                                    pDest,
+                                                    pTurnChannelData,
+                                                    &turnChannelDataCount));
+    //DLOGD("the current number of data channel:%d", turnChannelDataCount);
     for (i = 0; i < turnChannelDataCount; ++i) {
-        incomingDataHandler((UINT64) pRelayedCandidate->pIceAgent, pSocketConnection, turnChannelData[i].data, turnChannelData[i].size,
-                            &turnChannelData[i].senderAddr, NULL);
+        incomingDataHandler((UINT64) pRelayedCandidate->pIceAgent, pSocketConnection, pTurnChannelData[i].data, pTurnChannelData[i].size,
+                            &pTurnChannelData[i].senderAddr, NULL);
     }
 
 CleanUp:
+    SAFE_MEMFREE(pTurnChannelData);
     CHK_LOG_ERR(retStatus);
 
     return retStatus;
