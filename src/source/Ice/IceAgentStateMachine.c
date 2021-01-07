@@ -245,9 +245,6 @@ STATUS iceAgentFsmFromCheckConnection(UINT64 customData, PUINT64 pState)
     // move to failed state if any error happened.
     CHK_STATUS(pIceAgent->iceAgentStatus);
 
-    // return early if changing to disconnected state
-    CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
-
     // connected pair found ? go to ICE_AGENT_STATE_CONNECTED : timeout ? go to error : remain in ICE_AGENT_STATE_CHECK_CONNECTION
     // pop the first succeeded candidate pair, and switch to connected state.
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
@@ -324,7 +321,7 @@ STATUS iceAgentFsmFromConnected(UINT64 customData, PUINT64 pState)
     ICE_FSM_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
     PIceAgent pIceAgent = (PIceAgent) customData;
-    UINT64 state = ICE_AGENT_STATE_CONNECTED; // original state
+    UINT64 state = ICE_AGENT_STATE_NOMINATING; // original state
     BOOL locked = FALSE;
 
     CHK(pIceAgent != NULL && pState != NULL, STATUS_NULL_ARG);
@@ -336,10 +333,10 @@ STATUS iceAgentFsmFromConnected(UINT64 customData, PUINT64 pState)
     CHK_STATUS(pIceAgent->iceAgentStatus);
 
     // return early if changing to disconnected state
-    CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
+    //CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
 
     // Go directly to nominating state from connected state.
-    state = ICE_AGENT_STATE_NOMINATING;
+    //state = ICE_AGENT_STATE_NOMINATING;
 
 CleanUp:
 
@@ -427,11 +424,6 @@ STATUS iceAgentFsmFromNominating(UINT64 customData, PUINT64 pState)
 
     // move to failed state if any error happened.
     CHK_STATUS(pIceAgent->iceAgentStatus);
-
-    // return early if changing to disconnected state
-    CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
-
-    // has a nominated and connected pair ? go to ICE_AGENT_STATE_READY : timeout ? go to failed state : remain in ICE_AGENT_STATE_NOMINATING
 
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));
     while (pCurNode != NULL) {
