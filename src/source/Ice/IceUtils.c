@@ -120,7 +120,7 @@ BOOL transactionIdStoreHasId(PTransactionIdStore pTransactionIdStore, PBYTE tran
  * 
  * @param[in]
 */
-VOID transactionIdStoreClear(PTransactionIdStore pTransactionIdStore)
+VOID transactionIdStoreReset(PTransactionIdStore pTransactionIdStore)
 {
     CHECK(pTransactionIdStore != NULL);
 

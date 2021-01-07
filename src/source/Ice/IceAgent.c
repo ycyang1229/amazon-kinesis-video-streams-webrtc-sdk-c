@@ -1454,7 +1454,7 @@ STATUS iceAgentRestart(PIceAgent pIceAgent, PCHAR localIceUfrag, PCHAR localIceP
     pIceAgent->detectedDisconnection = FALSE;
     pIceAgent->disconnectionGracePeriodEndTime = INVALID_TIMESTAMP_VALUE;
 
-    transactionIdStoreClear(pIceAgent->pStunBindingRequestTransactionIdStore);
+    transactionIdStoreReset(pIceAgent->pStunBindingRequestTransactionIdStore);
 
     STRNCPY(pIceAgent->localUsername, localIceUfrag, MAX_ICE_CONFIG_USER_NAME_LEN);
     STRNCPY(pIceAgent->localPassword, localIcePwd, MAX_ICE_CONFIG_CREDENTIAL_LEN);
@@ -2130,7 +2130,7 @@ STATUS iceAgentNominateCandidatePair(PIceAgent pIceAgent)
     pNominatedCandidatePair->nominated = TRUE;
 
     // reset transaction id list to ignore future connectivity check response.
-    transactionIdStoreClear(pNominatedCandidatePair->pTransactionIdStore);
+    transactionIdStoreReset(pNominatedCandidatePair->pTransactionIdStore);
 
     // move not nominated candidate pairs to frozen state so the second connectivity check only checks the nominated pair.
     CHK_STATUS(doubleListGetHeadNode(pIceAgent->iceCandidatePairs, &pCurNode));

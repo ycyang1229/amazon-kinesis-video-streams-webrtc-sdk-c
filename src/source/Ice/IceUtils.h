@@ -36,7 +36,7 @@ STATUS createTransactionIdStore(UINT32, PTransactionIdStore*);
 STATUS freeTransactionIdStore(PTransactionIdStore*);
 VOID transactionIdStoreInsert(PTransactionIdStore, PBYTE);
 BOOL transactionIdStoreHasId(PTransactionIdStore, PBYTE);
-VOID transactionIdStoreClear(PTransactionIdStore);
+VOID transactionIdStoreReset(PTransactionIdStore);
 
 STATUS iceUtilsGenerateTransactionId(PBYTE, UINT32);
 
