@@ -1276,10 +1276,13 @@ STATUS iceAgentStartAgent(PIceAgent pIceAgent, PCHAR remoteUsername, PCHAR remot
 
     MUTEX_UNLOCK(pIceAgent->lock);
     locked = FALSE;
-
-    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, KVS_ICE_DEFAULT_TIMER_START_DELAY,
-                                  pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval, iceAgentFsmTimerCallback,
-                                  (UINT64) pIceAgent, &pIceAgent->iceAgentStateTimerTask));
+    // try to advance the fsm of ice agent every 50ms.
+    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
+                                    KVS_ICE_FSM_TIMER_START_DELAY,
+                                    pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval,
+                                    iceAgentFsmTimerCallback,
+                                    (UINT64) pIceAgent,
+                                    &pIceAgent->iceAgentStateTimerTask));
 
 CleanUp:
 
@@ -1306,11 +1309,15 @@ STATUS iceAgentGatheringTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64
     IceCandidate newLocalCandidates[KVS_ICE_MAX_NEW_LOCAL_CANDIDATES_TO_REPORT_AT_ONCE];
     UINT32 newLocalCandidateCount = 0;
     PIceAgent pIceAgent = (PIceAgent) customData;
-    BOOL locked = FALSE, stopScheduling = FALSE;
+    BOOL locked = FALSE;
+    BOOL stopScheduling = FALSE;
     PDoubleListNode pCurNode = NULL;
     UINT64 data;
     PIceCandidate pIceCandidate = NULL;
-    UINT32 pendingSrflxCandidateCount = 0, pendingCandidateCount = 0, i, totalCandidateCount = 0;
+    UINT32 pendingSrflxCandidateCount = 0;
+    UINT32 pendingCandidateCount = 0;
+    UINT32 i;
+    UINT32 totalCandidateCount = 0;
     KvsIpAddress relayAddress;
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
@@ -1442,8 +1449,12 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
 
     pIceAgent->candidateGatheringEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceLocalCandidateGatheringTimeout;
 
-    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, KVS_ICE_DEFAULT_TIMER_START_DELAY, KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL,
-                                  iceAgentGatheringTimerCallback, (UINT64) pIceAgent, &pIceAgent->iceCandidateGatheringTimerTask));
+    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle,
+                                  KVS_ICE_GATHERING_TIMER_START_DELAY,
+                                  KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL,
+                                  iceAgentGatheringTimerCallback,
+                                  (UINT64) pIceAgent,
+                                  &pIceAgent->iceCandidateGatheringTimerTask));
 
 CleanUp:
 
@@ -1857,8 +1868,12 @@ STATUS iceAgentSetupFsmConnected(PIceAgent pIceAgent)
     }
 
     // schedule sending keep alive
-    CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, KVS_ICE_DEFAULT_TIMER_START_DELAY, KVS_ICE_SEND_KEEP_ALIVE_INTERVAL,
-                                  iceAgentKeepAliveTimerCallback, (UINT64) pIceAgent, &pIceAgent->keepAliveTimerTask));
+    CHK_STATUS(timerQueueAddTimer(  pIceAgent->timerQueueHandle,
+                                    KVS_ICE_DEFAULT_TIMER_START_DELAY,
+                                    KVS_ICE_SEND_KEEP_ALIVE_INTERVAL,
+                                    iceAgentKeepAliveTimerCallback,
+                                    (UINT64) pIceAgent,
+                                    &pIceAgent->keepAliveTimerTask));
 
 CleanUp:
 
