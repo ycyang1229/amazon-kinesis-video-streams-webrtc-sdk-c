@@ -282,7 +282,8 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
     PConnectionListener pConnectionListener = (PConnectionListener) arg;
     PDoubleListNode pCurNode = NULL, pNodeToDelete = NULL;
     PSocketConnection pSocketConnection;
-    BOOL locked = FALSE, iterate = TRUE, updateSocketList = FALSE, connectionListChanged = FALSE;
+    BOOL locked = FALSE, updateSocketList = FALSE, connectionListChanged = FALSE;
+    // #YC_TBD, #stack. not necessary to move this to heap. but it can be decreased.
     PSocketConnection socketList[CONNECTION_LISTENER_DEFAULT_MAX_LISTENING_CONNECTION];
     UINT32 socketCount = 0, i;
 
@@ -381,6 +382,7 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
         }
 
         for (i = 0; i < socketCount; ++i) {
+            BOOL iterate = TRUE;
             pSocketConnection = socketList[i];
             if (socketConnectionIsClosed(pSocketConnection)) {
                 /* update the connection list to remove the closed sockets */
