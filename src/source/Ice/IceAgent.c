@@ -1179,7 +1179,7 @@ void __pipeline__(void){
  * @param customData - custom data passed to timer queue when task was added
  * @return
  */
-STATUS iceAgentStateTransitionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+STATUS iceAgentFsmTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerId);
     UNUSED_PARAM(currentTime);
@@ -1247,7 +1247,7 @@ STATUS iceAgentStartAgent(PIceAgent pIceAgent, PCHAR remoteUsername, PCHAR remot
     locked = FALSE;
 
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, KVS_ICE_DEFAULT_TIMER_START_DELAY,
-                                  pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval, iceAgentStateTransitionTimerCallback,
+                                  pIceAgent->kvsRtcConfiguration.iceConnectionCheckPollingInterval, iceAgentFsmTimerCallback,
                                   (UINT64) pIceAgent, &pIceAgent->iceAgentStateTimerTask));
 
 CleanUp:
@@ -1267,7 +1267,7 @@ CleanUp:
  * @param[in]
  * 
 */
-STATUS iceAgentGatherCandidateTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+STATUS iceAgentGatheringTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerId);
     STATUS retStatus = STATUS_SUCCESS;
@@ -1412,7 +1412,7 @@ STATUS iceAgentStartGathering(PIceAgent pIceAgent)
     pIceAgent->candidateGatheringEndTime = GETTIME() + pIceAgent->kvsRtcConfiguration.iceLocalCandidateGatheringTimeout;
 
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, KVS_ICE_DEFAULT_TIMER_START_DELAY, KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL,
-                                  iceAgentGatherCandidateTimerCallback, (UINT64) pIceAgent, &pIceAgent->iceCandidateGatheringTimerTask));
+                                  iceAgentGatheringTimerCallback, (UINT64) pIceAgent, &pIceAgent->iceCandidateGatheringTimerTask));
 
 CleanUp:
 
@@ -1653,7 +1653,7 @@ CleanUp:
  * 
  * @param[in]
 */
-STATUS iceAgentCheckConnectionStateSetup(PIceAgent pIceAgent)
+STATUS iceAgentSetupFsmCheckConnection(PIceAgent pIceAgent)
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 iceCandidatePairCount = 0;
@@ -1714,7 +1714,7 @@ CleanUp:
  * 
  * 
 */
-STATUS iceAgentSendKeepAliveTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
+STATUS iceAgentKeepAliveTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerId);
     STATUS retStatus = STATUS_SUCCESS;
@@ -1768,7 +1768,7 @@ CleanUp:
  * 
  * @param[in]
 */
-STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
+STATUS iceAgentSetupFsmConnected(PIceAgent pIceAgent)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PDoubleListNode pCurNode = NULL;
@@ -1827,7 +1827,7 @@ STATUS iceAgentConnectedStateSetup(PIceAgent pIceAgent)
 
     // schedule sending keep alive
     CHK_STATUS(timerQueueAddTimer(pIceAgent->timerQueueHandle, KVS_ICE_DEFAULT_TIMER_START_DELAY, KVS_ICE_SEND_KEEP_ALIVE_INTERVAL,
-                                  iceAgentSendKeepAliveTimerCallback, (UINT64) pIceAgent, &pIceAgent->keepAliveTimerTask));
+                                  iceAgentKeepAliveTimerCallback, (UINT64) pIceAgent, &pIceAgent->keepAliveTimerTask));
 
 CleanUp:
 
@@ -1847,7 +1847,7 @@ CleanUp:
  * @brief nominating one ice candidate if we are a controlling ice agent.
  * 
 */
-STATUS iceAgentNominatingStateSetup(PIceAgent pIceAgent)
+STATUS iceAgentSetupFsmNominating(PIceAgent pIceAgent)
 {
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
@@ -1888,8 +1888,7 @@ CleanUp:
     return retStatus;
 }
 
-
-STATUS iceAgentReadyStateSetup(PIceAgent pIceAgent)
+STATUS iceAgentSetupFsmReady(PIceAgent pIceAgent)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PIceCandidatePair pNominatedAndValidCandidatePair = NULL;

@@ -416,15 +416,15 @@ STATUS iceAgentInitSrflxCandidate(PIceAgent);
 STATUS iceAgentInitRelayCandidates(PIceAgent);
 STATUS iceAgentInitRelayCandidate(PIceAgent, UINT32, KVS_SOCKET_PROTOCOL);
 
-STATUS iceAgentCheckConnectionStateSetup(PIceAgent);
-STATUS iceAgentConnectedStateSetup(PIceAgent);
-STATUS iceAgentNominatingStateSetup(PIceAgent);
-STATUS iceAgentReadyStateSetup(PIceAgent);
+STATUS iceAgentSetupFsmCheckConnection(PIceAgent);
+STATUS iceAgentSetupFsmConnected(PIceAgent);
+STATUS iceAgentSetupFsmNominating(PIceAgent);
+STATUS iceAgentSetupFsmReady(PIceAgent);
 
 // timer callbacks. timer callbacks are interlocked by time queue lock.
-STATUS iceAgentStateTransitionTimerCallback(UINT32, UINT64, UINT64);
-STATUS iceAgentSendKeepAliveTimerCallback(UINT32, UINT64, UINT64);
-STATUS iceAgentGatherCandidateTimerCallback(UINT32, UINT64, UINT64);
+STATUS iceAgentFsmTimerCallback(UINT32, UINT64, UINT64);
+STATUS iceAgentKeepAliveTimerCallback(UINT32, UINT64, UINT64);
+STATUS iceAgentGatheringTimerCallback(UINT32, UINT64, UINT64);
 
 // Default time callback for the state machine
 UINT64 iceAgentGetCurrentTime(UINT64);
