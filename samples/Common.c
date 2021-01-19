@@ -196,7 +196,7 @@ STATUS sendSignalingMessage(PSampleStreamingSession pSampleStreamingSession, PSi
 
     MUTEX_LOCK(pSampleStreamingSession->pSampleConfiguration->signalingSendMessageLock);
     locked = TRUE;
-    CHK_STATUS(signalingClientSendMessageSync(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle, pMessage));
+    CHK_STATUS(signalingClientSendMessage(pSampleStreamingSession->pSampleConfiguration->signalingClientHandle, pMessage));
 
 CleanUp:
 
@@ -721,10 +721,10 @@ STATUS logSignalingClientStats(PSignalingClientMetrics pSignalingClientMetrics)
     DLOGD("Number of runtime errors in the session: %d", pSignalingClientMetrics->signalingClientStats.numberOfRuntimeErrors);
     DLOGD("Signaling client uptime: %" PRIu64 " ms",
           (pSignalingClientMetrics->signalingClientStats.connectionDuration / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
-    // This gives the EMA of the createChannel, describeChannel, getChannelEndpoint and deleteChannel calls
+    // This gives the EMA of the signalingCreateChannel, signalingDescribeChannel, signalingGetChannelEndpoint and signalingDeleteChannel calls
     DLOGD("Control Plane API call latency: %" PRIu64 " ms",
           (pSignalingClientMetrics->signalingClientStats.cpApiCallLatency / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
-    // This gives the EMA of the getIceConfig() call.
+    // This gives the EMA of the signalingGetIceConfig() call.
     DLOGD("Data Plane API call latency: %" PRIu64 " ms",
           (pSignalingClientMetrics->signalingClientStats.dpApiCallLatency / HUNDREDS_OF_NANOS_IN_A_MILLISECOND));
 CleanUp:
@@ -955,8 +955,8 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
 
         // Check if we need to re-create the signaling client on-the-fly
         if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->recreateSignalingClient) &&
-            STATUS_SUCCEEDED(freeSignalingClient(&pSampleConfiguration->signalingClientHandle)) &&
-            STATUS_SUCCEEDED(createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
+            STATUS_SUCCEEDED(signalingClientFree(&pSampleConfiguration->signalingClientHandle)) &&
+            STATUS_SUCCEEDED(signalingClientCreate(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                                        &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
                                                        &pSampleConfiguration->signalingClientHandle))) {
             // Re-set the variable again

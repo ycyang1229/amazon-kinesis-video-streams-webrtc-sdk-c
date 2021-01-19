@@ -415,11 +415,11 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     strcpy(pSampleConfiguration->clientInfo.clientId, SAMPLE_MASTER_CLIENT_ID);
 
-    retStatus = createSignalingClientSync(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
+    retStatus = signalingClientCreate(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
                                           &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
                                           &pSampleConfiguration->signalingClientHandle);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS GStreamer Master] createSignalingClientSync(): operation returned status code: 0x%08x \n", retStatus);
+        printf("[KVS GStreamer Master] signalingClientCreate(): operation returned status code: 0x%08x \n", retStatus);
     }
     printf("[KVS GStreamer Master] Signaling client created successfully\n");
 
@@ -464,9 +464,9 @@ CleanUp:
         if (pSampleConfiguration->enableFileLogging) {
             freeFileLogger();
         }
-        retStatus = freeSignalingClient(&pSampleConfiguration->signalingClientHandle);
+        retStatus = signalingClientFree(&pSampleConfiguration->signalingClientHandle);
         if (retStatus != STATUS_SUCCESS) {
-            printf("[KVS GStreamer Master] freeSignalingClient(): operation returned status code: 0x%08x \n", retStatus);
+            printf("[KVS GStreamer Master] signalingClientFree(): operation returned status code: 0x%08x \n", retStatus);
         }
 
         retStatus = freeSampleConfiguration(&pSampleConfiguration);

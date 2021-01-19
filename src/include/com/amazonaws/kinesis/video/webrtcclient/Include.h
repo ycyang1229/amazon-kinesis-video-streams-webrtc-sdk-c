@@ -1146,7 +1146,8 @@ typedef struct {
 } RtcIceCandidateInit, *PRtcIceCandidateInit;
 
 /**
- * @brief Structure defining the basic signaling message
+ * @brief   Structure defining the basic signaling message
+ *          https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis3.html
  */
 typedef struct {
     UINT32 version; //!< Current version of the structure
@@ -1844,7 +1845,7 @@ PUBLIC_API PCHAR getNatBehaviorStr(NAT_BEHAVIOR natBehavior);
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
-PUBLIC_API STATUS createSignalingClientSync(PSignalingClientInfo, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider,
+PUBLIC_API STATUS signalingClientCreate(PSignalingClientInfo, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider,
                                             PSIGNALING_CLIENT_HANDLE);
 
 /**
@@ -1856,7 +1857,7 @@ PUBLIC_API STATUS createSignalingClientSync(PSignalingClientInfo, PChannelInfo, 
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
-PUBLIC_API STATUS freeSignalingClient(PSIGNALING_CLIENT_HANDLE);
+PUBLIC_API STATUS signalingClientFree(PSIGNALING_CLIENT_HANDLE);
 
 /**
  * @brief Send a message through a Signaling client.
@@ -1869,7 +1870,7 @@ PUBLIC_API STATUS freeSignalingClient(PSIGNALING_CLIENT_HANDLE);
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
-PUBLIC_API STATUS signalingClientSendMessageSync(SIGNALING_CLIENT_HANDLE, PSignalingMessage);
+PUBLIC_API STATUS signalingClientSendMessage(SIGNALING_CLIENT_HANDLE, PSignalingMessage);
 
 /**
  * @brief Gets the retrieved ICE configuration information object count

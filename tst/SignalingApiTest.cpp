@@ -9,7 +9,7 @@ namespace webrtcclient {
 class SignalingApiTest : public WebRtcClientTestBase {
 };
 
-TEST_F(SignalingApiTest, signalingSendMessageSync)
+TEST_F(SignalingApiTest, signalingSendMessage)
 {
     STATUS expectedStatus;
     SignalingMessage signalingMessage;
@@ -24,30 +24,30 @@ TEST_F(SignalingApiTest, signalingSendMessageSync)
     signalingMessage.payloadLen = 0;
     signalingMessage.correlationId[0] = '\0';
 
-    EXPECT_NE(STATUS_SUCCESS, signalingClientSendMessageSync(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, &signalingMessage));
-    EXPECT_NE(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, NULL));
-    EXPECT_NE(STATUS_SUCCESS, signalingClientSendMessageSync(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, NULL));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientSendMessage(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, &signalingMessage));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientSendMessage(mSignalingClientHandle, NULL));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientSendMessage(INVALID_SIGNALING_CLIENT_HANDLE_VALUE, NULL));
 
     // Not connected
     expectedStatus = mAccessKeyIdSet ? STATUS_INVALID_STREAM_STATE : STATUS_NULL_ARG;
-    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+    EXPECT_EQ(expectedStatus, signalingClientSendMessage(mSignalingClientHandle, &signalingMessage));
 
     // Connect and retry
     expectedStatus = mAccessKeyIdSet ? STATUS_SUCCESS : STATUS_NULL_ARG;
     EXPECT_EQ(expectedStatus, signalingClientConnectSync(mSignalingClientHandle));
-    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+    EXPECT_EQ(expectedStatus, signalingClientSendMessage(mSignalingClientHandle, &signalingMessage));
 
     // Some correlation id
     STRCPY(signalingMessage.correlationId, SIGNAING_TEST_CORRELATION_ID);
-    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+    EXPECT_EQ(expectedStatus, signalingClientSendMessage(mSignalingClientHandle, &signalingMessage));
 
     // No peer id
     signalingMessage.peerClientId[0] = '\0';
-    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+    EXPECT_EQ(expectedStatus, signalingClientSendMessage(mSignalingClientHandle, &signalingMessage));
 
     // No peer id no correlation id
     signalingMessage.correlationId[0] = '\0';
-    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+    EXPECT_EQ(expectedStatus, signalingClientSendMessage(mSignalingClientHandle, &signalingMessage));
 
     deinitializeSignalingClient();
 }
@@ -82,19 +82,19 @@ TEST_F(SignalingApiTest, signalingSendMessageSyncFileCredsProvider)
     signalingMessage.correlationId[0] = '\0';
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(mSignalingClientHandle, &signalingMessage));
 
     // Some correlation id
     STRCPY(signalingMessage.correlationId, SIGNAING_TEST_CORRELATION_ID);
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(mSignalingClientHandle, &signalingMessage));
 
     // No peer id
     signalingMessage.peerClientId[0] = '\0';
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(mSignalingClientHandle, &signalingMessage));
 
     // No peer id no correlation id
     signalingMessage.correlationId[0] = '\0';
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(mSignalingClientHandle, &signalingMessage));
 
     deinitializeSignalingClient();
 
@@ -142,7 +142,7 @@ TEST_F(SignalingApiTest, signalingClientDeleteSync)
     signalingMessage.payload[100] = '\0';
     signalingMessage.payloadLen = 0;
     signalingMessage.correlationId[0] = '\0';
-    EXPECT_EQ(expectedStatus, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+    EXPECT_EQ(expectedStatus, signalingClientSendMessage(mSignalingClientHandle, &signalingMessage));
 
     deinitializeSignalingClient();
 }
@@ -295,7 +295,7 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     signalingMessage.payloadLen = 0;
     signalingMessage.correlationId[0] = '\0';
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, &signalingMessage));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(mSignalingClientHandle, &signalingMessage));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, &metrics));
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfReconnects);
     EXPECT_EQ(1, metrics.signalingClientStats.numberOfMessagesSent);
@@ -313,7 +313,7 @@ TEST_F(SignalingApiTest, signalingClientGetMetrics)
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetIceConfigInfo(mSignalingClientHandle, 0, NULL));
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetCurrentState(mSignalingClientHandle, NULL));
     EXPECT_NE(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, NULL));
-    EXPECT_NE(STATUS_SUCCESS, signalingClientSendMessageSync(mSignalingClientHandle, NULL));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientSendMessage(mSignalingClientHandle, NULL));
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetMetrics(mSignalingClientHandle, &metrics));
     EXPECT_EQ(0, metrics.signalingClientStats.numberOfReconnects);

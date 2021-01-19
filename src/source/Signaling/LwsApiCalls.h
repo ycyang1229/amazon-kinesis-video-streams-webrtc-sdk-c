@@ -198,34 +198,34 @@ STATUS lwsCompleteSync(PLwsCallInfo);
 PVOID lwsListenerHandler(PVOID);
 
 // Retry thread
-PVOID reconnectHandler(PVOID);
+PVOID lwsReconnectHandler(PVOID);
 
 // LWS callback routine
 INT32 lwsHttpCallbackRoutine(struct lws*, enum lws_callback_reasons, PVOID, PVOID, size_t);
 INT32 lwsWssCallbackRoutine(struct lws*, enum lws_callback_reasons, PVOID, PVOID, size_t);
 
-STATUS describeChannelLws(PSignalingClient, UINT64);
-STATUS createChannelLws(PSignalingClient, UINT64);
-STATUS getChannelEndpointLws(PSignalingClient, UINT64);
-STATUS getIceConfigLws(PSignalingClient, UINT64);
-STATUS connectSignalingChannelLws(PSignalingClient, UINT64);
-STATUS deleteChannelLws(PSignalingClient, UINT64);
+STATUS lwsDescribeChannel(PSignalingClient, UINT64);
+STATUS lwsCreateChannel(PSignalingClient, UINT64);
+STATUS lwsGetChannelEndpoint(PSignalingClient, UINT64);
+STATUS lwsGetIceConfig(PSignalingClient, UINT64);
+STATUS lwsConnectSignalingChannel(PSignalingClient, UINT64);
+STATUS lwsDeleteChannel(PSignalingClient, UINT64);
 
-STATUS createLwsCallInfo(PSignalingClient, PRequestInfo, UINT32, PLwsCallInfo*);
-STATUS freeLwsCallInfo(PLwsCallInfo*);
+STATUS lwsCreateCallInfo(PSignalingClient, PRequestInfo, UINT32, PLwsCallInfo*);
+STATUS lwsFreeCallInfo(PLwsCallInfo*);
 
-PVOID receiveLwsMessageWrapper(PVOID);
+PVOID lwsReceiveMessageWrapper(PVOID);
 #ifdef KVS_PLAT_ESP_FREERTOS
-STATUS dispatchLwsMsg(PVOID pMessage);
+STATUS lwsDispatchMsg(PVOID pMessage);
 #endif
 
-STATUS sendLwsMessage(PSignalingClient, PCHAR, PCHAR, PCHAR, UINT32, PCHAR, UINT32);
-STATUS writeLwsData(PSignalingClient, BOOL);
-STATUS terminateLwsListenerLoop(PSignalingClient);
-STATUS receiveLwsMessage(PSignalingClient, PCHAR, UINT32);
-STATUS getMessageTypeFromString(PCHAR, UINT32, SIGNALING_MESSAGE_TYPE*);
-STATUS wakeLwsServiceEventLoop(PSignalingClient);
-STATUS terminateConnectionWithStatus(PSignalingClient, SERVICE_CALL_RESULT);
+STATUS lwsSendMessage(PSignalingClient, PCHAR, PCHAR, PCHAR, UINT32, PCHAR, UINT32);
+STATUS lwsWriteData(PSignalingClient, BOOL);
+STATUS lwsTerminateListenerLoop(PSignalingClient);
+STATUS lwsReceiveMessage(PSignalingClient, PCHAR, UINT32);
+STATUS lwsGetMessageTypeFromString(PCHAR, UINT32, SIGNALING_MESSAGE_TYPE*);
+STATUS lwsWakeServiceEventLoop(PSignalingClient);
+STATUS lwsTerminateConnectionWithStatus(PSignalingClient, SERVICE_CALL_RESULT);
 
 #ifdef __cplusplus
 }

@@ -72,8 +72,8 @@ typedef struct __LwsCallInfo* PLwsCallInfo;
 typedef STATUS (*SignalingApiCallHookFunc)(UINT64);
 
 /**
- * Internal client info object
- */
+ * @brief   Internal client info object
+*/
 typedef struct {
     // Public client info structure
     SignalingClientInfo signalingClientInfo;
@@ -143,16 +143,18 @@ typedef struct {
     volatile SIZE_T messageResult;
 
     // Client is ready to connect to signaling channel
-    volatile ATOMIC_BOOL clientReady;
+    volatile ATOMIC_BOOL clientReady;//!< Inidicate the singaling fsm is ready.
 
     // Shutting down the entire client
-    volatile ATOMIC_BOOL shutdown;
+    volatile ATOMIC_BOOL shutdown;//!< Indicate the signaling is freed.
 
     // Wss is connected
-    volatile ATOMIC_BOOL connected;
+    volatile ATOMIC_BOOL connected;//!< Indidcate the signaling is connected by receiving the lws message
+                                    //!< LWS_CALLBACK_CLIENT_ESTABLISHED
+                                    //!< LWS_CALLBACK_CLIENT_CONNECTION_ERROR
 
     // The channel is being deleted
-    volatile ATOMIC_BOOL deleting;
+    volatile ATOMIC_BOOL deleting;//!< Indicate the signaling is deleting.
 
     // The channel is deleted
     volatile ATOMIC_BOOL deleted;
@@ -253,10 +255,10 @@ typedef struct {
     struct lws_protocols signalingProtocols[3];
 
     // List of the ongoing messages
-    PStackQueue pMessageQueue;
+    PStackQueue pMessageQueue;//!< the queue of singaling ongoing messsages.
 
     // Message queue lock
-    MUTEX messageQueueLock;
+    MUTEX messageQueueLock;//!< the lock of signaling ongoing message queue.
 
     // LWS needs to be locked
     MUTEX lwsServiceLock;
@@ -286,40 +288,40 @@ typedef struct {
 #define TO_SIGNALING_CLIENT_HANDLE(p)   ((SIGNALING_CLIENT_HANDLE)(p))
 #define FROM_SIGNALING_CLIENT_HANDLE(h) (IS_VALID_SIGNALING_CLIENT_HANDLE(h) ? (PSignalingClient)(h) : NULL)
 
-STATUS createSignalingSync(PSignalingClientInfoInternal, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
-STATUS freeSignaling(PSignalingClient*);
+STATUS signalingCreate(PSignalingClientInfoInternal, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
+STATUS signalingFree(PSignalingClient*);
 
-STATUS signalingSendMessageSync(PSignalingClient, PSignalingMessage);
+STATUS signalingSendMessage(PSignalingClient, PSignalingMessage);
 STATUS signalingGetIceConfigInfoCout(PSignalingClient, PUINT32);
 STATUS signalingGetIceConfigInfo(PSignalingClient, UINT32, PIceConfigInfo*);
 STATUS signalingConnectSync(PSignalingClient);
 STATUS signalingDisconnectSync(PSignalingClient);
 STATUS signalingDeleteSync(PSignalingClient);
 
-STATUS validateSignalingCallbacks(PSignalingClient, PSignalingClientCallbacks);
-STATUS validateSignalingClientInfo(PSignalingClient, PSignalingClientInfoInternal);
-STATUS validateIceConfiguration(PSignalingClient);
+STATUS signalingValidateCallbacks(PSignalingClient, PSignalingClientCallbacks);
+STATUS signalingValidateClientInfo(PSignalingClient, PSignalingClientInfoInternal);
+STATUS signalingValidateIceConfiguration(PSignalingClient);
 
 STATUS signalingStoreOngoingMessage(PSignalingClient, PSignalingMessage);
 STATUS signalingRemoveOngoingMessage(PSignalingClient, PCHAR);
 STATUS signalingGetOngoingMessage(PSignalingClient, PCHAR, PCHAR, PSignalingMessage*);
 
-STATUS refreshIceConfigurationCallback(UINT32, UINT64, UINT64);
+STATUS signalingRefreshIceConfigurationCallback(UINT32, UINT64, UINT64);
 
 UINT64 signalingGetCurrentTime(UINT64);
 
-STATUS awaitForThreadTermination(PThreadTracker, UINT64);
-STATUS initializeThreadTracker(PThreadTracker);
-STATUS uninitializeThreadTracker(PThreadTracker);
+STATUS signalingAwaitForThreadTermination(PThreadTracker, UINT64);
+STATUS signalingInitThreadTracker(PThreadTracker);
+STATUS signalingUninitThreadTracker(PThreadTracker);
 
 STATUS terminateOngoingOperations(PSignalingClient, BOOL);
 
-STATUS describeChannel(PSignalingClient, UINT64);
-STATUS createChannel(PSignalingClient, UINT64);
-STATUS getChannelEndpoint(PSignalingClient, UINT64);
-STATUS getIceConfig(PSignalingClient, UINT64);
-STATUS connectSignalingChannel(PSignalingClient, UINT64);
-STATUS deleteChannel(PSignalingClient, UINT64);
+STATUS signalingDescribeChannel(PSignalingClient, UINT64);
+STATUS signalingCreateChannel(PSignalingClient, UINT64);
+STATUS signalingGetChannelEndpoint(PSignalingClient, UINT64);
+STATUS signalingGetIceConfig(PSignalingClient, UINT64);
+STATUS signalingConnectChannel(PSignalingClient, UINT64);
+STATUS signalingDeleteChannel(PSignalingClient, UINT64);
 STATUS signalingGetMetrics(PSignalingClient, PSignalingClientMetrics);
 
 #ifdef __cplusplus

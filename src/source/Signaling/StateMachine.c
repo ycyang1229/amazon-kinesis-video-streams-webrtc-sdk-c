@@ -8,47 +8,47 @@
  * Static definitions of the states
  */
 StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
-    {SIGNALING_STATE_NEW, SIGNALING_STATE_NONE | SIGNALING_STATE_NEW, fromNewSignalingState, executeNewSignalingState, INFINITE_RETRY_COUNT_SENTINEL,
+    {SIGNALING_STATE_NEW, SIGNALING_STATE_NONE | SIGNALING_STATE_NEW, signalingFsmFromNew, signalingFsmNew, INFINITE_RETRY_COUNT_SENTINEL,
      STATUS_SIGNALING_INVALID_READY_STATE},
     {SIGNALING_STATE_GET_TOKEN,
      SIGNALING_STATE_NEW | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG |
          SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_GET_TOKEN,
-     fromGetTokenSignalingState, executeGetTokenSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_GET_TOKEN_CALL_FAILED},
+     signalingFsmFromGetToken, signalingFsmGetToken, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_GET_TOKEN_CALL_FAILED},
     {SIGNALING_STATE_DESCRIBE,
      SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_CONNECT |
          SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_DESCRIBE,
-     fromDescribeSignalingState, executeDescribeSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DESCRIBE_CALL_FAILED},
-    {SIGNALING_STATE_CREATE, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE, fromCreateSignalingState, executeCreateSignalingState,
+     signalingFsmFromDescribe, signalingFsmDescribe, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DESCRIBE_CALL_FAILED},
+    {SIGNALING_STATE_CREATE, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE, signalingFsmFromCreate, signalingFsmCreate,
      SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_CREATE_CALL_FAILED},
     {SIGNALING_STATE_GET_ENDPOINT,
      SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT |
          SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT,
-     fromGetEndpointSignalingState, executeGetEndpointSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
+     signalingFsmFromGetEndpoint, signalingFsmGetEndpoint, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
      STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED},
     {SIGNALING_STATE_GET_ICE_CONFIG,
      SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_READY |
          SIGNALING_STATE_GET_ICE_CONFIG,
-     fromGetIceConfigSignalingState, executeGetIceConfigSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
+     signalingFsmFromGetIceConfig, signalingFsmGetIceConfig, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
      STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED},
-    {SIGNALING_STATE_READY, SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_READY, fromReadySignalingState,
-     executeReadySignalingState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_READY_CALLBACK_FAILED},
+    {SIGNALING_STATE_READY, SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_READY, signalingFsmFromReady,
+     signalingFsmReady, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_READY_CALLBACK_FAILED},
     {SIGNALING_STATE_CONNECT, SIGNALING_STATE_READY | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_CONNECT,
-     fromConnectSignalingState, executeConnectSignalingState, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECT_CALL_FAILED},
-    {SIGNALING_STATE_CONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED, fromConnectedSignalingState, executeConnectedSignalingState,
+     signalingFsmFromConnect, signalingFsmConnect, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECT_CALL_FAILED},
+    {SIGNALING_STATE_CONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED, signalingFsmFromConnected, signalingFsmConnected,
      INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECTED_CALLBACK_FAILED},
-    {SIGNALING_STATE_DISCONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED, fromDisconnectedSignalingState,
-     executeDisconnectedSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED},
+    {SIGNALING_STATE_DISCONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED, signalingFsmFromDisconnected,
+     signalingFsmDisconnected, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED},
     {SIGNALING_STATE_DELETE,
      SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG |
          SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_DELETE,
-     fromDeleteSignalingState, executeDeleteSignalingState, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DELETE_CALL_FAILED},
-    {SIGNALING_STATE_DELETED, SIGNALING_STATE_DELETE | SIGNALING_STATE_DELETED, fromDeletedSignalingState, executeDeletedSignalingState,
+     signalingFsmFromDelete, signalingFsmDelete, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DELETE_CALL_FAILED},
+    {SIGNALING_STATE_DELETED, SIGNALING_STATE_DELETE | SIGNALING_STATE_DELETED, signalingFsmFromDeleted, signalingFsmDeleted,
      INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_DELETE_CALL_FAILED},
 };
 
 UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(SIGNALING_STATE_MACHINE_STATES);
 
-STATUS stepSignalingStateMachine(PSignalingClient pSignalingClient, STATUS status)
+STATUS signalingFsmStep(PSignalingClient pSignalingClient, STATUS status)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -103,7 +103,7 @@ CleanUp:
     return retStatus;
 }
 
-SIGNALING_CLIENT_STATE getSignalingStateFromStateMachineState(UINT64 state)
+SIGNALING_CLIENT_STATE signalingFsmGetState(UINT64 state)
 {
     SIGNALING_CLIENT_STATE clientState;
     switch (state) {
@@ -153,7 +153,7 @@ SIGNALING_CLIENT_STATE getSignalingStateFromStateMachineState(UINT64 state)
     return clientState;
 }
 
-STATUS acceptSignalingStateMachineState(PSignalingClient pSignalingClient, UINT64 state)
+STATUS signalingFsmAccept(PSignalingClient pSignalingClient, UINT64 state)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -180,7 +180,7 @@ CleanUp:
 ///////////////////////////////////////////////////////////////////////////
 // State machine callback functions
 ///////////////////////////////////////////////////////////////////////////
-STATUS fromNewSignalingState(UINT64 customData, PUINT64 pState)
+STATUS signalingFsmFromNew(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -198,8 +198,10 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
-STATUS executeNewSignalingState(UINT64 customData, UINT64 time)
+/**
+ * @brief   
+*/
+STATUS signalingFsmNew(UINT64 customData, UINT64 time)
 {
     ENTERS();
     UNUSED_PARAM(time);
@@ -222,7 +224,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS fromGetTokenSignalingState(UINT64 customData, PUINT64 pState)
+STATUS signalingFsmFromGetToken(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -256,7 +258,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
+STATUS signalingFsmGetToken(UINT64 customData, UINT64 time)
 {
     UNUSED_PARAM(time);
     ENTERS();
@@ -288,7 +290,7 @@ STATUS executeGetTokenSignalingState(UINT64 customData, UINT64 time)
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) serviceCallResult);
 
     // Self-prime the next state
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+    CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
 
     // Reset the ret status
     retStatus = STATUS_SUCCESS;
@@ -299,7 +301,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS fromDescribeSignalingState(UINT64 customData, PUINT64 pState)
+STATUS signalingFsmFromDescribe(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -342,7 +344,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS executeDescribeSignalingState(UINT64 customData, UINT64 time)
+STATUS signalingFsmDescribe(UINT64 customData, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -359,9 +361,9 @@ STATUS executeDescribeSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    retStatus = describeChannel(pSignalingClient, time);
+    retStatus = signalingDescribeChannel(pSignalingClient, time);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+    CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
 
     // Reset the ret status
     retStatus = STATUS_SUCCESS;
@@ -372,7 +374,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS fromCreateSignalingState(UINT64 customData, PUINT64 pState)
+STATUS signalingFsmFromCreate(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -405,7 +407,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS executeCreateSignalingState(UINT64 customData, UINT64 time)
+STATUS signalingFsmCreate(UINT64 customData, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -422,9 +424,9 @@ STATUS executeCreateSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    retStatus = createChannel(pSignalingClient, time);
+    retStatus = signalingCreateChannel(pSignalingClient, time);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+    CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
 
     // Reset the ret status
     retStatus = STATUS_SUCCESS;
@@ -435,7 +437,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS fromGetEndpointSignalingState(UINT64 customData, PUINT64 pState)
+STATUS signalingFsmFromGetEndpoint(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -468,7 +470,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS executeGetEndpointSignalingState(UINT64 customData, UINT64 time)
+STATUS signalingFsmGetEndpoint(UINT64 customData, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -485,9 +487,9 @@ STATUS executeGetEndpointSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    retStatus = getChannelEndpoint(pSignalingClient, time);
+    retStatus = signalingGetChannelEndpoint(pSignalingClient, time);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+    CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
 
     // Reset the ret status
     retStatus = STATUS_SUCCESS;
@@ -498,7 +500,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS fromGetIceConfigSignalingState(UINT64 customData, PUINT64 pState)
+STATUS signalingFsmFromGetIceConfig(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -531,7 +533,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS executeGetIceConfigSignalingState(UINT64 customData, UINT64 time)
+STATUS signalingFsmGetIceConfig(UINT64 customData, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -548,9 +550,9 @@ STATUS executeGetIceConfigSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    retStatus = getIceConfig(pSignalingClient, time);
+    retStatus = signalingGetIceConfig(pSignalingClient, time);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+    CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
 
     // Reset the ret status
     retStatus = STATUS_SUCCESS;
@@ -561,7 +563,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS fromReadySignalingState(UINT64 customData, PUINT64 pState)
+STATUS signalingFsmFromReady(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -601,8 +603,10 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
-STATUS executeReadySignalingState(UINT64 customData, UINT64 time)
+/**
+ * @brief   the execution function of signaling fsm ready.
+*/
+STATUS signalingFsmReady(UINT64 customData, UINT64 time)
 {
     UNUSED_PARAM(time);
     ENTERS();
@@ -624,7 +628,7 @@ STATUS executeReadySignalingState(UINT64 customData, UINT64 time)
 
     if (pSignalingClient->continueOnReady) {
         // Self-prime the connect
-        CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+        CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
     } else {
         // Reset the timeout for the state machine
         pSignalingClient->stepUntil = 0;
@@ -638,7 +642,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS fromConnectSignalingState(UINT64 customData, PUINT64 pState)
+STATUS signalingFsmFromConnect(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -706,7 +710,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS executeConnectSignalingState(UINT64 customData, UINT64 time)
+STATUS signalingFsmConnect(UINT64 customData, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -720,9 +724,9 @@ STATUS executeConnectSignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_CONNECTING));
     }
 
-    retStatus = connectSignalingChannel(pSignalingClient, time);
+    retStatus = signalingConnectChannel(pSignalingClient, time);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+    CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
 
     // Reset the ret status
     retStatus = STATUS_SUCCESS;
@@ -733,7 +737,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS fromConnectedSignalingState(UINT64 customData, PUINT64 pState)
+STATUS signalingFsmFromConnected(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -793,7 +797,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS executeConnectedSignalingState(UINT64 customData, UINT64 time)
+STATUS signalingFsmConnected(UINT64 customData, UINT64 time)
 {
     ENTERS();
     UNUSED_PARAM(time);
@@ -819,7 +823,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS fromDisconnectedSignalingState(UINT64 customData, PUINT64 pState)
+STATUS signalingFsmFromDisconnected(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -858,7 +862,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS executeDisconnectedSignalingState(UINT64 customData, UINT64 time)
+STATUS signalingFsmDisconnected(UINT64 customData, UINT64 time)
 {
     ENTERS();
     UNUSED_PARAM(time);
@@ -874,7 +878,7 @@ STATUS executeDisconnectedSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Self-prime the next state
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+    CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
 
 CleanUp:
 
@@ -882,7 +886,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS fromDeleteSignalingState(UINT64 customData, PUINT64 pState)
+STATUS signalingFsmFromDelete(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -924,7 +928,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS executeDeleteSignalingState(UINT64 customData, UINT64 time)
+STATUS signalingFsmDelete(UINT64 customData, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -941,9 +945,9 @@ STATUS executeDeleteSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    retStatus = deleteChannel(pSignalingClient, time);
+    retStatus = signalingDeleteChannel(pSignalingClient, time);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+    CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
 
     // Reset the ret status
     retStatus = STATUS_SUCCESS;
@@ -954,7 +958,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS fromDeletedSignalingState(UINT64 customData, PUINT64 pState)
+STATUS signalingFsmFromDeleted(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -972,7 +976,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS executeDeletedSignalingState(UINT64 customData, UINT64 time)
+STATUS signalingFsmDeleted(UINT64 customData, UINT64 time)
 {
     ENTERS();
     UNUSED_PARAM(time);

@@ -31,38 +31,38 @@ extern "C" {
 #define INFINITE_RETRY_COUNT_SENTINEL 0
 
 // Whether to step the state machine
-STATUS stepSignalingStateMachine(PSignalingClient, STATUS);
+STATUS signalingFsmStep(PSignalingClient, STATUS);
 
-STATUS acceptSignalingStateMachineState(PSignalingClient, UINT64);
-SIGNALING_CLIENT_STATE getSignalingStateFromStateMachineState(UINT64);
+STATUS signalingFsmAccept(PSignalingClient, UINT64);
+SIGNALING_CLIENT_STATE signalingFsmGetState(UINT64);
 
 /**
  * Signaling state machine callbacks
  */
-STATUS fromNewSignalingState(UINT64, PUINT64);
-STATUS executeNewSignalingState(UINT64, UINT64);
-STATUS fromGetTokenSignalingState(UINT64, PUINT64);
-STATUS executeGetTokenSignalingState(UINT64, UINT64);
-STATUS fromDescribeSignalingState(UINT64, PUINT64);
-STATUS executeDescribeSignalingState(UINT64, UINT64);
-STATUS fromCreateSignalingState(UINT64, PUINT64);
-STATUS executeCreateSignalingState(UINT64, UINT64);
-STATUS fromGetEndpointSignalingState(UINT64, PUINT64);
-STATUS executeGetEndpointSignalingState(UINT64, UINT64);
-STATUS fromGetIceConfigSignalingState(UINT64, PUINT64);
-STATUS executeGetIceConfigSignalingState(UINT64, UINT64);
-STATUS fromReadySignalingState(UINT64, PUINT64);
-STATUS executeReadySignalingState(UINT64, UINT64);
-STATUS fromConnectSignalingState(UINT64, PUINT64);
-STATUS executeConnectSignalingState(UINT64, UINT64);
-STATUS fromConnectedSignalingState(UINT64, PUINT64);
-STATUS executeConnectedSignalingState(UINT64, UINT64);
-STATUS fromDisconnectedSignalingState(UINT64, PUINT64);
-STATUS executeDisconnectedSignalingState(UINT64, UINT64);
-STATUS fromDeleteSignalingState(UINT64, PUINT64);
-STATUS executeDeleteSignalingState(UINT64, UINT64);
-STATUS fromDeletedSignalingState(UINT64, PUINT64);
-STATUS executeDeletedSignalingState(UINT64, UINT64);
+STATUS signalingFsmFromNew(UINT64, PUINT64);
+STATUS signalingFsmNew(UINT64, UINT64);
+STATUS signalingFsmFromGetToken(UINT64, PUINT64);
+STATUS signalingFsmGetToken(UINT64, UINT64);
+STATUS signalingFsmFromDescribe(UINT64, PUINT64);
+STATUS signalingFsmDescribe(UINT64, UINT64);
+STATUS signalingFsmFromCreate(UINT64, PUINT64);
+STATUS signalingFsmCreate(UINT64, UINT64);
+STATUS signalingFsmFromGetEndpoint(UINT64, PUINT64);
+STATUS signalingFsmGetEndpoint(UINT64, UINT64);
+STATUS signalingFsmFromGetIceConfig(UINT64, PUINT64);
+STATUS signalingFsmGetIceConfig(UINT64, UINT64);
+STATUS signalingFsmFromReady(UINT64, PUINT64);
+STATUS signalingFsmReady(UINT64, UINT64);
+STATUS signalingFsmFromConnect(UINT64, PUINT64);
+STATUS signalingFsmConnect(UINT64, UINT64);
+STATUS signalingFsmFromConnected(UINT64, PUINT64);
+STATUS signalingFsmConnected(UINT64, UINT64);
+STATUS signalingFsmFromDisconnected(UINT64, PUINT64);
+STATUS signalingFsmDisconnected(UINT64, UINT64);
+STATUS signalingFsmFromDelete(UINT64, PUINT64);
+STATUS signalingFsmDelete(UINT64, UINT64);
+STATUS signalingFsmFromDeleted(UINT64, PUINT64);
+STATUS signalingFsmDeleted(UINT64, UINT64);
 
 #ifdef __cplusplus
 }

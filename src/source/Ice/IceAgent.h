@@ -27,7 +27,8 @@ extern "C" {
 #define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL              100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 #define KVS_ICE_STATE_READY_TIMER_POLLING_INTERVAL             1 * HUNDREDS_OF_NANOS_IN_A_SECOND
 /* Control the calling rate of iceCandidateGatheringTimerTask. Can affect STUN TURN candidate gathering time */
-#define KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL 50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+// 
+#define KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL        50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 
 /* ICE should've received at least one keep alive within this period. Since keep alives are send every 15s */
 #define KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD 2 * KVS_ICE_SEND_KEEP_ALIVE_INTERVAL
@@ -210,6 +211,9 @@ struct __IceAgent {
     // store PIceCandidatePair which will be immediately checked for connectivity when the timer is fired.
     // #YC_TBD, receive the stun request, and store the corresponding candidate pair into this queue.
     // will check this connection.
+    // this is the connection-check requested by the remote peer.
+    // https://tools.ietf.org/html/rfc5245#section-5.8
+    // https://tools.ietf.org/html/rfc5245#section-7.2.1.4
     PStackQueue triggeredCheckQueue;
     PDoubleList iceCandidatePairs;
 
