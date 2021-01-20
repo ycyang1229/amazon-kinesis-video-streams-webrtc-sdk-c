@@ -84,9 +84,9 @@ INT32 main(INT32 argc, CHAR* argv[])
     printf("[KVS Master] Signaling client created successfully\n");
 
     // Enable the processing of the messages
-    retStatus = signalingClientConnectSync(pSampleConfiguration->signalingClientHandle);
+    retStatus = signalingClientConnect(pSampleConfiguration->signalingClientHandle);
     if (retStatus != STATUS_SUCCESS) {
-        printf("[KVS Master] signalingClientConnectSync(): operation returned status code: 0x%08x \n", retStatus);
+        printf("[KVS Master] signalingClientConnect(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
     printf("[KVS Master] Signaling client connection to socket established\n");

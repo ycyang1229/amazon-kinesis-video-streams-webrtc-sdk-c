@@ -97,7 +97,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
+STATUS signalingClientConnect(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -105,7 +105,7 @@ STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 
     DLOGI("Signaling Client Connect Sync");
 
-    CHK_STATUS(signalingConnectSync(pSignalingClient));
+    CHK_STATUS(signalingConnect(pSignalingClient));
 
 CleanUp:
 
@@ -114,7 +114,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingClientDisconnectSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
+STATUS signalingClientDisconnect(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -122,7 +122,7 @@ STATUS signalingClientDisconnectSync(SIGNALING_CLIENT_HANDLE signalingClientHand
 
     DLOGI("Signaling Client Disconnect Sync");
 
-    CHK_STATUS(signalingDisconnectSync(pSignalingClient));
+    CHK_STATUS(signalingDisconnect(pSignalingClient));
 
 CleanUp:
 
@@ -131,7 +131,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingClientDeleteSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
+STATUS signalingClientDelete(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -139,7 +139,7 @@ STATUS signalingClientDeleteSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 
     DLOGI("Signaling Client Delete Sync");
 
-    CHK_STATUS(signalingDeleteSync(pSignalingClient));
+    CHK_STATUS(signalingDelete(pSignalingClient));
 
 CleanUp:
 

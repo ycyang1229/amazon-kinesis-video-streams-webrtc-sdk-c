@@ -100,8 +100,8 @@ typedef struct {
     SignalingApiCallHookFunc getEndpointPostHookFn;
     SignalingApiCallHookFunc getIceConfigPreHookFn;
     SignalingApiCallHookFunc getIceConfigPostHookFn;
-    SignalingApiCallHookFunc connectPreHookFn;
-    SignalingApiCallHookFunc connectPostHookFn;
+    SignalingApiCallHookFunc connectPreHookFn;//!< the pre-hook function of connecting signaling channel.
+    SignalingApiCallHookFunc connectPostHookFn;//!< the post-hook function of connecting signaling channel.
     SignalingApiCallHookFunc deletePreHookFn;
     SignalingApiCallHookFunc deletePostHookFn;
 } SignalingClientInfoInternal, *PSignalingClientInfoInternal;
@@ -136,9 +136,7 @@ typedef struct {
  * Internal representation of the Signaling client.
  */
 typedef struct {
-    // Current service call result
-    volatile SIZE_T result;
-
+    volatile SIZE_T result;//!< Current service call result
     // Sent message result
     volatile SIZE_T messageResult;
 
@@ -149,7 +147,7 @@ typedef struct {
     volatile ATOMIC_BOOL shutdown;//!< Indicate the signaling is freed.
 
     // Wss is connected
-    volatile ATOMIC_BOOL connected;//!< Indidcate the signaling is connected by receiving the lws message
+    volatile ATOMIC_BOOL connected;//!< Indidcate the signaling is connected or not by receiving the following lws message
                                     //!< LWS_CALLBACK_CLIENT_ESTABLISHED
                                     //!< LWS_CALLBACK_CLIENT_CONNECTION_ERROR
 
@@ -246,7 +244,8 @@ typedef struct {
     ThreadTracker listenerTracker;
 
     // Restarted thread handler
-    ThreadTracker reconnecterTracker;
+    ThreadTracker reconnecterTracker;//!< receive the connection error msg or closed msg from lws.
+                                        //!< spin off one thread to re-connect.
 
     // LWS context to use for Restful API
     struct lws_context* pLwsContext;
@@ -281,7 +280,7 @@ typedef struct {
     UINT64 getEndpointTime;
     UINT64 getIceConfigTime;
     UINT64 deleteTime;
-    UINT64 connectTime;
+    UINT64 connectTime;//!< 
 } SignalingClient, *PSignalingClient;
 
 // Public handle to and from object converters
@@ -294,9 +293,9 @@ STATUS signalingFree(PSignalingClient*);
 STATUS signalingSendMessage(PSignalingClient, PSignalingMessage);
 STATUS signalingGetIceConfigInfoCout(PSignalingClient, PUINT32);
 STATUS signalingGetIceConfigInfo(PSignalingClient, UINT32, PIceConfigInfo*);
-STATUS signalingConnectSync(PSignalingClient);
-STATUS signalingDisconnectSync(PSignalingClient);
-STATUS signalingDeleteSync(PSignalingClient);
+STATUS signalingConnect(PSignalingClient);
+STATUS signalingDisconnect(PSignalingClient);
+STATUS signalingDelete(PSignalingClient);
 
 STATUS signalingValidateCallbacks(PSignalingClient, PSignalingClientCallbacks);
 STATUS signalingValidateClientInfo(PSignalingClient, PSignalingClientInfoInternal);
@@ -314,7 +313,7 @@ STATUS signalingAwaitForThreadTermination(PThreadTracker, UINT64);
 STATUS signalingInitThreadTracker(PThreadTracker);
 STATUS signalingUninitThreadTracker(PThreadTracker);
 
-STATUS terminateOngoingOperations(PSignalingClient, BOOL);
+STATUS signalingTerminateOngoingOperations(PSignalingClient, BOOL);
 
 STATUS signalingDescribeChannel(PSignalingClient, UINT64);
 STATUS signalingCreateChannel(PSignalingClient, UINT64);

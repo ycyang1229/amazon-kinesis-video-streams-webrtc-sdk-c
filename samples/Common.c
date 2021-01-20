@@ -967,7 +967,7 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
         if (IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleConfiguration->signalingClientHandle)) {
             CHK_STATUS(signalingClientGetCurrentState(pSampleConfiguration->signalingClientHandle, &signalingClientState));
             if (signalingClientState == SIGNALING_CLIENT_STATE_READY) {
-                UNUSED_PARAM(signalingClientConnectSync(pSampleConfiguration->signalingClientHandle));
+                UNUSED_PARAM(signalingClientConnect(pSampleConfiguration->signalingClientHandle));
             }
         }
 

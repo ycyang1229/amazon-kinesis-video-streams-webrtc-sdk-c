@@ -231,8 +231,8 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
                                         &signalingHandle));
 
     // Connect twice - the second time will be no-op
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
@@ -313,7 +313,7 @@ TEST_F(SignalingApiFunctionalityTest, mockMaster)
 
     // Connect to the signaling client
     expectedStatus = mAccessKeyIdSet ? STATUS_SUCCESS : STATUS_NULL_ARG;
-    EXPECT_EQ(expectedStatus, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(expectedStatus, signalingClientConnect(signalingHandle));
 
     // Write something
     SignalingMessage message;
@@ -444,7 +444,7 @@ TEST_F(SignalingApiFunctionalityTest, mockViewer)
     pActiveClient = pSignalingClient;
 
     // Connect to the signaling client
-    EXPECT_EQ(expectedStatus, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(expectedStatus, signalingClientConnect(signalingHandle));
 
     // Write something
     SignalingMessage message;
@@ -746,7 +746,7 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
     }
 
     // Should fail
-    EXPECT_NE(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
@@ -798,7 +798,7 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
     pActiveClient = pSignalingClient;
 
     // Connect to the signaling client
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     DLOGV("Before RECONNECT_ICE_SERVER injection");
 
@@ -910,7 +910,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Connect to the signaling client
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     // Check the states
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
@@ -1038,7 +1038,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationAuthExpiration)
 
     // We should have reached the ready state before the ICE refresh started.
     // We are re-setting to this state on an ice failure
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
@@ -1115,7 +1115,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionNoDis
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Connect to the signaling client
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     // Check the states
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
@@ -1228,7 +1228,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionAuthE
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Connect to the signaling client
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     // Check the states
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
@@ -1336,7 +1336,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Connect to the signaling client
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     // Check the states
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
@@ -1439,7 +1439,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     pActiveClient = pSignalingClient;
 
     // Connect to the signaling client
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     // Cause a bad auth
     BYTE firstByte = pSignalingClient->pAwsCredentials->secretKey[0];
@@ -1518,7 +1518,7 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
     pActiveClient = pSignalingClient;
 
     // Connect to the signaling client
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     DLOGV("Before GO_AWAY injection");
 
@@ -1600,7 +1600,7 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
     pActiveClient = pSignalingClient;
 
     // Connect to the signaling client
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     DLOGV("Before Unknown message type injection");
 
@@ -1701,7 +1701,7 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Connect to the signaling client - should time out
-    EXPECT_EQ(STATUS_OPERATION_TIMED_OUT, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_OPERATION_TIMED_OUT, signalingClientConnect(signalingHandle));
 
     // Check the states
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
@@ -1717,7 +1717,7 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
 
     // Connect to the signaling client - should connect OK
     pSignalingClient->clientInfo.connectTimeout = 0;
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
 
@@ -1800,7 +1800,7 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Connect to the signaling client - should connect OK
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
 
@@ -1852,7 +1852,7 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Connect to the signaling client - should connect OK
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
 
@@ -1931,7 +1931,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Connect to the signaling client - should connect OK
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
 
@@ -1983,7 +1983,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
     // Connect to the signaling client - should connect OK
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
 
@@ -1995,7 +1995,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedWithArn)
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientDeleteSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDelete(signalingHandle));
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&signalingHandle));
 }
@@ -2067,7 +2067,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
 
     // Force the auth error on the delete API call
     THREAD_SLEEP(7 * HUNDREDS_OF_NANOS_IN_A_SECOND);
-    EXPECT_NE(STATUS_SUCCESS, signalingClientDeleteSync(signalingHandle));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientDelete(signalingHandle));
 
     // Check the states - we should have failed on get credentials
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
@@ -2087,7 +2087,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
     ((PStaticCredentialProvider) mTestCredentialProvider)->pAwsCredentials->expiration = MAX_UINT64;
 
     // Should succeed properly
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientDeleteSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDelete(signalingHandle));
 
     // Check the states - we should have got the credentials now and directly moved to delete
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
@@ -2104,7 +2104,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_DELETED]);
 
     // Shouldn't be able to connect as it's not in ready state
-    EXPECT_NE(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
@@ -2119,15 +2119,15 @@ TEST_F(SignalingApiFunctionalityTest, signalingClientDisconnectSyncVariations)
 
     initializeSignalingClient();
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnect(mSignalingClientHandle));
 
     // Connect and disconnect
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnect(mSignalingClientHandle));
 
     // Retry
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnect(mSignalingClientHandle));
 
     // Can't send a message
     SignalingMessage message;
@@ -2151,7 +2151,7 @@ TEST_F(SignalingApiFunctionalityTest, signalingClientDisconnectSyncVariations)
     EXPECT_EQ(SIGNALING_CLIENT_STATE_READY, state);
 
     // Reconnect and send a message successfully
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(mSignalingClientHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(mSignalingClientHandle));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(mSignalingClientHandle, &message));
 
     deinitializeSignalingClient();
@@ -2243,7 +2243,7 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
     connectResult = STATUS_SERVICE_CALL_NOT_AUTHORIZED_ERROR;
     connectFail = 0;
     connectRecover = MAX_UINT32;
-    EXPECT_NE(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_NE(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     // Check the states
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
@@ -2265,7 +2265,7 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
     THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
     // Connect to the signaling client after failing once to test the caching
     connectRecover = connectCount + 1;
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     // Check the states
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
@@ -2283,7 +2283,7 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
     EXPECT_EQ(3, describeCount);
     EXPECT_EQ(3, getEndpointCount);
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnect(signalingHandle));
 
     lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
@@ -2497,7 +2497,7 @@ TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshBeforeConnect)
     EXPECT_EQ(STATUS_SUCCESS, signalingClientGetIceConfigInfoCount(signalingHandle, &iceConfigCount));
     EXPECT_LE(1, iceConfigCount);
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
@@ -2510,7 +2510,7 @@ TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshBeforeConnect)
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnect(signalingHandle));
 
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);
@@ -2602,7 +2602,7 @@ TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshParallelToConnect)
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
     THREAD_SLEEP(5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
@@ -2622,7 +2622,7 @@ TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshParallelToConnect)
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(0, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnectSync(signalingHandle));
+    EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnect(signalingHandle));
 
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_NEW]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_GET_CREDENTIALS]);

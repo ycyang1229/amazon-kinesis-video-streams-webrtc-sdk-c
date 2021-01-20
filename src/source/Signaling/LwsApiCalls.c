@@ -591,7 +591,16 @@ CleanUp:
 //////////////////////////////////////////////////////////////////////////
 // API calls
 //////////////////////////////////////////////////////////////////////////
-// https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_DescribeSignalingChannel.html
+// 
+/**
+ * @brief   It is a blocking call.
+ *          https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_DescribeSignalingChannel.html
+ * 
+ * @param[in]
+ * @param[in]
+ * 
+ * @return
+*/
 STATUS lwsDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
@@ -611,6 +620,7 @@ STATUS lwsDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
     BOOL jsonInChannelDescription = FALSE, jsonInMvConfiguration = FALSE;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+    // #heap.
     CHK(NULL != (pUrl = (PCHAR) MEMALLOC(MAX_URI_CHAR_LEN + 1)), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pParamsJson = (PCHAR) MEMALLOC(MAX_JSON_PARAMETER_STRING_LEN)), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT * SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
@@ -721,7 +731,13 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-// https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_CreateSignalingChannel.html
+/**
+ * @brief   It is a blocking call.
+ *          https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_CreateSignalingChannel.html
+ * 
+ * @param[]
+ * @param[]
+*/
 STATUS lwsCreateChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
@@ -823,7 +839,13 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-// https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_GetSignalingChannelEndpoint.html
+// 
+/**
+ * @brief  It is a blocking call. 
+ *          https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_GetSignalingChannelEndpoint.html
+ * @param[]
+ * @param[]
+*/
 STATUS lwsGetChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
@@ -955,7 +977,8 @@ CleanUp:
 }
 
 /**
- * @brief   https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_AWSAcuitySignalingService_GetIceServerConfig.html
+ * @brief   It is a blocking call. 
+ *          https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_AWSAcuitySignalingService_GetIceServerConfig.html
  * 
  * @param[in]
  * @param[in]
@@ -1086,7 +1109,16 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-// https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_DeleteSignalingChannel.html
+
+/**
+ * @brief   It is a blocking call. 
+ *          https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_DeleteSignalingChannel.html
+ * 
+ * @param[]
+ * @param[]
+ * 
+ * @return
+*/
 STATUS lwsDeleteChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
@@ -1149,7 +1181,16 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief   return the context of the lws call info.
+ * 
+ * @param[in] pSignalingClient
+ * @param[in] pRequestInfo
+ * @param[in] protocolIndex
+ * @param[in, out] ppLwsCallInfo 
+ * 
+ * @return
+*/
 STATUS lwsCreateCallInfo(PSignalingClient pSignalingClient, PRequestInfo pRequestInfo, UINT32 protocolIndex, PLwsCallInfo* ppLwsCallInfo)
 {
     ENTERS();
@@ -1157,7 +1198,7 @@ STATUS lwsCreateCallInfo(PSignalingClient pSignalingClient, PRequestInfo pReques
     PLwsCallInfo pLwsCallInfo = NULL;
 
     CHK(pSignalingClient != NULL && pRequestInfo != NULL && ppLwsCallInfo != NULL, STATUS_NULL_ARG);
-
+    //#heap.
     CHK(NULL != (pLwsCallInfo = (PLwsCallInfo) MEMCALLOC(1, SIZEOF(LwsCallInfo))), STATUS_NOT_ENOUGH_MEMORY);
 
     pLwsCallInfo->callInfo.pRequestInfo = pRequestInfo;
@@ -1203,7 +1244,14 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief   It is a non-blocking call, and it spin off one thread to handle the reception.
+ * 
+ * @param[in]
+ * @param[in]
+ * 
+ * @return
+*/
 STATUS lwsConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
@@ -1356,7 +1404,13 @@ CleanUp:
     LEAVES();
     return (PVOID)(ULONG_PTR) retStatus;
 }
-
+/**
+ * @brief   the task handler of re-connecting.
+ * 
+ * @param[in]
+ * 
+ * @return
+*/
 PVOID lwsReconnectHandler(PVOID args)
 {
     ENTERS();
@@ -1366,6 +1420,7 @@ PVOID lwsReconnectHandler(PVOID args)
     PSignalingClient pSignalingClient = (PSignalingClient) args;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+    //#heap
     CHK(NULL != (pReconnectErrMsg = (PCHAR) MEMALLOC(SIGNALING_MAX_ERROR_MESSAGE_LEN + 1)), STATUS_NOT_ENOUGH_MEMORY);
 
     // Await for the listener to clear
@@ -1816,6 +1871,7 @@ STATUS lwsTerminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVI
 
     // Wake up the service event loop
     CHK_STATUS(lwsWakeServiceEventLoop(pSignalingClient));
+    // waiting the termination of listener thread.
     CHK_STATUS(signalingAwaitForThreadTermination(&pSignalingClient->listenerTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT));
 
 CleanUp:
