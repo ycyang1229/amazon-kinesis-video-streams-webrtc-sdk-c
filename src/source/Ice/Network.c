@@ -351,7 +351,7 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
     //errCode = lwip_getaddrinfo(hostname, NULL, NULL, &res);
 
     if (errCode != 0) {
-#ifdef KVS_PLAT_ESP_FREERTOS
+#if defined(KVS_PLAT_ESP_FREERTOS) || defined(KVS_PLAT_RTK_FREERTOS)
         errStr = errCode == EAI_SYSTEM ? strerror(errno) : "gai_strerror(errCode) not supported.";
 #else
         errStr = errCode == EAI_SYSTEM ? strerror(errno) : (PCHAR) gai_strerror(errCode);
