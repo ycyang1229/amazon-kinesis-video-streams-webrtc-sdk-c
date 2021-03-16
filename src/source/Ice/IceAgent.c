@@ -456,6 +456,7 @@ STATUS iceAgentAddRemoteCandidate(PIceAgent pIceAgent, PCHAR pIceCandidateString
     CHK_STATUS(createIceCandidatePairs(pIceAgent, pIceCandidate, TRUE));
     
     // for the stat.
+
     iceAgentLogNewCandidate(pIceCandidate);
 
     /* pass remote candidate to each turnConnection */
