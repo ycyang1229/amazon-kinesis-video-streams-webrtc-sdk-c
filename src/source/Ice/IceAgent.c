@@ -875,8 +875,10 @@ CleanUp:
 }
 
 /**
- * gather local ip addresses and create a udp port. If port creation succeeded then create a new candidate
+ * @brief gather local ip addresses and create a udp port. If port creation succeeded then create a new candidate
  * and store it in localCandidates. Ips that are already a local candidate will not be added again.
+ * 
+ * #YC_TBD, need to check this part since rtp and rtcp need two candidate, one for rtp, another for rtcp.
  *
  * @param - PIceAgent - IN - IceAgent object
  *
@@ -2381,7 +2383,7 @@ CleanUp:
 
 
 /**
- * @brief   nominating one first connected candidate pair and move other candidate pair to frozen state. 
+ * @brief   controlling ice agent is nominating one first connected candidate pair and move other candidate pair to frozen state. 
  *          only controlling ice agent can nominate the ice candidate.
  * 
 */
@@ -2482,7 +2484,8 @@ void __inbound__(void){
 
 
 /**
- * @brief receive one stun packet can not match the ip and port of local/remote, so it may be one reflexive candidate.
+ * @brief   receive one stun packet can not match the ip and port of local/remote, so it may be one reflexive candidate.
+ *          https://tools.ietf.org/html/rfc5245#section-7.1.3.2.1
  * 
  * @param[]
  * @param[]

@@ -1,8 +1,22 @@
 #define LOG_CLASS "SignalingClient"
 #include "../Include_i.h"
 
-STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo, PSignalingClientCallbacks pCallbacks,
-                                 PAwsCredentialProvider pCredentialProvider, PSIGNALING_CLIENT_HANDLE pSignalingHandle)
+/**
+ * @brief Creates a Signaling client and returns a handle to it
+ *
+ * @param[in] PSignalingClientInfo Signaling client info
+ * @param[in] PChannelInfo Signaling channel info to use/create a channel
+ * @param[in] PSignalingClientCallbacks Signaling callbacks for event notifications
+ * @param[in] PAwsCredentialProvider Credential provider for auth integration
+ * @param[out] PSIGNALING_CLIENT_HANDLE Returned signaling client handle
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+STATUS signalingClientCreate(PSignalingClientInfo pClientInfo,
+                                    PChannelInfo pChannelInfo,
+                                    PSignalingClientCallbacks pCallbacks,
+                                    PAwsCredentialProvider pCredentialProvider,
+                                    PSIGNALING_CLIENT_HANDLE pSignalingHandle)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -18,21 +32,21 @@ STATUS createSignalingClientSync(PSignalingClientInfo pClientInfo, PChannelInfo 
     MEMSET(pSignalingClientInfoInternal, 0x00, SIZEOF(SignalingClientInfoInternal));
     pSignalingClientInfoInternal->signalingClientInfo = *pClientInfo;
 
-    CHK_STATUS(createSignalingSync(pSignalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient));
+    CHK_STATUS(signalingCreate(pSignalingClientInfoInternal, pChannelInfo, pCallbacks, pCredentialProvider, &pSignalingClient));
 
     *pSignalingHandle = TO_SIGNALING_CLIENT_HANDLE(pSignalingClient);
 
 CleanUp:
 
     if (STATUS_FAILED(retStatus)) {
-        freeSignaling(&pSignalingClient);
+        signalingFree(&pSignalingClient);
     }
     SAFE_MEMFREE(pSignalingClientInfoInternal);
     LEAVES();
     return retStatus;
 }
 
-STATUS freeSignalingClient(PSIGNALING_CLIENT_HANDLE pSignalingHandle)
+STATUS signalingClientFree(PSIGNALING_CLIENT_HANDLE pSignalingHandle)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -44,7 +58,7 @@ STATUS freeSignalingClient(PSIGNALING_CLIENT_HANDLE pSignalingHandle)
     // Get the client handle
     pSignalingClient = FROM_SIGNALING_CLIENT_HANDLE(*pSignalingHandle);
 
-    CHK_STATUS(freeSignaling(&pSignalingClient));
+    CHK_STATUS(signalingFree(&pSignalingClient));
 
     // Set the signaling client handle pointer to invalid
     *pSignalingHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
@@ -55,7 +69,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingClientSendMessageSync(SIGNALING_CLIENT_HANDLE signalingClientHandle, PSignalingMessage pSignalingMessage)
+STATUS signalingClientSendMessage(SIGNALING_CLIENT_HANDLE signalingClientHandle, PSignalingMessage pSignalingMessage)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -63,7 +77,7 @@ STATUS signalingClientSendMessageSync(SIGNALING_CLIENT_HANDLE signalingClientHan
 
     DLOGI("Signaling Client Sending Message Sync");
 
-    CHK_STATUS(signalingSendMessageSync(pSignalingClient, pSignalingMessage));
+    CHK_STATUS(signalingSendMessage(pSignalingClient, pSignalingMessage));
 
 CleanUp:
 
@@ -72,7 +86,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
+STATUS signalingClientConnect(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -80,7 +94,7 @@ STATUS signalingClientConnectSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 
     DLOGI("Signaling Client Connect Sync");
 
-    CHK_STATUS(signalingConnectSync(pSignalingClient));
+    CHK_STATUS(signalingConnect(pSignalingClient));
 
 CleanUp:
 
@@ -89,7 +103,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingClientDisconnectSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
+STATUS signalingClientDisconnect(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -97,7 +111,7 @@ STATUS signalingClientDisconnectSync(SIGNALING_CLIENT_HANDLE signalingClientHand
 
     DLOGI("Signaling Client Disconnect Sync");
 
-    CHK_STATUS(signalingDisconnectSync(pSignalingClient));
+    CHK_STATUS(signalingDisconnect(pSignalingClient));
 
 CleanUp:
 
@@ -106,7 +120,7 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingClientDeleteSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
+STATUS signalingClientDelete(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -114,7 +128,7 @@ STATUS signalingClientDeleteSync(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 
     DLOGI("Signaling Client Delete Sync");
 
-    CHK_STATUS(signalingDeleteSync(pSignalingClient));
+    CHK_STATUS(signalingDelete(pSignalingClient));
 
 CleanUp:
 

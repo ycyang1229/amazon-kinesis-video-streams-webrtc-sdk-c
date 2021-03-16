@@ -1050,7 +1050,7 @@ STATUS getIceConfigLws(PSignalingClient pSignalingClient, UINT64 time)
 
     // Perform some validation on the ice configuration
     pSignalingClient->iceConfigCount = configCount;
-    CHK_STATUS(validateIceConfiguration(pSignalingClient));
+    CHK_STATUS(signalingValidateIceConfiguration(pSignalingClient));
 
 CleanUp:
 
@@ -1758,7 +1758,7 @@ STATUS terminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_
 
     // Wake up the service event loop
     CHK_STATUS(wakeLwsServiceEventLoop(pSignalingClient));
-    CHK_STATUS(awaitForThreadTermination(&pSignalingClient->listenerTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT));
+    CHK_STATUS(signalingAwaitForThreadTermination(&pSignalingClient->listenerTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT));
 
 CleanUp:
 

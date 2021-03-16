@@ -359,7 +359,7 @@ STATUS executeDescribeSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    retStatus = describeChannel(pSignalingClient, time);
+    retStatus = signalingDescribeChannel(pSignalingClient, time);
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
@@ -422,7 +422,7 @@ STATUS executeCreateSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    retStatus = createChannel(pSignalingClient, time);
+    retStatus = signalingCreateChannel(pSignalingClient, time);
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
@@ -485,7 +485,7 @@ STATUS executeGetEndpointSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    retStatus = getChannelEndpoint(pSignalingClient, time);
+    retStatus = signalingGetChannelEndpoint(pSignalingClient, time);
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
@@ -548,7 +548,7 @@ STATUS executeGetIceConfigSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    retStatus = getIceConfig(pSignalingClient, time);
+    retStatus = signalingGetIceConfig(pSignalingClient, time);
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
@@ -720,7 +720,7 @@ STATUS executeConnectSignalingState(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_CONNECTING));
     }
 
-    retStatus = connectSignalingChannel(pSignalingClient, time);
+    retStatus = signalingConnectChannel(pSignalingClient, time);
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
@@ -941,7 +941,7 @@ STATUS executeDeleteSignalingState(UINT64 customData, UINT64 time)
     }
 
     // Call the aggregate function
-    retStatus = deleteChannel(pSignalingClient, time);
+    retStatus = signalingDeleteChannel(pSignalingClient, time);
 
     CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
 
