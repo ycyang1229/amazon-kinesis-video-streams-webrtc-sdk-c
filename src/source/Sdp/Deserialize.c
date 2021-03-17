@@ -1,6 +1,17 @@
 #define LOG_CLASS "SDP"
 #include "../Include_i.h"
-
+/**
+ * @brief   parse the string of media (streaming description)
+ *          m=audio 9 UDP/TLS/RTP/SAVPF 111 103 104 9 0 8 106 105 13 110 112 113 126\r\n
+ *          m=video 9 UDP/TLS/RTP/SAVPF 96 97 98 99 100 101 102 121 127 120 125 107 108 109 124 119 123 118 114 115 116\r\n
+ *          m=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n
+ * 
+ * @param[in] pSessionDescription
+ * @param[in] pch
+ * @param[in] lineLen
+ * 
+ * @return
+*/
 STATUS parseMediaName(PSessionDescription pSessionDescription, PCHAR pch, UINT32 lineLen)
 {
     ENTERS();
@@ -88,7 +99,7 @@ STATUS deserializeSessionDescription(PSessionDescription pSessionDescription, PC
         if (lineLen > 0 && curr[lineLen - 1] == '\r') {
             lineLen--;
         }
-
+        // m=
         if (0 == STRNCMP(curr, SDP_MEDIA_NAME_MARKER, (ARRAY_SIZE(SDP_MEDIA_NAME_MARKER) - 1))) {
             CHK_STATUS(parseMediaName(pSessionDescription, curr, lineLen));
         }

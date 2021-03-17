@@ -76,7 +76,7 @@ TEST_F(IceApiTest, IceUtilApiTest)
     EXPECT_NE(STATUS_SUCCESS, iceUtilsGenerateTransactionId(NULL, STUN_TRANSACTION_ID_LEN));
     EXPECT_NE(STATUS_SUCCESS, iceUtilsGenerateTransactionId(testTransactionId, 0));
 
-    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_SEND_INDICATION, NULL, &pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunCreatePacket(STUN_PACKET_TYPE_SEND_INDICATION, NULL, &pStunPacket));
     EXPECT_NE(STATUS_SUCCESS, iceUtilsPackageStunPacket(NULL, testPassword, testPasswordLen, testBuffer, &testBufferLen));
     EXPECT_NE(STATUS_SUCCESS, iceUtilsPackageStunPacket(pStunPacket, NULL, testPasswordLen, testBuffer, &testBufferLen));
     EXPECT_NE(STATUS_SUCCESS, iceUtilsPackageStunPacket(pStunPacket, testPassword, 0, testBuffer, &testBufferLen));
@@ -94,7 +94,7 @@ TEST_F(IceApiTest, IceUtilApiTest)
     EXPECT_EQ(STATUS_SUCCESS, iceUtilsPackageStunPacket(pStunPacket, testPassword, testPasswordLen, testBuffer, &testBufferLen));
     EXPECT_EQ(STATUS_SUCCESS, iceUtilsPackageStunPacket(pStunPacket, NULL, 0, testBuffer, &testBufferLen));
 
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
     EXPECT_EQ(STATUS_SUCCESS, freeTransactionIdStore(&pTransactionIdStore));
 }
 } // namespace webrtcclient

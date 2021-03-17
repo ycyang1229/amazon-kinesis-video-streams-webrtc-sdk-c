@@ -45,14 +45,6 @@ STATUS createConnectionListener(PConnectionListener*);
  */
 STATUS freeConnectionListener(PConnectionListener*);
 
-/**
- * add a new PSocketConnection to listen for incoming data
- *
- * @param - PConnectionListener      - IN - the ConnectionListener struct to use
- * @param - PSocketConnection   - IN - new PSocketConnection to listen for incoming data
- *
- * @return - STATUS status of execution
- */
 STATUS connectionListenerAddConnection(PConnectionListener, PSocketConnection);
 
 /**

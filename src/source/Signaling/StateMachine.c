@@ -4,46 +4,43 @@
 #define LOG_CLASS "SignalingState"
 #include "../Include_i.h"
 
+
+#define SIGNALING_STATE_NEW_REQUIRED                (SIGNALING_STATE_NONE | SIGNALING_STATE_NEW)
+#define SIGNALING_STATE_GET_TOKEN_REQUIRED          (SIGNALING_STATE_NEW | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG | \
+                                                     SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_GET_TOKEN)
+#define SIGNALING_STATE_DESCRIBE_REQUIRED           (SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_CONNECT | \
+                                                     SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_DESCRIBE)
+#define SIGNALING_STATE_CREATE_REQUIRED             (SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE)
+#define SIGNALING_STATE_GET_ENDPOINT_REQUIRED       (SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | \
+                                                     SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT)
+#define SIGNALING_STATE_GET_ICE_CONFIG_REQUIRED     (SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_READY | \
+                                                     SIGNALING_STATE_GET_ICE_CONFIG)
+#define SIGNALING_STATE_READY_REQUIRED              (SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_READY)
+#define SIGNALING_STATE_CONNECT_REQUIRED            (SIGNALING_STATE_READY | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_CONNECT)
+#define SIGNALING_STATE_CONNECTED_REQUIRED          (SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED)
+#define SIGNALING_STATE_DISCONNECTED_REQUIRED       (SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED)
+#define SIGNALING_STATE_DELETE_REQUIRED             (SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG | \
+                                                     SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_DELETE)
+#define SIGNALING_STATE_DELETED_REQUIRED            (SIGNALING_STATE_DELETE | SIGNALING_STATE_DELETED)
+
 /**
  * Static definitions of the states
  */
 StateMachineState SIGNALING_STATE_MACHINE_STATES[] = {
-    {SIGNALING_STATE_NEW, SIGNALING_STATE_NONE | SIGNALING_STATE_NEW, signalingFsmFromNew, signalingFsmNew, INFINITE_RETRY_COUNT_SENTINEL,
-     STATUS_SIGNALING_INVALID_READY_STATE},
-    {SIGNALING_STATE_GET_TOKEN,
-     SIGNALING_STATE_NEW | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG |
-         SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_GET_TOKEN,
-     signalingFsmFromGetToken, signalingFsmGetToken, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_GET_TOKEN_CALL_FAILED},
-    {SIGNALING_STATE_DESCRIBE,
-     SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_CONNECT |
-         SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DELETE | SIGNALING_STATE_DESCRIBE,
-     signalingFsmFromDescribe, signalingFsmDescribe, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DESCRIBE_CALL_FAILED},
-    {SIGNALING_STATE_CREATE, SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE, signalingFsmFromCreate, signalingFsmCreate,
-     SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_CREATE_CALL_FAILED},
-    {SIGNALING_STATE_GET_ENDPOINT,
-     SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT |
-         SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT,
-     signalingFsmFromGetEndpoint, signalingFsmGetEndpoint, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
-     STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED},
-    {SIGNALING_STATE_GET_ICE_CONFIG,
-     SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_READY |
-         SIGNALING_STATE_GET_ICE_CONFIG,
-     signalingFsmFromGetIceConfig, signalingFsmGetIceConfig, SIGNALING_STATES_DEFAULT_RETRY_COUNT,
-     STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED},
-    {SIGNALING_STATE_READY, SIGNALING_STATE_GET_ICE_CONFIG | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_READY, signalingFsmFromReady,
-     signalingFsmReady, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_READY_CALLBACK_FAILED},
-    {SIGNALING_STATE_CONNECT, SIGNALING_STATE_READY | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_CONNECT,
-     signalingFsmFromConnect, signalingFsmConnect, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECT_CALL_FAILED},
-    {SIGNALING_STATE_CONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED, signalingFsmFromConnected, signalingFsmConnected,
-     INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECTED_CALLBACK_FAILED},
-    {SIGNALING_STATE_DISCONNECTED, SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED, signalingFsmFromDisconnected,
-     signalingFsmDisconnected, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED},
-    {SIGNALING_STATE_DELETE,
-     SIGNALING_STATE_GET_TOKEN | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG |
-         SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_DELETE,
-     signalingFsmFromDelete, signalingFsmDelete, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DELETE_CALL_FAILED},
-    {SIGNALING_STATE_DELETED, SIGNALING_STATE_DELETE | SIGNALING_STATE_DELETED, signalingFsmFromDeleted, signalingFsmDeleted,
-     INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_DELETE_CALL_FAILED},
+    // http connection.
+    {SIGNALING_STATE_NEW,          SIGNALING_STATE_NEW_REQUIRED, signalingFsmFromNew, signalingFsmNew, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_INVALID_READY_STATE},
+    {SIGNALING_STATE_GET_TOKEN,    SIGNALING_STATE_GET_TOKEN_REQUIRED, signalingFsmFromGetToken, signalingFsmGetToken, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_GET_TOKEN_CALL_FAILED},
+    {SIGNALING_STATE_DESCRIBE,     SIGNALING_STATE_DESCRIBE_REQUIRED, signalingFsmFromDescribe, signalingFsmDescribe, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DESCRIBE_CALL_FAILED},
+    {SIGNALING_STATE_CREATE,       SIGNALING_STATE_CREATE_REQUIRED, signalingFsmFromCreate, signalingFsmCreate, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_CREATE_CALL_FAILED},
+    {SIGNALING_STATE_GET_ENDPOINT, SIGNALING_STATE_GET_ENDPOINT_REQUIRED, signalingFsmFromGetEndpoint, signalingFsmGetEndpoint, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED},
+    {SIGNALING_STATE_GET_ICE_CONFIG, SIGNALING_STATE_GET_ICE_CONFIG_REQUIRED, signalingFsmFromGetIceConfig, signalingFsmGetIceConfig, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED},
+    {SIGNALING_STATE_READY,        SIGNALING_STATE_READY_REQUIRED, signalingFsmFromReady, signalingFsmReady, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_READY_CALLBACK_FAILED},
+    // websocket connection.
+    {SIGNALING_STATE_CONNECT,      SIGNALING_STATE_CONNECT_REQUIRED, signalingFsmFromConnect, signalingFsmConnect, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECT_CALL_FAILED},
+    {SIGNALING_STATE_CONNECTED,    SIGNALING_STATE_CONNECTED_REQUIRED, signalingFsmFromConnected, signalingFsmConnected, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_CONNECTED_CALLBACK_FAILED},
+    {SIGNALING_STATE_DISCONNECTED, SIGNALING_STATE_DISCONNECTED_REQUIRED, signalingFsmFromDisconnected, signalingFsmDisconnected, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DISCONNECTED_CALLBACK_FAILED},
+    {SIGNALING_STATE_DELETE,       SIGNALING_STATE_DELETE_REQUIRED, signalingFsmFromDelete, signalingFsmDelete, SIGNALING_STATES_DEFAULT_RETRY_COUNT, STATUS_SIGNALING_DELETE_CALL_FAILED},
+    {SIGNALING_STATE_DELETED,      SIGNALING_STATE_DELETED_REQUIRED, signalingFsmFromDeleted, signalingFsmDeleted, INFINITE_RETRY_COUNT_SENTINEL, STATUS_SIGNALING_DELETE_CALL_FAILED},
 };
 
 UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(SIGNALING_STATE_MACHINE_STATES);
@@ -180,6 +177,9 @@ CleanUp:
 ///////////////////////////////////////////////////////////////////////////
 // State machine callback functions
 ///////////////////////////////////////////////////////////////////////////
+/**
+ * @brief   change the fsm from new to get toke without any condition.
+*/
 STATUS signalingFsmFromNew(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
@@ -199,7 +199,7 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief   
+ * @brief   the execution of new state
 */
 STATUS signalingFsmNew(UINT64 customData, UINT64 time)
 {
@@ -210,7 +210,7 @@ STATUS signalingFsmNew(UINT64 customData, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-    ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
+    //ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
 
     // Notify of the state change
     if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
@@ -223,7 +223,11 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief   change the fsm from get token to describe if we do not have channal arn.
+ *          change the fsm from get token to get endpoint if we have channal arn.
+ *          change the fsm from get token to delete if we are deleting the channel.
+*/
 STATUS signalingFsmFromGetToken(UINT64 customData, PUINT64 pState)
 {
     ENTERS();
@@ -257,7 +261,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief   get the aws crendential, and validate the credential. step the fsm.
+*/
 STATUS signalingFsmGetToken(UINT64 customData, UINT64 time)
 {
     UNUSED_PARAM(time);
@@ -269,9 +275,10 @@ STATUS signalingFsmGetToken(UINT64 customData, UINT64 time)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-    ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
+    //ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
 
     // Notify of the state change
+    // the callback of state changed.
     if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.stateChangeFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                             SIGNALING_CLIENT_STATE_GET_CREDENTIALS));
@@ -343,7 +350,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief   
+*/
 STATUS signalingFsmDescribe(UINT64 customData, UINT64 time)
 {
     ENTERS();
@@ -352,7 +361,7 @@ STATUS signalingFsmDescribe(UINT64 customData, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-    ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
+    //ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
 
     // Notify of the state change
     if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
@@ -415,7 +424,7 @@ STATUS signalingFsmCreate(UINT64 customData, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-    ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
+    //ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
 
     // Notify of the state change
     if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
@@ -478,7 +487,7 @@ STATUS signalingFsmGetEndpoint(UINT64 customData, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-    ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
+    //ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
 
     // Notify of the state change
     if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
@@ -541,7 +550,7 @@ STATUS signalingFsmGetIceConfig(UINT64 customData, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-    ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
+    //ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
 
     // Notify of the state change
     if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
@@ -614,7 +623,7 @@ STATUS signalingFsmReady(UINT64 customData, UINT64 time)
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-    ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, TRUE);
+    //ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, TRUE);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     // Notify of the state change
@@ -623,8 +632,6 @@ STATUS signalingFsmReady(UINT64 customData, UINT64 time)
                                                                             SIGNALING_CLIENT_STATE_READY));
     }
 
-    // Ensure we won't async the GetIceConfig as we reach the ready state
-    ATOMIC_STORE_BOOL(&pSignalingClient->asyncGetIceConfig, FALSE);
 
     if (pSignalingClient->continueOnReady) {
         // Self-prime the connect
@@ -936,7 +943,7 @@ STATUS signalingFsmDelete(UINT64 customData, UINT64 time)
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-    ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
+    //ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
 
     // Notify of the state change
     if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {

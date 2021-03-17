@@ -20,9 +20,6 @@ extern "C" {
 #define SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_INTERVAL_IN_SECONDS 1
 #define SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS       10
 
-// Protocol indexes
-#define PROTOCOL_INDEX_HTTPS 0
-#define PROTOCOL_INDEX_WSS   1
 
 // API postfix definitions
 // https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_CreateSignalingChannel.html
@@ -145,16 +142,25 @@ extern "C" {
  * IMPORTANT!!! This should match the correct index in the
  * signaling client protocol array
  */
-#define WSS_SIGNALING_PROTOCOL_INDEX 1
 
-typedef struct __LwsCallInfo LwsCallInfo;
-struct __LwsCallInfo {
-    // Size of the data in the buffer
-    volatile SIZE_T sendBufferSize;
+#define LWS_EVENT_SERVICE   (1<<0)
+#define LWS_EVENT_ASYNC_ICE_CONF   (1<<1)
+#define LWS_EVENT_RECONNECT   (1<<2)
+#define LWS_EVENT_RECEIVE_MSG   (1<<3)
+#define LWS_EVENT_REFRESH_ICE_CONF   (1<<4)
 
-    // Offset from which to send data
-    volatile SIZE_T sendOffset;
+typedef enum __LwsSignalingProtocol {
+    LWS_SIGNALING_PROTOCOL_HTTPS = 0,
+    LWS_SIGNALING_PROTOCOL_WSS = 1,
+    LWS_SIGNALING_PROTOCOL_NUM
+};
 
+
+
+/**
+ * @brief   the information of calling lws service.
+*/
+struct __LwsHttpInfo {
     // Service exit indicator;
     volatile ATOMIC_BOOL cancelService;
 
@@ -168,17 +174,39 @@ struct __LwsCallInfo {
     PSignalingClient pSignalingClient;
 
     // Scratch buffer for http processing
-    CHAR buffer[LWS_SCRATCH_BUFFER_SIZE];
+    CHAR httpBuf[LWS_SCRATCH_BUFFER_SIZE];
+};
+typedef struct __LwsHttpInfo LwsHttpInfo;
+
+struct __LwsWssInfo {
+    // Service exit indicator;
+    volatile ATOMIC_BOOL cancelService;
+
+    // Protocol index
+    UINT32 protocolIndex;//!< used for controling the lws layer.
+
+    // Call info object
+    CallInfo callInfo;
+
+    // Back reference to the signaling client
+    PSignalingClient pSignalingClient;
+
+    // Size of the data in the buffer
+    volatile SIZE_T wssTxBufSize;//!< the size of send buffer including the lws_pre.
+
+    // Offset from which to send data
+    volatile SIZE_T wssTxBufOfst;//!< the offset of the data needs to be sent. means the offset from the end position of lws_pre.
 
     // Scratch buffer for sending
-    BYTE sendBuffer[LWS_MESSAGE_BUFFER_SIZE];
+    BYTE wssTxBuf[LWS_MESSAGE_BUFFER_SIZE];
 
     // Scratch buffer for receiving
-    BYTE receiveBuffer[LWS_MESSAGE_BUFFER_SIZE];
+    BYTE wssRxBuf[LWS_MESSAGE_BUFFER_SIZE];
 
     // Size of the data in the receive buffer
-    UINT32 receiveBufferSize;
+    UINT32 wssRxBufSize;
 };
+typedef struct __LwsWssInfo LwsWssInfo;
 
 typedef struct {
     // The first member is the public signaling message structure
@@ -190,42 +218,42 @@ typedef struct {
 
 // Signal handler routine
 VOID lwsSignalHandler(INT32);
-
-// Performs a blocking call
-STATUS lwsCompleteSync(PLwsCallInfo);
-
-// LWS listener handler
-PVOID lwsListenerHandler(PVOID);
-
-// Retry thread
-PVOID lwsReconnectHandler(PVOID);
-
-// LWS callback routine
+/**
+ * @brief   https connection.
+*/
+STATUS lwsCreateHttpInfo(PSignalingClient, PRequestInfo, UINT32, PLwsHttpInfo*);
+STATUS lwsFreeHttpInfo(PLwsHttpInfo*);
 INT32 lwsHttpCallbackRoutine(struct lws*, enum lws_callback_reasons, PVOID, PVOID, size_t);
-INT32 lwsWssCallbackRoutine(struct lws*, enum lws_callback_reasons, PVOID, PVOID, size_t);
-
 STATUS lwsDescribeChannel(PSignalingClient, UINT64);
 STATUS lwsCreateChannel(PSignalingClient, UINT64);
 STATUS lwsGetChannelEndpoint(PSignalingClient, UINT64);
 STATUS lwsGetIceConfig(PSignalingClient, UINT64);
-STATUS lwsConnectSignalingChannel(PSignalingClient, UINT64);
 STATUS lwsDeleteChannel(PSignalingClient, UINT64);
 
-STATUS lwsCreateCallInfo(PSignalingClient, PRequestInfo, UINT32, PLwsCallInfo*);
-STATUS lwsFreeCallInfo(PLwsCallInfo*);
-
+/**
+ * @brief   websocket protocol.
+*/
+STATUS lwsGetMessageTypeFromString(PCHAR, UINT32, SIGNALING_MESSAGE_TYPE*);
+STATUS lwsCreateWssInfo(PSignalingClient, PRequestInfo, UINT32, PLwsWssInfo*);
+STATUS lwsFreeWssInfo(PLwsWssInfo*);
+INT32 lwsWssCallbackRoutine(struct lws*, enum lws_callback_reasons, PVOID, PVOID, size_t);
+STATUS lwsWakeServiceEventLoop(PSignalingClient);
+STATUS lwsTerminateConnectionWithStatus(PSignalingClient, SERVICE_CALL_RESULT);
+STATUS lwsTerminateListenerLoop(PSignalingClient);
+// LWS listener handler
+PVOID lwsWssHandler(PVOID);
+// Retry thread
+PVOID lwsReconnectHandler(PVOID);
 PVOID lwsReceiveMessageWrapper(PVOID);
 #ifdef KVS_PLAT_ESP_FREERTOS
 STATUS lwsDispatchMsg(PVOID pMessage);
 #endif
+STATUS lwsConnectSignalingChannel(PSignalingClient, UINT64);
+STATUS lwsSendWssMessage(PSignalingClient, PCHAR, PCHAR, PCHAR, UINT32, PCHAR, UINT32);
+STATUS lwsWriteWssData(PSignalingClient, BOOL);
 
-STATUS lwsSendMessage(PSignalingClient, PCHAR, PCHAR, PCHAR, UINT32, PCHAR, UINT32);
-STATUS lwsWriteData(PSignalingClient, BOOL);
-STATUS lwsTerminateListenerLoop(PSignalingClient);
-STATUS lwsReceiveMessage(PSignalingClient, PCHAR, UINT32);
-STATUS lwsGetMessageTypeFromString(PCHAR, UINT32, SIGNALING_MESSAGE_TYPE*);
-STATUS lwsWakeServiceEventLoop(PSignalingClient);
-STATUS lwsTerminateConnectionWithStatus(PSignalingClient, SERVICE_CALL_RESULT);
+STATUS lwsReceiveWssMessage(PSignalingClient, PCHAR, UINT32);
+
 
 #ifdef __cplusplus
 }

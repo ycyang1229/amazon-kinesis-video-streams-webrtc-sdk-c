@@ -48,22 +48,22 @@ TEST_F(StunFunctionalityTest, basicValidParseTest)
     // Binding request
     //
     EXPECT_EQ(STATUS_SUCCESS,
-              deserializeStunPacket(bindingRequestBytes, SIZEOF(bindingRequestBytes), (PBYTE) TEST_STUN_PASSWORD,
+              stunDeserializePacket(bindingRequestBytes, SIZEOF(bindingRequestBytes), (PBYTE) TEST_STUN_PASSWORD,
                                     (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pStunPacket));
     EXPECT_EQ(pStunPacket->header.magicCookie, STUN_HEADER_MAGIC_COOKIE);
     EXPECT_EQ(pStunPacket->header.messageLength, 0);
     EXPECT_EQ(pStunPacket->header.stunMessageType, STUN_PACKET_TYPE_BINDING_REQUEST);
     EXPECT_EQ(pStunPacket->attributesCount, 0);
 
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
     EXPECT_EQ(NULL, pStunPacket);
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
 
     //
     // Binding success response xor mapped single
     //
     EXPECT_EQ(STATUS_SUCCESS,
-              deserializeStunPacket(bindingSuccessResponseXorMappedAddressBytes1, SIZEOF(bindingSuccessResponseXorMappedAddressBytes1),
+              stunDeserializePacket(bindingSuccessResponseXorMappedAddressBytes1, SIZEOF(bindingSuccessResponseXorMappedAddressBytes1),
                                     (PBYTE) TEST_STUN_PASSWORD, (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pStunPacket));
     EXPECT_EQ(pStunPacket->header.magicCookie, STUN_HEADER_MAGIC_COOKIE);
     EXPECT_EQ(pStunPacket->header.messageLength, 12);
@@ -71,15 +71,15 @@ TEST_F(StunFunctionalityTest, basicValidParseTest)
     EXPECT_EQ(pStunPacket->attributesCount, 1);
     EXPECT_EQ(pStunPacket->attributeList[0]->type, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS);
 
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
     EXPECT_EQ(NULL, pStunPacket);
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
 
     //
     // Binding success response xor mapped multiple
     //
     EXPECT_EQ(STATUS_SUCCESS,
-              deserializeStunPacket(bindingSuccessResponseXorMappedAddressBytes2, SIZEOF(bindingSuccessResponseXorMappedAddressBytes2),
+              stunDeserializePacket(bindingSuccessResponseXorMappedAddressBytes2, SIZEOF(bindingSuccessResponseXorMappedAddressBytes2),
                                     (PBYTE) TEST_STUN_PASSWORD, (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pStunPacket));
     EXPECT_EQ(pStunPacket->header.magicCookie, STUN_HEADER_MAGIC_COOKIE);
     EXPECT_EQ(pStunPacket->header.messageLength, 44);
@@ -89,15 +89,15 @@ TEST_F(StunFunctionalityTest, basicValidParseTest)
     EXPECT_EQ(pStunPacket->attributeList[1]->type, STUN_ATTRIBUTE_TYPE_MESSAGE_INTEGRITY);
     EXPECT_EQ(pStunPacket->attributeList[2]->type, STUN_ATTRIBUTE_TYPE_FINGERPRINT);
 
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
     EXPECT_EQ(NULL, pStunPacket);
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
 
     //
     // Binding success request user name multiple
     //
     EXPECT_EQ(STATUS_SUCCESS,
-              deserializeStunPacket(bindingRequestUsernameBytes, SIZEOF(bindingRequestUsernameBytes), (PBYTE) TEST_STUN_PASSWORD,
+              stunDeserializePacket(bindingRequestUsernameBytes, SIZEOF(bindingRequestUsernameBytes), (PBYTE) TEST_STUN_PASSWORD,
                                     (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pStunPacket));
     EXPECT_EQ(pStunPacket->header.magicCookie, STUN_HEADER_MAGIC_COOKIE);
     EXPECT_EQ(pStunPacket->header.messageLength, 76);
@@ -115,31 +115,31 @@ TEST_F(StunFunctionalityTest, basicValidParseTest)
     EXPECT_EQ(pStunPacket->attributeList[3]->type, STUN_ATTRIBUTE_TYPE_MESSAGE_INTEGRITY);
     EXPECT_EQ(pStunPacket->attributeList[4]->type, STUN_ATTRIBUTE_TYPE_FINGERPRINT);
 
-    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_FINGERPRINT, &pAttribute));
+    EXPECT_EQ(STATUS_SUCCESS, stunGetAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_FINGERPRINT, &pAttribute));
     EXPECT_TRUE(NULL != pAttribute);
 
-    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_MESSAGE_INTEGRITY, &pAttribute));
+    EXPECT_EQ(STATUS_SUCCESS, stunGetAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_MESSAGE_INTEGRITY, &pAttribute));
     EXPECT_TRUE(NULL != pAttribute);
 
-    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_PRIORITY, &pAttribute));
+    EXPECT_EQ(STATUS_SUCCESS, stunGetAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_PRIORITY, &pAttribute));
     EXPECT_TRUE(NULL != pAttribute);
 
-    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_USERNAME, &pAttribute));
+    EXPECT_EQ(STATUS_SUCCESS, stunGetAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_USERNAME, &pAttribute));
     EXPECT_TRUE(NULL != pAttribute);
 
     pAttribute = NULL;
-    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, &pAttribute));
+    EXPECT_EQ(STATUS_SUCCESS, stunGetAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, &pAttribute));
     EXPECT_TRUE(NULL == pAttribute);
 
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
     EXPECT_EQ(NULL, pStunPacket);
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
 
     //
     // Binding success response xor mapped address for IPv4
     //
     EXPECT_EQ(STATUS_SUCCESS,
-              deserializeStunPacket(bindingSuccessResponseXorMappedAddressBytes3, SIZEOF(bindingSuccessResponseXorMappedAddressBytes3), NULL, 0,
+              stunDeserializePacket(bindingSuccessResponseXorMappedAddressBytes3, SIZEOF(bindingSuccessResponseXorMappedAddressBytes3), NULL, 0,
                                     &pStunPacket));
     EXPECT_EQ(pStunPacket->header.magicCookie, STUN_HEADER_MAGIC_COOKIE);
     EXPECT_EQ(pStunPacket->header.messageLength, 12);
@@ -153,14 +153,14 @@ TEST_F(StunFunctionalityTest, basicValidParseTest)
     EXPECT_EQ(0, MEMCMP(pStunAttributeAddress->address.address, ip4Addr, IPV4_ADDRESS_LENGTH));
     EXPECT_EQ(ip4Port, (UINT16) getInt16(pStunAttributeAddress->address.port));
 
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
     EXPECT_EQ(NULL, pStunPacket);
 
     //
     // Binding success response xor mapped address for IPv6
     //
     EXPECT_EQ(STATUS_SUCCESS,
-              deserializeStunPacket(bindingSuccessResponseXorMappedAddressBytes4, SIZEOF(bindingSuccessResponseXorMappedAddressBytes4), NULL, 0,
+              stunDeserializePacket(bindingSuccessResponseXorMappedAddressBytes4, SIZEOF(bindingSuccessResponseXorMappedAddressBytes4), NULL, 0,
                                     &pStunPacket));
     EXPECT_EQ(pStunPacket->header.magicCookie, STUN_HEADER_MAGIC_COOKIE);
     EXPECT_EQ(pStunPacket->header.messageLength, 12);
@@ -175,7 +175,7 @@ TEST_F(StunFunctionalityTest, basicValidParseTest)
     EXPECT_EQ(0, MEMCMP(pStunAttributeAddress->address.address, ip6Addr, IPV6_ADDRESS_LENGTH));
     EXPECT_EQ(ip6Port, (UINT16) getInt16(pStunAttributeAddress->address.port));
 
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
     EXPECT_EQ(NULL, pStunPacket);
 }
 
@@ -197,7 +197,7 @@ TEST_F(StunFunctionalityTest, roundtripFidelityTest)
     // Binding success request user name multiple
     //
     EXPECT_EQ(STATUS_SUCCESS,
-              deserializeStunPacket(bindingRequestUsernameBytes, SIZEOF(bindingRequestUsernameBytes), (PBYTE) TEST_STUN_PASSWORD,
+              stunDeserializePacket(bindingRequestUsernameBytes, SIZEOF(bindingRequestUsernameBytes), (PBYTE) TEST_STUN_PASSWORD,
                                     (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pStunPacket));
     EXPECT_EQ(pStunPacket->header.magicCookie, STUN_HEADER_MAGIC_COOKIE);
     EXPECT_EQ(pStunPacket->header.messageLength, 76);
@@ -213,15 +213,15 @@ TEST_F(StunFunctionalityTest, roundtripFidelityTest)
 
     // Serialize it
     EXPECT_EQ(STATUS_SUCCESS,
-              serializeStunPacket(pStunPacket, (PBYTE) TEST_STUN_PASSWORD, STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), TRUE, TRUE, NULL, &size));
+              stunSerializePacket(pStunPacket, (PBYTE) TEST_STUN_PASSWORD, STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), TRUE, TRUE, NULL, &size));
     EXPECT_TRUE(NULL != (pBuffer = (PBYTE) MEMALLOC(size)));
     EXPECT_EQ(STATUS_SUCCESS,
-              serializeStunPacket(pStunPacket, (PBYTE) TEST_STUN_PASSWORD, STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), TRUE, TRUE, pBuffer, &size));
+              stunSerializePacket(pStunPacket, (PBYTE) TEST_STUN_PASSWORD, STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), TRUE, TRUE, pBuffer, &size));
 
     // De-serialize it back again
     EXPECT_EQ(
         STATUS_SUCCESS,
-        deserializeStunPacket(pBuffer, size, (PBYTE) TEST_STUN_PASSWORD, (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pSerializedStunPacket));
+        stunDeserializePacket(pBuffer, size, (PBYTE) TEST_STUN_PASSWORD, (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pSerializedStunPacket));
 
     EXPECT_EQ(pSerializedStunPacket->header.magicCookie, STUN_HEADER_MAGIC_COOKIE);
     EXPECT_EQ(pSerializedStunPacket->header.messageLength, 76);
@@ -234,8 +234,8 @@ TEST_F(StunFunctionalityTest, roundtripFidelityTest)
     EXPECT_EQ(pSerializedStunPacket->attributeList[3]->type, STUN_ATTRIBUTE_TYPE_MESSAGE_INTEGRITY);
     EXPECT_EQ(pSerializedStunPacket->attributeList[4]->type, STUN_ATTRIBUTE_TYPE_FINGERPRINT);
 
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pSerializedStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pSerializedStunPacket));
     SAFE_MEMFREE(pBuffer);
 }
 
@@ -264,35 +264,35 @@ TEST_F(StunFunctionalityTest, appendAddressAfterParseTest)
     // No attributes
     //
     EXPECT_EQ(STATUS_SUCCESS,
-              deserializeStunPacket(bindingRequestBytes, SIZEOF(bindingRequestBytes), (PBYTE) TEST_STUN_PASSWORD,
+              stunDeserializePacket(bindingRequestBytes, SIZEOF(bindingRequestBytes), (PBYTE) TEST_STUN_PASSWORD,
                                     (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pStunPacket));
 
     // Attempt to add to it should be out of memory
-    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, appendStunAddressAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, &address));
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, stunAppendAttrAddress(pStunPacket, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, &address));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
 
     //
     // Single attribute
     //
     EXPECT_EQ(STATUS_SUCCESS,
-              deserializeStunPacket(bindingSuccessResponseXorMappedAddressBytes, SIZEOF(bindingSuccessResponseXorMappedAddressBytes),
+              stunDeserializePacket(bindingSuccessResponseXorMappedAddressBytes, SIZEOF(bindingSuccessResponseXorMappedAddressBytes),
                                     (PBYTE) TEST_STUN_PASSWORD, (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pStunPacket));
 
     // Attempt to add to it should be out of memory
-    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, appendStunAddressAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, &address));
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, stunAppendAttrAddress(pStunPacket, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, &address));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
 
     //
     // Contains message integrity and fingerprint
     //
     EXPECT_EQ(STATUS_SUCCESS,
-              deserializeStunPacket(bindingRequestUsernameBytes, SIZEOF(bindingRequestUsernameBytes), (PBYTE) TEST_STUN_PASSWORD,
+              stunDeserializePacket(bindingRequestUsernameBytes, SIZEOF(bindingRequestUsernameBytes), (PBYTE) TEST_STUN_PASSWORD,
                                     (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pStunPacket));
 
     // Attempt to add to it should fail as we are adding after integrity/fingerprint
     EXPECT_EQ(STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY,
-              appendStunAddressAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, &address));
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+              stunAppendAttrAddress(pStunPacket, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, &address));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
 }
 
 TEST_F(StunFunctionalityTest, appendUsernameAfterParseTest)
@@ -322,43 +322,43 @@ TEST_F(StunFunctionalityTest, appendUsernameAfterParseTest)
     // No attributes
     //
     EXPECT_EQ(STATUS_SUCCESS,
-              deserializeStunPacket(bindingRequestBytes, SIZEOF(bindingRequestBytes), (PBYTE) TEST_STUN_PASSWORD,
+              stunDeserializePacket(bindingRequestBytes, SIZEOF(bindingRequestBytes), (PBYTE) TEST_STUN_PASSWORD,
                                     (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pStunPacket));
 
     // Attempt to add to it should be out of memory
-    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, appendStunUsernameAttribute(pStunPacket, userName0));
-    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, appendStunUsernameAttribute(pStunPacket, userName1));
-    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, appendStunUsernameAttribute(pStunPacket, userName2));
-    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, appendStunUsernameAttribute(pStunPacket, userName3));
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, stunAppendAttrUsername(pStunPacket, userName0));
+    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, stunAppendAttrUsername(pStunPacket, userName1));
+    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, stunAppendAttrUsername(pStunPacket, userName2));
+    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, stunAppendAttrUsername(pStunPacket, userName3));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
 
     //
     // Single attribute
     //
     EXPECT_EQ(STATUS_SUCCESS,
-              deserializeStunPacket(bindingSuccessResponseXorMappedAddressBytes, SIZEOF(bindingSuccessResponseXorMappedAddressBytes),
+              stunDeserializePacket(bindingSuccessResponseXorMappedAddressBytes, SIZEOF(bindingSuccessResponseXorMappedAddressBytes),
                                     (PBYTE) TEST_STUN_PASSWORD, (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pStunPacket));
 
     // Attempt to add to it should be out of memory
-    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, appendStunUsernameAttribute(pStunPacket, userName0));
-    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, appendStunUsernameAttribute(pStunPacket, userName1));
-    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, appendStunUsernameAttribute(pStunPacket, userName2));
-    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, appendStunUsernameAttribute(pStunPacket, userName3));
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, stunAppendAttrUsername(pStunPacket, userName0));
+    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, stunAppendAttrUsername(pStunPacket, userName1));
+    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, stunAppendAttrUsername(pStunPacket, userName2));
+    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, stunAppendAttrUsername(pStunPacket, userName3));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
 
     //
     // Contains message integrity and fingerprint
     //
     EXPECT_EQ(STATUS_SUCCESS,
-              deserializeStunPacket(bindingRequestUsernameBytes, SIZEOF(bindingRequestUsernameBytes), (PBYTE) TEST_STUN_PASSWORD,
+              stunDeserializePacket(bindingRequestUsernameBytes, SIZEOF(bindingRequestUsernameBytes), (PBYTE) TEST_STUN_PASSWORD,
                                     (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pStunPacket));
 
     // Attempt to add to it should fail as we are adding after integrity/fingerprint
-    EXPECT_EQ(STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY, appendStunUsernameAttribute(pStunPacket, userName0));
-    EXPECT_EQ(STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY, appendStunUsernameAttribute(pStunPacket, userName1));
-    EXPECT_EQ(STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY, appendStunUsernameAttribute(pStunPacket, userName2));
-    EXPECT_EQ(STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY, appendStunUsernameAttribute(pStunPacket, userName3));
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY, stunAppendAttrUsername(pStunPacket, userName0));
+    EXPECT_EQ(STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY, stunAppendAttrUsername(pStunPacket, userName1));
+    EXPECT_EQ(STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY, stunAppendAttrUsername(pStunPacket, userName2));
+    EXPECT_EQ(STATUS_STUN_ATTRIBUTES_AFTER_FINGERPRINT_MESSAGE_INTEGRITY, stunAppendAttrUsername(pStunPacket, userName3));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
 }
 
 TEST_F(StunFunctionalityTest, appendAddressAttributeMaxCountTest)
@@ -370,16 +370,16 @@ TEST_F(StunFunctionalityTest, appendAddressAttributeMaxCountTest)
 
     address.family = KVS_IP_FAMILY_TYPE_IPV4;
 
-    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunCreatePacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
 
     for (i = 0; i <= STUN_ATTRIBUTE_MAX_COUNT; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, appendStunAddressAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, &address));
+        EXPECT_EQ(STATUS_SUCCESS, stunAppendAttrAddress(pStunPacket, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, &address));
     }
 
     // Should fail with one more
-    EXPECT_EQ(STATUS_STUN_MAX_ATTRIBUTE_COUNT, appendStunAddressAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, &address));
+    EXPECT_EQ(STATUS_STUN_MAX_ATTRIBUTE_COUNT, stunAppendAttrAddress(pStunPacket, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, &address));
 
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
 }
 
 TEST_F(StunFunctionalityTest, appendUsernameAttributeMaxCountTest)
@@ -389,16 +389,16 @@ TEST_F(StunFunctionalityTest, appendUsernameAttributeMaxCountTest)
     UINT32 i;
     PCHAR userName = (PCHAR) "abcde";
 
-    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunCreatePacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
 
     for (i = 0; i <= STUN_ATTRIBUTE_MAX_COUNT; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, appendStunUsernameAttribute(pStunPacket, userName));
+        EXPECT_EQ(STATUS_SUCCESS, stunAppendAttrUsername(pStunPacket, userName));
     }
 
     // Should fail with one more
-    EXPECT_EQ(STATUS_STUN_MAX_ATTRIBUTE_COUNT, appendStunUsernameAttribute(pStunPacket, userName));
+    EXPECT_EQ(STATUS_STUN_MAX_ATTRIBUTE_COUNT, stunAppendAttrUsername(pStunPacket, userName));
 
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
 }
 
 TEST_F(StunFunctionalityTest, appendUsernameAttributeMaxAllocationTest)
@@ -415,16 +415,16 @@ TEST_F(StunFunctionalityTest, appendUsernameAttributeMaxAllocationTest)
     MEMSET(userName, 'a', ARRAY_SIZE(userName));
     userName[ARRAY_SIZE(userName) - 1] = '\0';
 
-    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunCreatePacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
 
     for (i = 0; i < STUN_ATTRIBUTE_MAX_COUNT; i++) {
-        EXPECT_EQ(STATUS_SUCCESS, appendStunUsernameAttribute(pStunPacket, userName));
+        EXPECT_EQ(STATUS_SUCCESS, stunAppendAttrUsername(pStunPacket, userName));
     }
 
     // Should fail with a single alloc as we will be over the limit
-    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, appendStunUsernameAttribute(pStunPacket, longUserName));
+    EXPECT_EQ(STATUS_NOT_ENOUGH_MEMORY, stunAppendAttrUsername(pStunPacket, longUserName));
 
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
 }
 
 TEST_F(StunFunctionalityTest, attributeDetectionTest)
@@ -437,16 +437,16 @@ TEST_F(StunFunctionalityTest, attributeDetectionTest)
     MEMSET(userName, 'a', ARRAY_SIZE(userName));
     userName[ARRAY_SIZE(userName) - 1] = '\0';
 
-    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunCreatePacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
 
-    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_USERNAME, &pUsernameAttribute));
+    EXPECT_EQ(STATUS_SUCCESS, stunGetAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_USERNAME, &pUsernameAttribute));
     EXPECT_TRUE(NULL == pUsernameAttribute);
-    EXPECT_EQ(STATUS_SUCCESS, appendStunUsernameAttribute(pStunPacket, userName));
-    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_USERNAME, &pUsernameAttribute));
+    EXPECT_EQ(STATUS_SUCCESS, stunAppendAttrUsername(pStunPacket, userName));
+    EXPECT_EQ(STATUS_SUCCESS, stunGetAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_USERNAME, &pUsernameAttribute));
     EXPECT_TRUE(NULL != pUsernameAttribute);
     EXPECT_TRUE(pUsernameAttribute->type == STUN_ATTRIBUTE_TYPE_USERNAME);
 
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
 }
 
 TEST_F(StunFunctionalityTest, roundtripAfterCreateAddFidelityTest)
@@ -467,17 +467,17 @@ TEST_F(StunFunctionalityTest, roundtripAfterCreateAddFidelityTest)
     //
     // Create STUN packet and add various attributes
     //
-    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunCreatePacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
     EXPECT_EQ(pStunPacket->header.magicCookie, STUN_HEADER_MAGIC_COOKIE);
     EXPECT_EQ(pStunPacket->header.messageLength, 0);
     EXPECT_EQ(pStunPacket->header.stunMessageType, STUN_PACKET_TYPE_BINDING_REQUEST);
     EXPECT_EQ(pStunPacket->allocationSize, STUN_PACKET_ALLOCATION_SIZE);
     EXPECT_EQ(pStunPacket->attributesCount, 0);
 
-    EXPECT_EQ(STATUS_SUCCESS, appendStunPriorityAttribute(pStunPacket, 10));
-    EXPECT_EQ(STATUS_SUCCESS, appendStunFlagAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_USE_CANDIDATE));
-    EXPECT_EQ(STATUS_SUCCESS, appendStunAddressAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_REFLECTED_FROM, &address));
-    EXPECT_EQ(STATUS_SUCCESS, appendStunUsernameAttribute(pStunPacket, (PCHAR) "abc"));
+    EXPECT_EQ(STATUS_SUCCESS, stunAppendAttrPriority(pStunPacket, 10));
+    EXPECT_EQ(STATUS_SUCCESS, stunAppendAttrFlag(pStunPacket, STUN_ATTRIBUTE_TYPE_USE_CANDIDATE));
+    EXPECT_EQ(STATUS_SUCCESS, stunAppendAttrAddress(pStunPacket, STUN_ATTRIBUTE_TYPE_REFLECTED_FROM, &address));
+    EXPECT_EQ(STATUS_SUCCESS, stunAppendAttrUsername(pStunPacket, (PCHAR) "abc"));
 
     EXPECT_EQ(pStunPacket->header.messageLength, 32);
 
@@ -495,15 +495,15 @@ TEST_F(StunFunctionalityTest, roundtripAfterCreateAddFidelityTest)
 
     // Serialize it
     EXPECT_EQ(STATUS_SUCCESS,
-              serializeStunPacket(pStunPacket, (PBYTE) TEST_STUN_PASSWORD, STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), TRUE, TRUE, NULL, &size));
+              stunSerializePacket(pStunPacket, (PBYTE) TEST_STUN_PASSWORD, STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), TRUE, TRUE, NULL, &size));
     EXPECT_TRUE(NULL != (pBuffer = (PBYTE) MEMALLOC(size)));
     EXPECT_EQ(STATUS_SUCCESS,
-              serializeStunPacket(pStunPacket, (PBYTE) TEST_STUN_PASSWORD, STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), TRUE, TRUE, pBuffer, &size));
+              stunSerializePacket(pStunPacket, (PBYTE) TEST_STUN_PASSWORD, STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), TRUE, TRUE, pBuffer, &size));
 
     // De-serialize it back again
     EXPECT_EQ(
         STATUS_SUCCESS,
-        deserializeStunPacket(pBuffer, size, (PBYTE) TEST_STUN_PASSWORD, (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pSerializedStunPacket));
+        stunDeserializePacket(pBuffer, size, (PBYTE) TEST_STUN_PASSWORD, (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pSerializedStunPacket));
 
     EXPECT_EQ(pSerializedStunPacket->header.magicCookie, STUN_HEADER_MAGIC_COOKIE);
     EXPECT_EQ(pSerializedStunPacket->header.messageLength, 64);
@@ -523,8 +523,8 @@ TEST_F(StunFunctionalityTest, roundtripAfterCreateAddFidelityTest)
     EXPECT_EQ(pSerializedStunPacket->attributeList[4]->type, STUN_ATTRIBUTE_TYPE_MESSAGE_INTEGRITY);
     EXPECT_EQ(pSerializedStunPacket->attributeList[5]->type, STUN_ATTRIBUTE_TYPE_FINGERPRINT);
 
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pSerializedStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pSerializedStunPacket));
     SAFE_MEMFREE(pBuffer);
 }
 
@@ -535,16 +535,16 @@ TEST_F(StunFunctionalityTest, serializeStunRequestWithNoAttribute)
     UINT32 stunPacketBufferSize = STUN_PACKET_ALLOCATION_SIZE, actualPacketSize = 0;
     BYTE stunPacketBuffer[STUN_PACKET_ALLOCATION_SIZE];
 
-    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
-    EXPECT_EQ(STATUS_SUCCESS, serializeStunPacket(pStunPacket, NULL, 0, FALSE, FALSE, NULL, &actualPacketSize));
+    EXPECT_EQ(STATUS_SUCCESS, stunCreatePacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunSerializePacket(pStunPacket, NULL, 0, FALSE, FALSE, NULL, &actualPacketSize));
     EXPECT_TRUE(actualPacketSize < stunPacketBufferSize);
-    EXPECT_EQ(STATUS_SUCCESS, serializeStunPacket(pStunPacket, NULL, 0, FALSE, FALSE, stunPacketBuffer, &actualPacketSize));
+    EXPECT_EQ(STATUS_SUCCESS, stunSerializePacket(pStunPacket, NULL, 0, FALSE, FALSE, stunPacketBuffer, &actualPacketSize));
 
     EXPECT_EQ(actualPacketSize, STUN_HEADER_LEN);
     EXPECT_EQ((UINT16) STUN_PACKET_TYPE_BINDING_REQUEST, (UINT16) getInt16(*(PUINT16) stunPacketBuffer));
     EXPECT_TRUE(IS_STUN_PACKET(stunPacketBuffer));
     EXPECT_EQ(0, MEMCMP(stunPacketBuffer + STUN_HEADER_LEN - STUN_TRANSACTION_ID_LEN, transactionId, STUN_TRANSACTION_ID_LEN));
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
 }
 
 TEST_F(StunFunctionalityTest, serializeDeserializeStunControlAttribute)
@@ -557,21 +557,21 @@ TEST_F(StunFunctionalityTest, serializeDeserializeStunControlAttribute)
     PStunAttributeIceControl pStunAttributeIceControl;
     UINT64 magicValue = 123;
 
-    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
-    EXPECT_EQ(STATUS_SUCCESS, appendStunIceControllAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED, magicValue));
-    EXPECT_EQ(STATUS_SUCCESS, serializeStunPacket(pStunPacket, NULL, 0, FALSE, FALSE, NULL, &actualPacketSize));
+    EXPECT_EQ(STATUS_SUCCESS, stunCreatePacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunAppendAttrIceControl(pStunPacket, STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED, magicValue));
+    EXPECT_EQ(STATUS_SUCCESS, stunSerializePacket(pStunPacket, NULL, 0, FALSE, FALSE, NULL, &actualPacketSize));
     EXPECT_TRUE(actualPacketSize < stunPacketBufferSize);
-    EXPECT_EQ(STATUS_SUCCESS, serializeStunPacket(pStunPacket, NULL, 0, FALSE, FALSE, stunPacketBuffer, &actualPacketSize));
+    EXPECT_EQ(STATUS_SUCCESS, stunSerializePacket(pStunPacket, NULL, 0, FALSE, FALSE, stunPacketBuffer, &actualPacketSize));
     EXPECT_TRUE(IS_STUN_PACKET(stunPacketBuffer));
 
-    EXPECT_EQ(STATUS_SUCCESS, deserializeStunPacket(stunPacketBuffer, actualPacketSize, NULL, 0, &pDeserializedPacket));
-    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pDeserializedPacket, STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED, &pStunAttributeHeader));
+    EXPECT_EQ(STATUS_SUCCESS, stunDeserializePacket(stunPacketBuffer, actualPacketSize, NULL, 0, &pDeserializedPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunGetAttribute(pDeserializedPacket, STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED, &pStunAttributeHeader));
     EXPECT_TRUE(pStunAttributeHeader != NULL);
     pStunAttributeIceControl = (PStunAttributeIceControl) pStunAttributeHeader;
     EXPECT_EQ(pStunAttributeIceControl->tieBreaker, magicValue);
 
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pDeserializedPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pDeserializedPacket));
 }
 
 TEST_F(StunFunctionalityTest, serializeDeserializeXORAddress)
@@ -592,8 +592,8 @@ TEST_F(StunFunctionalityTest, serializeDeserializeXORAddress)
     //
     // Create STUN packet and XOR MAPPED ADDRESS attribute with an IPv4 address
     //
-    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
-    EXPECT_EQ(STATUS_SUCCESS, appendStunAddressAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, &address));
+    EXPECT_EQ(STATUS_SUCCESS, stunCreatePacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunAppendAttrAddress(pStunPacket, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, &address));
     // 12 bytes = ATTRIBUTE HEADER (4 bytes) + ADDRESS HEADER (4 bytes) + IPv4 (4 bytes)
     EXPECT_EQ(pStunPacket->header.messageLength, 12);
 
@@ -606,15 +606,15 @@ TEST_F(StunFunctionalityTest, serializeDeserializeXORAddress)
 
     // Serialize it
     EXPECT_EQ(STATUS_SUCCESS,
-              serializeStunPacket(pStunPacket, (PBYTE) TEST_STUN_PASSWORD, STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), TRUE, TRUE, NULL, &size));
+              stunSerializePacket(pStunPacket, (PBYTE) TEST_STUN_PASSWORD, STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), TRUE, TRUE, NULL, &size));
     EXPECT_TRUE(NULL != (pBuffer = (PBYTE) MEMALLOC(size)));
     EXPECT_EQ(STATUS_SUCCESS,
-              serializeStunPacket(pStunPacket, (PBYTE) TEST_STUN_PASSWORD, STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), TRUE, TRUE, pBuffer, &size));
+              stunSerializePacket(pStunPacket, (PBYTE) TEST_STUN_PASSWORD, STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), TRUE, TRUE, pBuffer, &size));
 
     // De-serialize it back again
     EXPECT_EQ(
         STATUS_SUCCESS,
-        deserializeStunPacket(pBuffer, size, (PBYTE) TEST_STUN_PASSWORD, (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pSerializedStunPacket));
+        stunDeserializePacket(pBuffer, size, (PBYTE) TEST_STUN_PASSWORD, (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pSerializedStunPacket));
 
     // Validate the values
     EXPECT_EQ((UINT16) KVS_IP_FAMILY_TYPE_IPV4, ((PStunAttributeAddress) pSerializedStunPacket->attributeList[0])->address.family);
@@ -622,16 +622,16 @@ TEST_F(StunFunctionalityTest, serializeDeserializeXORAddress)
     // Validate that the address should be the same after being XORed and reXORed
     EXPECT_EQ(0, MEMCMP(address.address, ((PStunAttributeAddress) pSerializedStunPacket->attributeList[0])->address.address, IPV4_ADDRESS_LENGTH));
 
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pSerializedStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pSerializedStunPacket));
     SAFE_MEMFREE(pBuffer);
 
     //
     // Create STUN packet and XOR MAPPED ADDRESS attribute with an IPv6 address
     //
     address.family = KVS_IP_FAMILY_TYPE_IPV6;
-    EXPECT_EQ(STATUS_SUCCESS, createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
-    EXPECT_EQ(STATUS_SUCCESS, appendStunAddressAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, &address));
+    EXPECT_EQ(STATUS_SUCCESS, stunCreatePacket(STUN_PACKET_TYPE_BINDING_REQUEST, transactionId, &pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunAppendAttrAddress(pStunPacket, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, &address));
     // 24 bytes = ATTRIBUTE HEADER (4 bytes) + ADDRESS HEADER (4 bytes) + IPv6 (16 bytes)
     EXPECT_EQ(pStunPacket->header.messageLength, 24);
 
@@ -644,15 +644,15 @@ TEST_F(StunFunctionalityTest, serializeDeserializeXORAddress)
 
     // Serialize it
     EXPECT_EQ(STATUS_SUCCESS,
-              serializeStunPacket(pStunPacket, (PBYTE) TEST_STUN_PASSWORD, STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), TRUE, TRUE, NULL, &size));
+              stunSerializePacket(pStunPacket, (PBYTE) TEST_STUN_PASSWORD, STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), TRUE, TRUE, NULL, &size));
     EXPECT_TRUE(NULL != (pBuffer = (PBYTE) MEMALLOC(size)));
     EXPECT_EQ(STATUS_SUCCESS,
-              serializeStunPacket(pStunPacket, (PBYTE) TEST_STUN_PASSWORD, STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), TRUE, TRUE, pBuffer, &size));
+              stunSerializePacket(pStunPacket, (PBYTE) TEST_STUN_PASSWORD, STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), TRUE, TRUE, pBuffer, &size));
 
     // De-serialize it back again
     EXPECT_EQ(
         STATUS_SUCCESS,
-        deserializeStunPacket(pBuffer, size, (PBYTE) TEST_STUN_PASSWORD, (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pSerializedStunPacket));
+        stunDeserializePacket(pBuffer, size, (PBYTE) TEST_STUN_PASSWORD, (UINT32) STRLEN(TEST_STUN_PASSWORD) * SIZEOF(CHAR), &pSerializedStunPacket));
 
     // Validate the values
     EXPECT_EQ((UINT16) KVS_IP_FAMILY_TYPE_IPV6, ((PStunAttributeAddress) pSerializedStunPacket->attributeList[0])->address.family);
@@ -660,8 +660,8 @@ TEST_F(StunFunctionalityTest, serializeDeserializeXORAddress)
     // Validate that the address should be the same after being XORed and reXORed
     EXPECT_EQ(0, MEMCMP(address.address, ((PStunAttributeAddress) pSerializedStunPacket->attributeList[0])->address.address, IPV6_ADDRESS_LENGTH));
 
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pSerializedStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pSerializedStunPacket));
     SAFE_MEMFREE(pBuffer);
 }
 
@@ -681,16 +681,16 @@ TEST_F(StunFunctionalityTest, deserializeStunErrorCode)
     PStunAttributeErrorCode pStunAttributeErrorCode = NULL;
     PStunAttributeHeader pStunAttr = NULL;
 
-    EXPECT_EQ(STATUS_SUCCESS, deserializeStunPacket(stunErrorBuffer, ARRAY_SIZE(stunErrorBuffer), turnKey, KVS_MD5_DIGEST_LENGTH, &pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunDeserializePacket(stunErrorBuffer, ARRAY_SIZE(stunErrorBuffer), turnKey, KVS_MD5_DIGEST_LENGTH, &pStunPacket));
 
-    EXPECT_EQ(STATUS_SUCCESS, getStunAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_ERROR_CODE, &pStunAttr));
+    EXPECT_EQ(STATUS_SUCCESS, stunGetAttribute(pStunPacket, STUN_ATTRIBUTE_TYPE_ERROR_CODE, &pStunAttr));
     EXPECT_TRUE(pStunAttr != NULL);
     pStunAttributeErrorCode = (PStunAttributeErrorCode) pStunAttr;
 
     EXPECT_EQ(pStunAttributeErrorCode->errorCode, 403);
     EXPECT_EQ(0, STRCMP(pStunAttributeErrorCode->errorPhrase, "Forbidden IP"));
 
-    EXPECT_EQ(STATUS_SUCCESS, freeStunPacket(&pStunPacket));
+    EXPECT_EQ(STATUS_SUCCESS, stunFreePacket(&pStunPacket));
 }
 
 } // namespace webrtcclient

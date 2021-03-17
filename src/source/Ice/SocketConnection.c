@@ -6,18 +6,18 @@
 
 
 /**
- * Create a SocketConnection object and store it in PSocketConnection. creates a socket based on KVS_SOCKET_PROTOCOL
- * specified, and bind it to the host ip address. If the protocol is tcp, then peer ip address is required and it will
- * try to establish the tcp connection.
+ * @brief   Create a SocketConnection object and store it in PSocketConnection. creates a socket based on KVS_SOCKET_PROTOCOL
+ *          specified, and bind it to the host ip address. If the protocol is tcp, then peer ip address is required and it will
+ *          try to establish the tcp connection.
  *
- * @param - KVS_IP_FAMILY_TYPE - IN - Family for the socket. Must be one of KVS_IP_FAMILY_TYPE
- * @param - KVS_SOCKET_PROTOCOL - IN - socket protocol. TCP or UDP
- * @param - PKvsIpAddress - IN - host ip address to bind to (OPTIONAL)
- * @param - PKvsIpAddress - IN - peer ip address to connect in case of TCP (OPTIONAL)
- * @param - UINT64 - IN - data available callback custom data
- * @param - ConnectionDataAvailableFunc - IN - data available callback (OPTIONAL)
- * @param - UINT32 - IN - send buffer size in bytes
- * @param - PSocketConnection* - OUT - the resulting SocketConnection struct
+ * @param[in] familyType Family for the socket. Must be one of KVS_IP_FAMILY_TYPE
+ * @param[in] protocol socket protocol. TCP or UDP
+ * @param[in] pBindAddr host ip address to bind to (OPTIONAL)
+ * @param[in] pPeerIpAddr peer ip address to connect in case of TCP (OPTIONAL)
+ * @param[in] customData data available callback custom data
+ * @param[in] pfDataAvailableFn data available callback (OPTIONAL)
+ * @param[in] sendBufSize send buffer size in bytes
+ * @param[in, out] ppSocketConnection the resulting SocketConnection struct
  *
  * @return - STATUS - status of execution
  */
@@ -26,7 +26,7 @@ STATUS createSocketConnection(  KVS_IP_FAMILY_TYPE familyType,
                                 PKvsIpAddress pBindAddr,
                                 PKvsIpAddress pPeerIpAddr,
                                 UINT64 customData,
-                                ConnectionDataAvailableFunc dataAvailableFn,
+                                ConnectionDataAvailableFunc pfDataAvailableFn,
                                 UINT32 sendBufSize,
                                 PSocketConnection* ppSocketConnection)
 {
@@ -58,7 +58,7 @@ STATUS createSocketConnection(  KVS_IP_FAMILY_TYPE familyType,
     ATOMIC_STORE_BOOL(&pSocketConnection->connectionClosed, FALSE);
     ATOMIC_STORE_BOOL(&pSocketConnection->receiveData, FALSE);
     pSocketConnection->dataAvailableCallbackCustomData = customData;
-    pSocketConnection->dataAvailableCallbackFn = dataAvailableFn;
+    pSocketConnection->dataAvailableCallbackFn = pfDataAvailableFn;
 
 CleanUp:
 
@@ -182,15 +182,16 @@ CleanUp:
     return retStatus;
 }
 /**
- * Given a created SocketConnection, send data through the underlying socket. If socket type is UDP, then destination
- * address is required. If socket type is tcp, destination address is ignored and data is send to the peer address provided
- * at SocketConnection creation. If socketConnectionInitSecureConnection has been called then data will be encrypted,
- * otherwise data will be sent as is.
+ * @brief   Given a created SocketConnection, send data through the underlying socket.
+ *          If socket type is UDP, then destination address is required. 
+ *          If socket type is tcp, destination address is ignored and data is send to the peer address provided
+ *          at SocketConnection creation. If socketConnectionInitSecureConnection has been called then data will be encrypted,
+ *          otherwise data will be sent as is.
  *
- * @param - PSocketConnection - IN - the SocketConnection struct
- * @param - PBYTE - IN - buffer containing unencrypted data
- * @param - UINT32 - IN - length of buffer
- * @param - PKvsIpAddress - IN - destination address. Required only if socket type is UDP.
+ * @param[in] pSocketConnection the SocketConnection struct
+ * @param[in] pBuf buffer containing unencrypted data
+ * @param[in] bufLen length of buffer
+ * @param[in] pDestIp destination address. Required only if socket type is UDP.
  *
  * @return - STATUS - status of execution
  */
@@ -303,6 +304,14 @@ BOOL socketConnectionIsClosed(PSocketConnection pSocketConnection)
     }
 }
 
+/**
+ * Return whether socket has been connected. Return TRUE for UDP sockets.
+ * Return TRUE for TCP sockets once the connection has been established, otherwise return FALSE.
+ *
+ * @param - PSocketConnection - IN - the SocketConnection struct
+ *
+ * @return - STATUS - status of execution
+ */
 BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
 {
     INT32 retVal;
@@ -344,8 +353,13 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
 /**
  * @brief 
  * 
- * @param[]
- * @param[]
+ * @param[in] pSocketConnection
+ * @param[in] buf
+ * @param[in] bufLen
+ * @param[in] pDestIp
+ * @param[in, out] pBytesWritten the number of written bytes.
+ * 
+ * @return
 */
 STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, UINT32 bufLen, PKvsIpAddress pDestIp, PUINT32 pBytesWritten)
 {
@@ -418,7 +432,8 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
         socketWriteAttempt++;
     }
 
-    if (pBytesWritten != NULL) {
+    if (
+         != NULL) {
         *pBytesWritten = bytesWritten;
     }
 

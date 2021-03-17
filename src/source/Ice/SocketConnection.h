@@ -43,22 +43,6 @@ struct __SocketConnection {
 };
 typedef struct __SocketConnection* PSocketConnection;
 
-/**
- * Create a SocketConnection object and store it in PSocketConnection. creates a socket based on KVS_SOCKET_PROTOCOL
- * specified, and bind it to the host ip address. If the protocol is tcp, then peer ip address is required and it will
- * try to establish the tcp connection.
- *
- * @param - KVS_IP_FAMILY_TYPE - IN - Family for the socket. Must be one of KVS_IP_FAMILY_TYPE
- * @param - KVS_SOCKET_PROTOCOL - IN - socket protocol. TCP or UDP
- * @param - PKvsIpAddress - IN - host ip address to bind to (OPTIONAL)
- * @param - PKvsIpAddress - IN - peer ip address to connect in case of TCP (OPTIONAL)
- * @param - UINT64 - IN - data available callback custom data
- * @param - ConnectionDataAvailableFunc - IN - data available callback (OPTIONAL)
- * @param - UINT32 - IN - send buffer size in bytes
- * @param - PSocketConnection* - OUT - the resulting SocketConnection struct
- *
- * @return - STATUS - status of execution
- */
 STATUS createSocketConnection(KVS_IP_FAMILY_TYPE, KVS_SOCKET_PROTOCOL, PKvsIpAddress, PKvsIpAddress, UINT64, ConnectionDataAvailableFunc, UINT32,
                               PSocketConnection*);
 
@@ -81,19 +65,6 @@ STATUS freeSocketConnection(PSocketConnection*);
  */
 STATUS socketConnectionInitSecureConnection(PSocketConnection, BOOL);
 
-/**
- * Given a created SocketConnection, send data through the underlying socket. If socket type is UDP, then destination
- * address is required. If socket type is tcp, destination address is ignored and data is send to the peer address provided
- * at SocketConnection creation. If socketConnectionInitSecureConnection has been called then data will be encrypted,
- * otherwise data will be sent as is.
- *
- * @param - PSocketConnection - IN - the SocketConnection struct
- * @param - PBYTE - IN - buffer containing unencrypted data
- * @param - UINT32 - IN - length of buffer
- * @param - PKvsIpAddress - IN - destination address. Required only if socket type is UDP.
- *
- * @return - STATUS - status of execution
- */
 STATUS socketConnectionSendData(PSocketConnection, PBYTE, UINT32, PKvsIpAddress);
 
 /**
@@ -127,14 +98,6 @@ STATUS socketConnectionClosed(PSocketConnection);
  */
 BOOL socketConnectionIsClosed(PSocketConnection);
 
-/**
- * Return whether socket has been connected. Return TRUE for UDP sockets.
- * Return TRUE for TCP sockets once the connection has been established, otherwise return FALSE.
- *
- * @param - PSocketConnection - IN - the SocketConnection struct
- *
- * @return - STATUS - status of execution
- */
 BOOL socketConnectionIsConnected(PSocketConnection);
 
 // internal functions

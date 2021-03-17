@@ -96,7 +96,15 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief Connects the signaling client to the web socket in order to send/receive messages.
+ *
+ * NOTE: The call will succeed only when the signaling client is in a ready state.
+ *
+ * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS signalingClientConnect(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 {
     ENTERS();
@@ -113,7 +121,13 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief Disconnects the signaling client.
+ *
+ * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS signalingClientDisconnect(SIGNALING_CLIENT_HANDLE signalingClientHandle)
 {
     ENTERS();

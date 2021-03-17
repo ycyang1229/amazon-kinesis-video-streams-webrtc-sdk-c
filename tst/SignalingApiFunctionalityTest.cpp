@@ -814,7 +814,7 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
                      "        \"description\": \"Test attempt to reconnect ice server\"\n"
                      "    }\n"
                      "}";
-    EXPECT_EQ(STATUS_SUCCESS, lwsReceiveMessage(pSignalingClient, message, ARRAY_SIZE(message)));
+    EXPECT_EQ(STATUS_SUCCESS, lwsReceiveWssMessage(pSignalingClient, message, ARRAY_SIZE(message)));
 
     DLOGV("After RECONNECT_ICE_SERVER injection");
 
@@ -1534,7 +1534,7 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
                      "        \"description\": \"Test attempt to send GO_AWAY message\"\n"
                      "    }\n"
                      "}";
-    EXPECT_EQ(STATUS_SUCCESS, lwsReceiveMessage(pSignalingClient, message, ARRAY_SIZE(message)));
+    EXPECT_EQ(STATUS_SUCCESS, lwsReceiveWssMessage(pSignalingClient, message, ARRAY_SIZE(message)));
 
     DLOGV("After GO_AWAY injection");
 
@@ -1616,7 +1616,7 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
                      "        \"description\": \"Test attempt to send an unknown message\"\n"
                      "    }\n"
                      "}";
-    EXPECT_EQ(STATUS_SUCCESS, lwsReceiveMessage(pSignalingClient, message, ARRAY_SIZE(message)));
+    EXPECT_EQ(STATUS_SUCCESS, lwsReceiveWssMessage(pSignalingClient, message, ARRAY_SIZE(message)));
 
     DLOGV("After Unknown message type injection");
 
@@ -2463,8 +2463,6 @@ TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshBeforeConnect)
     channelInfo.pCertPath = mCaCertPath;
     channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
 
-    // should make the cached value to expire.
-    channelInfo.asyncIceServerConfig = TRUE;
 
     EXPECT_EQ(STATUS_SUCCESS,
               signalingCreate(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,
@@ -2574,9 +2572,6 @@ TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshParallelToConnect)
     channelInfo.reconnect = TRUE;
     channelInfo.pCertPath = mCaCertPath;
     channelInfo.messageTtl = TEST_SIGNALING_MESSAGE_TTL;
-
-    // should make the cached value to expire.
-    channelInfo.asyncIceServerConfig = TRUE;
 
     EXPECT_EQ(STATUS_SUCCESS,
               signalingCreate(&clientInfoInternal, &channelInfo, &signalingClientCallbacks, (PAwsCredentialProvider) mTestCredentialProvider,

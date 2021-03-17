@@ -3,6 +3,16 @@
 
 extern StateMachineState SIGNALING_STATE_MACHINE_STATES[];
 extern UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT;
+
+
+UINT64 signalingGetCurrentTime(UINT64 customData)
+{
+    UNUSED_PARAM(customData);
+    return GETTIME();
+}
+
+
+
 /**
  * @brief   
  * 
@@ -41,7 +51,7 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     CHK(NULL != (pSignalingClient = (PSignalingClient) MEMCALLOC(1, SIZEOF(SignalingClient))), STATUS_NOT_ENOUGH_MEMORY);
     
     // Initialize the listener and restarter thread trackers
-    CHK_STATUS(signalingInitThreadTracker(&pSignalingClient->listenerTracker));
+    CHK_STATUS(signalingInitThreadTracker(&pSignalingClient->wssIOThread));
     CHK_STATUS(signalingInitThreadTracker(&pSignalingClient->reconnecterTracker));
 
     // Validate and store the input
@@ -75,35 +85,26 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
             pSignalingClient->getEndpointTime = pFileCacheEntry->creationTsEpochSeconds * HUNDREDS_OF_NANOS_IN_A_SECOND;
         }
     }
-
+    // #YC_TBD, need to move out of the signaling 
     // Attempting to get the logging level from the env var and if it fails then set it from the client info
-    if ((userLogLevelStr = GETENV(DEBUG_LOG_LEVEL_ENV_VAR)) != NULL &&
-            STATUS_SUCCEEDED(STRTOUI32(userLogLevelStr, NULL, 10, &userLogLevel))) {
-        userLogLevel = userLogLevel > LOG_LEVEL_SILENT ? LOG_LEVEL_SILENT : userLogLevel < LOG_LEVEL_VERBOSE ? LOG_LEVEL_VERBOSE : userLogLevel;
-    } else {
-        userLogLevel = pClientInfo->signalingClientInfo.loggingLevel;
-    }
-
-    SET_LOGGER_LOG_LEVEL(userLogLevel);
+    //if ((userLogLevelStr = GETENV(DEBUG_LOG_LEVEL_ENV_VAR)) != NULL &&
+    //        STATUS_SUCCEEDED(STRTOUI32(userLogLevelStr, NULL, 10, &userLogLevel))) {
+    //    userLogLevel = userLogLevel > LOG_LEVEL_SILENT ? LOG_LEVEL_SILENT : userLogLevel < LOG_LEVEL_VERBOSE ? LOG_LEVEL_VERBOSE : userLogLevel;
+    //} else {
+    //    userLogLevel = pClientInfo->signalingClientInfo.loggingLevel;
+    //}
+    //SET_LOGGER_LOG_LEVEL(userLogLevel);
 
     // Store the credential provider
     pSignalingClient->pCredentialProvider = pCredentialProvider;
 
-    // Create the state machine
-    CHK_STATUS(createStateMachine(SIGNALING_STATE_MACHINE_STATES,
-                                    SIGNALING_STATE_MACHINE_STATE_COUNT,
-                                    CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient),
-                                    signalingGetCurrentTime,
-                                    CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient),
-                                    &pSignalingClient->pStateMachine));
-
     // Prepare the signaling channel protocols array
     // for the https connection.
-    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS].name = HTTPS_SCHEME_NAME;
-    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS].callback = (lws_callback_function*)lwsHttpCallbackRoutine;
+    pSignalingClient->signalingProtocols[LWS_SIGNALING_PROTOCOL_HTTPS].name = HTTPS_SCHEME_NAME;
+    pSignalingClient->signalingProtocols[LWS_SIGNALING_PROTOCOL_HTTPS].callback = (lws_callback_function*)lwsHttpCallbackRoutine;
     // for the websocket connection.
-    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_WSS].name = WSS_SCHEME_NAME;
-    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_WSS].callback = (lws_callback_function*)lwsWssCallbackRoutine;
+    pSignalingClient->signalingProtocols[LWS_SIGNALING_PROTOCOL_WSS].name = WSS_SCHEME_NAME;
+    pSignalingClient->signalingProtocols[LWS_SIGNALING_PROTOCOL_WSS].callback = (lws_callback_function*)lwsWssCallbackRoutine;
 
     // #lws, for the wrap of libwebsockets.
     MEMSET(&creationInfo, 0x00, SIZEOF(struct lws_context_creation_info));
@@ -125,7 +126,7 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
 
     CHK(NULL != (pSignalingClient->pLwsContext = lws_create_context(&creationInfo)), STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED);
 
-    ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
+    //ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->deleting, FALSE);
@@ -180,22 +181,36 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     // Set the time out before execution
     pSignalingClient->stepUntil = pSignalingClient->diagnostics.createTime + SIGNALING_CREATE_TIMEOUT;
 
-    // Notify of the state change initially as the state machinery is already in the NEW state
-    if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
-        CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
-        CHK_STATUS(pSignalingClient->signalingClientCallbacks.stateChangeFn(pSignalingClient->signalingClientCallbacks.customData,
-                                                                            signalingFsmGetState(pStateMachineState->state)));
-    }
-
-    // Set the async processing based on the channel info
-    ATOMIC_STORE_BOOL(&pSignalingClient->asyncGetIceConfig, pChannelInfo->asyncIceServerConfig);
-
     // Do not force ice config state
     ATOMIC_STORE_BOOL(&pSignalingClient->refreshIceConfig, FALSE);
 
-    // Prime the state machine
-    CHK_STATUS(signalingFsmStep(pSignalingClient, STATUS_SUCCESS));
+    // simplified version of https connection.
+    /**
+     * #https fsm.
+    */
+    CHK(pSignalingClient->pCredentialProvider->getCredentialsFn(pSignalingClient->pCredentialProvider, &pSignalingClient->pAwsCredentials), STATUS_SIGNALING_GET_TOKEN_CALL_FAILED);
 
+    if (pSignalingClient->pChannelInfo->pChannelArn == NULL && pSignalingClient->pChannelInfo->pChannelArn[0] == '\0') {
+        
+        retStatus = signalingDescribeChannel(pSignalingClient, 0);
+
+        if(retStatus != STATUS_SUCCESS){
+            CHK(signalingCreateChannel(pSignalingClient, 0), STATUS_SIGNALING_CREATE_CALL_FAILED);
+            CHK(signalingDescribeChannel(pSignalingClient, 0), STATUS_SIGNALING_DESCRIBE_CALL_FAILED); 
+        }
+
+    } else {
+        // If the client application has specified the Channel ARN then we will skip describe and create states
+        // Store the ARN in the stream description object first
+        STRNCPY(pSignalingClient->channelDescription.channelArn, pSignalingClient->pChannelInfo->pChannelArn, MAX_ARN_LEN);
+        pSignalingClient->channelDescription.channelArn[MAX_ARN_LEN] = '\0';    
+    }
+    
+    
+    CHK(signalingDescribeChannel(pSignalingClient, 0), STATUS_SIGNALING_GET_ENDPOINT_CALL_FAILED);
+    CHK(signalingGetIceConfig(pSignalingClient, 0), STATUS_SIGNALING_GET_ICE_CONFIG_CALL_FAILED);
+    // create fsm
+    // step fsm
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
@@ -285,7 +300,7 @@ STATUS signalingFree(PSignalingClient* ppSignalingClient)
     }
 
     signalingUninitThreadTracker(&pSignalingClient->reconnecterTracker);
-    signalingUninitThreadTracker(&pSignalingClient->listenerTracker);
+    signalingUninitThreadTracker(&pSignalingClient->wssIOThread);
 
     MEMFREE(pSignalingClient);
 
@@ -296,8 +311,291 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+
+
+
 /**
- * @brief  
+ * @brief   make the http call of describing the channel according to the caching policy.
+ *          https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_DescribeSignalingChannel.html
+ * 
+ * @param[in]
+ * @param[in]
+*/
+STATUS signalingDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    // Check for the stale credentials
+    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+    
+    // Call pre hook func
+    if (pSignalingClient->clientInfo.describePreHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.describePreHookFn(pSignalingClient->clientInfo.hookCustomData);
+    }
+
+    if (STATUS_SUCCEEDED(retStatus)) {
+        retStatus = lwsDescribeChannel(pSignalingClient, time);
+
+        // Store the last call time on success
+        if (STATUS_SUCCEEDED(retStatus)) {
+            pSignalingClient->describeTime = time;
+        }
+
+        // Calculate the latency whether the call succeeded or not
+        SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
+    }
+
+    // Call post hook func
+    if (pSignalingClient->clientInfo.describePostHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.describePostHookFn(pSignalingClient->clientInfo.hookCustomData);
+    }
+        
+
+CleanUp:
+
+    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+    }
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS signalingCreateChannel(PSignalingClient pSignalingClient, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    //THREAD_SLEEP_UNTIL(time);
+
+    // Check for the stale credentials
+    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+
+    // We are not caching create calls
+
+    if (pSignalingClient->clientInfo.createPreHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.createPreHookFn(pSignalingClient->clientInfo.hookCustomData);
+    }
+
+    if (STATUS_SUCCEEDED(retStatus)) {
+        retStatus = lwsCreateChannel(pSignalingClient, time);
+
+        // Store the time of the call on success
+        if (STATUS_SUCCEEDED(retStatus)) {
+            pSignalingClient->createTime = time;
+        }
+
+        // Calculate the latency whether the call succeeded or not
+        SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
+    }
+
+    if (pSignalingClient->clientInfo.createPostHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.createPostHookFn(pSignalingClient->clientInfo.hookCustomData);
+    }
+
+CleanUp:
+
+    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+    }
+
+    LEAVES();
+    return retStatus;
+}
+/**
+ * @brief     
+ *          https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_GetSignalingChannelEndpoint.html
+ * 
+ * @param[]
+ * 
+ * @return
+*/
+STATUS signalingGetChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL apiCall = TRUE;
+    SignalingFileCacheEntry signalingFileCacheEntry;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    THREAD_SLEEP_UNTIL(time);
+
+    // Check for the stale credentials
+    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+
+    switch (pSignalingClient->pChannelInfo->cachingPolicy) {
+        case SIGNALING_API_CALL_CACHE_TYPE_NONE:
+            break;
+
+        case SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT:
+            /* explicit fall-through */
+        case SIGNALING_API_CALL_CACHE_TYPE_FILE:
+            if (IS_VALID_TIMESTAMP(pSignalingClient->getEndpointTime) &&
+                time <= pSignalingClient->getEndpointTime + pSignalingClient->pChannelInfo->cachingPeriod) {
+                apiCall = FALSE;
+            }
+
+            break;
+    }
+
+    if (STATUS_SUCCEEDED(retStatus)) {
+        if (apiCall) {
+            if (pSignalingClient->clientInfo.getEndpointPreHookFn != NULL) {
+                retStatus = pSignalingClient->clientInfo.getEndpointPreHookFn(pSignalingClient->clientInfo.hookCustomData);
+            }
+
+            if (STATUS_SUCCEEDED(retStatus)) {
+                retStatus = lwsGetChannelEndpoint(pSignalingClient, time);
+
+                if (STATUS_SUCCEEDED(retStatus)) {
+                    pSignalingClient->getEndpointTime = time;
+
+                    if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
+                        signalingFileCacheEntry.creationTsEpochSeconds = time / HUNDREDS_OF_NANOS_IN_A_SECOND;
+                        signalingFileCacheEntry.role = pSignalingClient->pChannelInfo->channelRoleType;
+                        // In case of pre-created channels, the channel name can be NULL in which case we will use ARN.
+                        // The validation logic in the channel info validates that both can't be NULL at the same time.
+                        STRCPY(signalingFileCacheEntry.channelName,
+                               pSignalingClient->pChannelInfo->pChannelName != NULL ? pSignalingClient->pChannelInfo->pChannelName
+                                                                                    : pSignalingClient->pChannelInfo->pChannelArn);
+                        STRCPY(signalingFileCacheEntry.region, pSignalingClient->pChannelInfo->pRegion);
+                        STRCPY(signalingFileCacheEntry.channelArn, pSignalingClient->channelDescription.channelArn);
+                        STRCPY(signalingFileCacheEntry.httpsEndpoint, pSignalingClient->channelEndpointHttps);
+                        STRCPY(signalingFileCacheEntry.wssEndpoint, pSignalingClient->channelEndpointWss);
+                        if (STATUS_FAILED(signalingCacheSaveToFile(&signalingFileCacheEntry))) {
+                            DLOGW("Failed to save signaling cache to file");
+                        }
+                    }
+                }
+
+                // Calculate the latency whether the call succeeded or not
+                SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
+            }
+
+            if (pSignalingClient->clientInfo.getEndpointPostHookFn != NULL) {
+                retStatus = pSignalingClient->clientInfo.getEndpointPostHookFn(pSignalingClient->clientInfo.hookCustomData);
+            }
+        } else {
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
+        }
+    }
+
+CleanUp:
+
+    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+    }
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS signalingGetIceConfig(PSignalingClient pSignalingClient, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT32 timerId;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    THREAD_SLEEP_UNTIL(time);
+
+    // Check for the stale credentials
+    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+
+    // We are not caching ICE server config calls
+    // prehook.
+    if (pSignalingClient->clientInfo.getIceConfigPreHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.getIceConfigPreHookFn(pSignalingClient->clientInfo.hookCustomData);
+    }
+
+    if (STATUS_SUCCEEDED(retStatus)) {
+        retStatus = lwsGetIceConfig(pSignalingClient, time);
+
+        if (STATUS_SUCCEEDED(retStatus)) {
+            pSignalingClient->getIceConfigTime = time;
+        }
+
+        // Calculate the latency whether the call succeeded or not
+        SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, FALSE);
+    }
+    // post hook
+    if (pSignalingClient->clientInfo.getIceConfigPostHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.getIceConfigPostHookFn(pSignalingClient->clientInfo.hookCustomData);
+    }
+
+CleanUp:
+
+    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+    }
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS signalingDeleteChannel(PSignalingClient pSignalingClient, UINT64 time)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+
+    THREAD_SLEEP_UNTIL(time);
+
+    // Check for the stale credentials
+    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+
+    // We are not caching delete calls
+
+    if (pSignalingClient->clientInfo.deletePreHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.deletePreHookFn(pSignalingClient->clientInfo.hookCustomData);
+    }
+
+    if (STATUS_SUCCEEDED(retStatus)) {
+        retStatus = lwsDeleteChannel(pSignalingClient, time);
+
+        // Store the time of the call on success
+        if (STATUS_SUCCEEDED(retStatus)) {
+            pSignalingClient->deleteTime = time;
+        }
+
+        // Calculate the latency whether the call succeeded or not
+        SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
+    }
+
+    if (pSignalingClient->clientInfo.deletePostHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.deletePostHookFn(pSignalingClient->clientInfo.hookCustomData);
+    }
+
+CleanUp:
+
+    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+    }
+
+    LEAVES();
+    return retStatus;
+}
+
+/**
+ * @brief  the recycle of lws threads and timer-queue.
  *  
  * @param[]
  * @param[]
@@ -330,6 +628,9 @@ CleanUp:
 }
 /**
  * @brief   
+ *          https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis3.html
+ *          https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis4.html
+ *          https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis5.html
  * 
  * @param[]
  * @param[]
@@ -367,7 +668,7 @@ STATUS signalingSendMessage(PSignalingClient pSignalingClient, PSignalingMessage
     removeFromList = TRUE;
 
     // Perform the call
-    CHK_STATUS(lwsSendMessage(pSignalingClient,
+    CHK_STATUS(lwsSendWssMessage(pSignalingClient,
                                 pOfferType,
                                 pSignalingMessage->peerClientId,
                                 pSignalingMessage->payload,
@@ -391,56 +692,71 @@ CleanUp:
     return retStatus;
 }
 
-STATUS signalingGetIceConfigInfoCout(PSignalingClient pSignalingClient, PUINT32 pIceConfigCount)
+/**
+ * @brief   handle the msg of websocket connect.
+ * 
+*/
+STATUS signalingWssConnctMsg(PSignalingClient pSignalingClient)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+
+
+    return retStatus;
+}
+
+/**
+ * @brief   
+ * 
+ * @param[in] pSignalingClient the context of signaling client.
+ * @param[in] time the absolute time. 
+ * 
+ * @return
+*/
+STATUS signalingConnectChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
 
-    CHK(pSignalingClient != NULL && pIceConfigCount != NULL, STATUS_NULL_ARG);
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+    // sleep until the absolute time.
+    THREAD_SLEEP_UNTIL(time);
 
-    // Validate the state in sync ICE config mode only
-    if (!pSignalingClient->pChannelInfo->asyncIceServerConfig) {
-        CHK_STATUS(
-            acceptStateMachineState(pSignalingClient->pStateMachine, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED));
+    // Check for the stale credentials
+    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+
+    // We are not caching connect calls
+    // pre-hook function.
+    if (pSignalingClient->clientInfo.connectPreHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.connectPreHookFn(pSignalingClient->clientInfo.hookCustomData);
     }
+    //
+    if (STATUS_SUCCEEDED(retStatus)) {
+        // No need to reconnect again if already connected. This can happen if we get to this state after ice refresh
+        if (!ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+            retStatus = lwsConnectSignalingChannel(pSignalingClient, time);
 
-    if (ATOMIC_LOAD_BOOL(&pSignalingClient->iceConfigRetrieved)) {
-        *pIceConfigCount = pSignalingClient->iceConfigCount;
-    } else {
-        *pIceConfigCount = 0;
+            // Store the time of the call on success
+            if (STATUS_SUCCEEDED(retStatus)) {
+                pSignalingClient->connectTime = time;
+            }
+        } else {
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
+        }
+    }
+    // post-hook function.
+    if (pSignalingClient->clientInfo.connectPostHookFn != NULL) {
+        retStatus = pSignalingClient->clientInfo.connectPostHookFn(pSignalingClient->clientInfo.hookCustomData);
     }
 
 CleanUp:
-
-    CHK_LOG_ERR(retStatus);
 
     LEAVES();
     return retStatus;
 }
 
-STATUS signalingGetIceConfigInfo(PSignalingClient pSignalingClient, UINT32 index, PIceConfigInfo* ppIceConfigInfo)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-
-    CHK(pSignalingClient != NULL && ppIceConfigInfo != NULL, STATUS_NULL_ARG);
-    CHK(index < pSignalingClient->iceConfigCount, STATUS_INVALID_ARG);
-
-    // Validate the state in sync ICE config mode only
-    if (!pSignalingClient->pChannelInfo->asyncIceServerConfig) {
-        CHK_STATUS(
-            acceptStateMachineState(pSignalingClient->pStateMachine, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED));
-    }
-
-    *ppIceConfigInfo = &pSignalingClient->iceConfigs[index];
-
-CleanUp:
-
-    CHK_LOG_ERR(retStatus);
-
-    LEAVES();
-    return retStatus;
-}
 
 STATUS signalingConnect(PSignalingClient pSignalingClient)
 {
@@ -451,23 +767,23 @@ STATUS signalingConnect(PSignalingClient pSignalingClient)
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     // Validate the state
-    CHK_STATUS(acceptStateMachineState(pSignalingClient->pStateMachine,
-                                       SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED));
+    //CHK_STATUS(acceptStateMachineState(pSignalingClient->pStateMachine,
+    //                                   SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_DISCONNECTED | SIGNALING_STATE_CONNECTED));
 
     // Check if we are already connected
     CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->connected), retStatus);
 
     // Self-prime through the ready state
-    pSignalingClient->continueOnReady = TRUE;
+    //pSignalingClient->continueOnReady = TRUE;
 
     // Store the signaling state in case we error/timeout so we can re-set it on exit
-    CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
+    //CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pState));
 
     // Set the time out before execution
-    pSignalingClient->stepUntil = GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT;
-
-    CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
-
+    //pSignalingClient->stepUntil = GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT;
+    // step the fsm of signaling to connect state.
+    //CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
+    retStatus = signalingConnectChannel(pSignalingClient, 0);
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
@@ -481,7 +797,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief   actually, this api does not send close-frame to websocket server. only step the fsm to ready state.
+*/
 STATUS signalingDisconnect(PSignalingClient pSignalingClient)
 {
     ENTERS();
@@ -592,6 +910,52 @@ CleanUp:
     return retStatus;
 }
 
+STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMetrics pSignalingClientMetrics)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    UINT64 curTime = GETTIME();
+
+    CHK(pSignalingClient != NULL && pSignalingClientMetrics != NULL, STATUS_NULL_ARG);
+    CHK(pSignalingClientMetrics->version <= SIGNALING_CLIENT_METRICS_CURRENT_VERSION, STATUS_SIGNALING_INVALID_METRICS_VERSION);
+
+    // Interlock the threading due to data race possibility
+    MUTEX_LOCK(pSignalingClient->diagnosticsLock);
+
+    // Fill in the data structures according to the version of the requested structure - currently only v0
+    pSignalingClientMetrics->signalingClientStats.signalingClientUptime = curTime - pSignalingClient->diagnostics.createTime;
+    pSignalingClientMetrics->signalingClientStats.numberOfMessagesSent = (UINT32) pSignalingClient->diagnostics.numberOfMessagesSent;
+    pSignalingClientMetrics->signalingClientStats.numberOfMessagesReceived = (UINT32) pSignalingClient->diagnostics.numberOfMessagesReceived;
+    pSignalingClientMetrics->signalingClientStats.iceRefreshCount = (UINT32) pSignalingClient->diagnostics.iceRefreshCount;
+    pSignalingClientMetrics->signalingClientStats.numberOfErrors = (UINT32) pSignalingClient->diagnostics.numberOfErrors;
+    pSignalingClientMetrics->signalingClientStats.numberOfRuntimeErrors = (UINT32) pSignalingClient->diagnostics.numberOfRuntimeErrors;
+    pSignalingClientMetrics->signalingClientStats.numberOfReconnects = (UINT32) pSignalingClient->diagnostics.numberOfReconnects;
+    pSignalingClientMetrics->signalingClientStats.cpApiCallLatency = pSignalingClient->diagnostics.cpApiLatency;
+    pSignalingClientMetrics->signalingClientStats.dpApiCallLatency = pSignalingClient->diagnostics.dpApiLatency;
+
+    pSignalingClientMetrics->signalingClientStats.connectionDuration =
+        ATOMIC_LOAD_BOOL(&pSignalingClient->connected) ? curTime - pSignalingClient->diagnostics.connectTime : 0;
+
+    MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+
+#if 0
+void _GET_ICE_SERVER_CONFIGURATION_(){
+
+}
+#endif
+
+/**
+ * @brief   validate the information of ice server configuration, and schedule one timer to refresh the ice server.
+ *          this should be modified as callback or handled in lws.
+ * 
+*/
 STATUS signalingValidateIceConfiguration(PSignalingClient pSignalingClient)
 {
     ENTERS();
@@ -644,7 +1008,7 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief   
+ * @brief   refresh the information of ice server.
 */
 STATUS signalingRefreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UINT64 customData)
 {
@@ -661,18 +1025,6 @@ STATUS signalingRefreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduled
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     DLOGD("Refreshing the ICE Server Configuration");
-
-    // If we are coming from async code we need to check if we have already landed in Ready state
-    if (ATOMIC_LOAD_BOOL(&pSignalingClient->asyncGetIceConfig)) {
-        // Re-schedule in a while
-        CHK_STATUS(timerQueueAddTimer(pSignalingClient->timerQueueHandle,
-                                        SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY,
-                                        TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
-                                        signalingRefreshIceConfigurationCallback,
-                                        (UINT64) pSignalingClient,
-                                        &newTimerId));
-        CHK(FALSE, retStatus);
-    }
 
     // Check if we are in a connect, connected, disconnected or ready states and if not bail.
     // The ICE state will be called in any other states
@@ -718,6 +1070,63 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+
+STATUS signalingGetIceConfigInfoCout(PSignalingClient pSignalingClient, PUINT32 pIceConfigCount)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pSignalingClient != NULL && pIceConfigCount != NULL, STATUS_NULL_ARG);
+
+    // Validate the state in sync ICE config mode only
+    CHK_STATUS(
+        acceptStateMachineState(pSignalingClient->pStateMachine, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED));
+    
+    if (ATOMIC_LOAD_BOOL(&pSignalingClient->iceConfigRetrieved)) {
+        *pIceConfigCount = pSignalingClient->iceConfigCount;
+    } else {
+        *pIceConfigCount = 0;
+    }
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
+STATUS signalingGetIceConfigInfo(PSignalingClient pSignalingClient, UINT32 index, PIceConfigInfo* ppIceConfigInfo)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    CHK(pSignalingClient != NULL && ppIceConfigInfo != NULL, STATUS_NULL_ARG);
+    CHK(index < pSignalingClient->iceConfigCount, STATUS_INVALID_ARG);
+
+    // Validate the state in sync ICE config mode only
+    CHK_STATUS(
+        acceptStateMachineState(pSignalingClient->pStateMachine, SIGNALING_STATE_READY | SIGNALING_STATE_CONNECT | SIGNALING_STATE_CONNECTED));
+    
+
+    *ppIceConfigInfo = &pSignalingClient->iceConfigs[index];
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+
+    LEAVES();
+    return retStatus;
+}
+
+
+
+#if 0
+void _WSS_MESSAGE__(){
+
+}
+#endif
+
 /**
  * @brief   store the singaling ongoing message, and also check the duplicated messages.
  * 
@@ -795,6 +1204,7 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+
 /**
  * @brief   Get the corresponding message with correction id and peer client id.
  * 
@@ -855,6 +1265,14 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+
+
+#if 0
+void _THREAD_CONTROL__(){
+
+}
+#endif
+
 /**
  * @brief   The initialization of thread context not including the creation of thread.
  * 
@@ -932,401 +1350,5 @@ CleanUp:
         MUTEX_UNLOCK(pThreadTracker->lock);
     }
 
-    return retStatus;
-}
-
-STATUS signalingDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    BOOL apiCall = TRUE;
-
-    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-
-    THREAD_SLEEP_UNTIL(time);
-
-    // Check for the stale credentials
-    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
-
-    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-
-    switch (pSignalingClient->pChannelInfo->cachingPolicy) {
-        case SIGNALING_API_CALL_CACHE_TYPE_NONE:
-            break;
-
-        case SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT:
-            /* explicit fall-through */
-        case SIGNALING_API_CALL_CACHE_TYPE_FILE:
-            if (IS_VALID_TIMESTAMP(pSignalingClient->describeTime) &&
-                time <= pSignalingClient->describeTime + pSignalingClient->pChannelInfo->cachingPeriod) {
-                apiCall = FALSE;
-            }
-
-            break;
-    }
-
-    // Call DescribeChannel API
-    if (STATUS_SUCCEEDED(retStatus)) {
-        if (apiCall) {
-            // Call pre hook func
-            if (pSignalingClient->clientInfo.describePreHookFn != NULL) {
-                retStatus = pSignalingClient->clientInfo.describePreHookFn(pSignalingClient->clientInfo.hookCustomData);
-            }
-
-            if (STATUS_SUCCEEDED(retStatus)) {
-                retStatus = lwsDescribeChannel(pSignalingClient, time);
-
-                // Store the last call time on success
-                if (STATUS_SUCCEEDED(retStatus)) {
-                    pSignalingClient->describeTime = time;
-                }
-
-                // Calculate the latency whether the call succeeded or not
-                SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
-            }
-
-            // Call post hook func
-            if (pSignalingClient->clientInfo.describePostHookFn != NULL) {
-                retStatus = pSignalingClient->clientInfo.describePostHookFn(pSignalingClient->clientInfo.hookCustomData);
-            }
-        } else {
-            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
-        }
-    }
-
-CleanUp:
-
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS signalingCreateChannel(PSignalingClient pSignalingClient, UINT64 time)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-
-    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-
-    THREAD_SLEEP_UNTIL(time);
-
-    // Check for the stale credentials
-    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
-
-    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-
-    // We are not caching create calls
-
-    if (pSignalingClient->clientInfo.createPreHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.createPreHookFn(pSignalingClient->clientInfo.hookCustomData);
-    }
-
-    if (STATUS_SUCCEEDED(retStatus)) {
-        retStatus = lwsCreateChannel(pSignalingClient, time);
-
-        // Store the time of the call on success
-        if (STATUS_SUCCEEDED(retStatus)) {
-            pSignalingClient->createTime = time;
-        }
-
-        // Calculate the latency whether the call succeeded or not
-        SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
-    }
-
-    if (pSignalingClient->clientInfo.createPostHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.createPostHookFn(pSignalingClient->clientInfo.hookCustomData);
-    }
-
-CleanUp:
-
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS signalingGetChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    BOOL apiCall = TRUE;
-    SignalingFileCacheEntry signalingFileCacheEntry;
-
-    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-
-    THREAD_SLEEP_UNTIL(time);
-
-    // Check for the stale credentials
-    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
-
-    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-
-    switch (pSignalingClient->pChannelInfo->cachingPolicy) {
-        case SIGNALING_API_CALL_CACHE_TYPE_NONE:
-            break;
-
-        case SIGNALING_API_CALL_CACHE_TYPE_DESCRIBE_GETENDPOINT:
-            /* explicit fall-through */
-        case SIGNALING_API_CALL_CACHE_TYPE_FILE:
-            if (IS_VALID_TIMESTAMP(pSignalingClient->getEndpointTime) &&
-                time <= pSignalingClient->getEndpointTime + pSignalingClient->pChannelInfo->cachingPeriod) {
-                apiCall = FALSE;
-            }
-
-            break;
-    }
-
-    if (STATUS_SUCCEEDED(retStatus)) {
-        if (apiCall) {
-            if (pSignalingClient->clientInfo.getEndpointPreHookFn != NULL) {
-                retStatus = pSignalingClient->clientInfo.getEndpointPreHookFn(pSignalingClient->clientInfo.hookCustomData);
-            }
-
-            if (STATUS_SUCCEEDED(retStatus)) {
-                retStatus = lwsGetChannelEndpoint(pSignalingClient, time);
-
-                if (STATUS_SUCCEEDED(retStatus)) {
-                    pSignalingClient->getEndpointTime = time;
-
-                    if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
-                        signalingFileCacheEntry.creationTsEpochSeconds = time / HUNDREDS_OF_NANOS_IN_A_SECOND;
-                        signalingFileCacheEntry.role = pSignalingClient->pChannelInfo->channelRoleType;
-                        // In case of pre-created channels, the channel name can be NULL in which case we will use ARN.
-                        // The validation logic in the channel info validates that both can't be NULL at the same time.
-                        STRCPY(signalingFileCacheEntry.channelName,
-                               pSignalingClient->pChannelInfo->pChannelName != NULL ? pSignalingClient->pChannelInfo->pChannelName
-                                                                                    : pSignalingClient->pChannelInfo->pChannelArn);
-                        STRCPY(signalingFileCacheEntry.region, pSignalingClient->pChannelInfo->pRegion);
-                        STRCPY(signalingFileCacheEntry.channelArn, pSignalingClient->channelDescription.channelArn);
-                        STRCPY(signalingFileCacheEntry.httpsEndpoint, pSignalingClient->channelEndpointHttps);
-                        STRCPY(signalingFileCacheEntry.wssEndpoint, pSignalingClient->channelEndpointWss);
-                        if (STATUS_FAILED(signalingCacheSaveToFile(&signalingFileCacheEntry))) {
-                            DLOGW("Failed to save signaling cache to file");
-                        }
-                    }
-                }
-
-                // Calculate the latency whether the call succeeded or not
-                SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
-            }
-
-            if (pSignalingClient->clientInfo.getEndpointPostHookFn != NULL) {
-                retStatus = pSignalingClient->clientInfo.getEndpointPostHookFn(pSignalingClient->clientInfo.hookCustomData);
-            }
-        } else {
-            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
-        }
-    }
-
-CleanUp:
-
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS signalingGetIceConfig(PSignalingClient pSignalingClient, UINT64 time)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT32 timerId;
-
-    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-
-    // Check if we need to async the API and if so early return
-    if (ATOMIC_LOAD_BOOL(&pSignalingClient->asyncGetIceConfig)) {
-        // We will emulate the call and kick off the ice refresh routine
-        CHK_STATUS(timerQueueAddTimer(pSignalingClient->timerQueueHandle,
-                                        SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY,
-                                        TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
-                                        signalingRefreshIceConfigurationCallback,
-                                        (UINT64) pSignalingClient, &timerId));
-
-        // Success early return to prime the state machine to the next state which is Ready
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
-        CHK(FALSE, retStatus);
-    }
-
-    THREAD_SLEEP_UNTIL(time);
-
-    // Check for the stale credentials
-    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
-
-    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-
-    // We are not caching ICE server config calls
-
-    if (pSignalingClient->clientInfo.getIceConfigPreHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.getIceConfigPreHookFn(pSignalingClient->clientInfo.hookCustomData);
-    }
-
-    if (STATUS_SUCCEEDED(retStatus)) {
-        retStatus = lwsGetIceConfig(pSignalingClient, time);
-
-        if (STATUS_SUCCEEDED(retStatus)) {
-            pSignalingClient->getIceConfigTime = time;
-        }
-
-        // Calculate the latency whether the call succeeded or not
-        SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, FALSE);
-    }
-
-    if (pSignalingClient->clientInfo.getIceConfigPostHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.getIceConfigPostHookFn(pSignalingClient->clientInfo.hookCustomData);
-    }
-
-CleanUp:
-
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS signalingDeleteChannel(PSignalingClient pSignalingClient, UINT64 time)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-
-    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-
-    THREAD_SLEEP_UNTIL(time);
-
-    // Check for the stale credentials
-    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
-
-    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-
-    // We are not caching delete calls
-
-    if (pSignalingClient->clientInfo.deletePreHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.deletePreHookFn(pSignalingClient->clientInfo.hookCustomData);
-    }
-
-    if (STATUS_SUCCEEDED(retStatus)) {
-        retStatus = lwsDeleteChannel(pSignalingClient, time);
-
-        // Store the time of the call on success
-        if (STATUS_SUCCEEDED(retStatus)) {
-            pSignalingClient->deleteTime = time;
-        }
-
-        // Calculate the latency whether the call succeeded or not
-        SIGNALING_API_LATENCY_CALCULATION(pSignalingClient, time, TRUE);
-    }
-
-    if (pSignalingClient->clientInfo.deletePostHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.deletePostHookFn(pSignalingClient->clientInfo.hookCustomData);
-    }
-
-CleanUp:
-
-    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
-    }
-
-    LEAVES();
-    return retStatus;
-}
-/**
- * @brief   
- * 
- * @param[in] pSignalingClient the context of signaling client.
- * @param[in] time the absolute time. 
- * 
- * @return
-*/
-STATUS signalingConnectChannel(PSignalingClient pSignalingClient, UINT64 time)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-
-    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-    // sleep until the absolute time.
-    THREAD_SLEEP_UNTIL(time);
-
-    // Check for the stale credentials
-    CHECK_SIGNALING_CREDENTIALS_EXPIRATION(pSignalingClient);
-
-    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-
-    // We are not caching connect calls
-    // pre-hook function.
-    if (pSignalingClient->clientInfo.connectPreHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.connectPreHookFn(pSignalingClient->clientInfo.hookCustomData);
-    }
-    //
-    if (STATUS_SUCCEEDED(retStatus)) {
-        // No need to reconnect again if already connected. This can happen if we get to this state after ice refresh
-        if (!ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
-            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-            retStatus = lwsConnectSignalingChannel(pSignalingClient, time);
-
-            // Store the time of the call on success
-            if (STATUS_SUCCEEDED(retStatus)) {
-                pSignalingClient->connectTime = time;
-            }
-        } else {
-            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
-        }
-    }
-    // post-hook function.
-    if (pSignalingClient->clientInfo.connectPostHookFn != NULL) {
-        retStatus = pSignalingClient->clientInfo.connectPostHookFn(pSignalingClient->clientInfo.hookCustomData);
-    }
-
-CleanUp:
-
-    LEAVES();
-    return retStatus;
-}
-
-UINT64 signalingGetCurrentTime(UINT64 customData)
-{
-    UNUSED_PARAM(customData);
-    return GETTIME();
-}
-
-STATUS signalingGetMetrics(PSignalingClient pSignalingClient, PSignalingClientMetrics pSignalingClientMetrics)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    UINT64 curTime = GETTIME();
-
-    CHK(pSignalingClient != NULL && pSignalingClientMetrics != NULL, STATUS_NULL_ARG);
-    CHK(pSignalingClientMetrics->version <= SIGNALING_CLIENT_METRICS_CURRENT_VERSION, STATUS_SIGNALING_INVALID_METRICS_VERSION);
-
-    // Interlock the threading due to data race possibility
-    MUTEX_LOCK(pSignalingClient->diagnosticsLock);
-
-    // Fill in the data structures according to the version of the requested structure - currently only v0
-    pSignalingClientMetrics->signalingClientStats.signalingClientUptime = curTime - pSignalingClient->diagnostics.createTime;
-    pSignalingClientMetrics->signalingClientStats.numberOfMessagesSent = (UINT32) pSignalingClient->diagnostics.numberOfMessagesSent;
-    pSignalingClientMetrics->signalingClientStats.numberOfMessagesReceived = (UINT32) pSignalingClient->diagnostics.numberOfMessagesReceived;
-    pSignalingClientMetrics->signalingClientStats.iceRefreshCount = (UINT32) pSignalingClient->diagnostics.iceRefreshCount;
-    pSignalingClientMetrics->signalingClientStats.numberOfErrors = (UINT32) pSignalingClient->diagnostics.numberOfErrors;
-    pSignalingClientMetrics->signalingClientStats.numberOfRuntimeErrors = (UINT32) pSignalingClient->diagnostics.numberOfRuntimeErrors;
-    pSignalingClientMetrics->signalingClientStats.numberOfReconnects = (UINT32) pSignalingClient->diagnostics.numberOfReconnects;
-    pSignalingClientMetrics->signalingClientStats.cpApiCallLatency = pSignalingClient->diagnostics.cpApiLatency;
-    pSignalingClientMetrics->signalingClientStats.dpApiCallLatency = pSignalingClient->diagnostics.dpApiLatency;
-
-    pSignalingClientMetrics->signalingClientStats.connectionDuration =
-        ATOMIC_LOAD_BOOL(&pSignalingClient->connected) ? curTime - pSignalingClient->diagnostics.connectTime : 0;
-
-    MUTEX_UNLOCK(pSignalingClient->diagnosticsLock);
-
-CleanUp:
-
-    LEAVES();
     return retStatus;
 }

@@ -141,12 +141,13 @@ typedef enum {
     // #define IS_REQUEST(msg_type) (((msg_type) & 0x0110) == 0x0000)
     STUN_PACKET_TYPE_BINDING_REQUEST = (UINT16) 0x0001,
     STUN_PACKET_TYPE_SHARED_SECRET_REQUEST = (UINT16) 0x0002,
-    STUN_PACKET_TYPE_ALLOCATE = (UINT16) 0x0003,
-    STUN_PACKET_TYPE_REFRESH = (UINT16) 0x0004,
-    STUN_PACKET_TYPE_SEND = (UINT16) 0x0006,
-    STUN_PACKET_TYPE_DATA = (UINT16) 0x0007,
-    STUN_PACKET_TYPE_CREATE_PERMISSION = (UINT16) 0x0008,
-    STUN_PACKET_TYPE_CHANNEL_BIND_REQUEST = (UINT16) 0x0009,
+    // https://tools.ietf.org/html/rfc5766#section-13
+    STUN_PACKET_TYPE_ALLOCATE = (UINT16) 0x0003,//!< only request/response semantics defined
+    STUN_PACKET_TYPE_REFRESH = (UINT16) 0x0004,//!< only request/response semantics defined
+    STUN_PACKET_TYPE_SEND = (UINT16) 0x0006,//!< only indication semantics defined
+    STUN_PACKET_TYPE_DATA = (UINT16) 0x0007,//!< only indication semantics defined
+    STUN_PACKET_TYPE_CREATE_PERMISSION = (UINT16) 0x0008,//!< only request/response semantics defined
+    STUN_PACKET_TYPE_CHANNEL_BIND_REQUEST = (UINT16) 0x0009,//!< only request/response semantics defined
 
     //#define IS_INDICATION(msg_type) (((msg_type) & 0x0110) == 0x0010)
     STUN_PACKET_TYPE_BINDING_INDICATION = (UINT16) 0x0011,
@@ -182,17 +183,32 @@ typedef enum {
      (getInt16(*(PINT16) pPacketBuffer) == STUN_PACKET_TYPE_CHANNEL_BIND_ERROR_RESPONSE))
 
 /**
- * STUN error codes
- */
+ * @brief   STUN error codes
+ *          https://tools.ietf.org/html/rfc5389#section-15.6
+ *          https://tools.ietf.org/html/rfc5766#section-6.4
+*/
 typedef enum {
+    STUN_ERROR_TRY_ALTERNATE = (UINT16) 300,
+    STUN_ERROR_BAD_REQUEST = (UINT16) 400,
     STUN_ERROR_UNAUTHORIZED = (UINT16) 401,
+    STUN_ERROR_FORBIDDEN = (UINT16) 403,
+    STUN_ERROR_UNKNOWN_ATTRIBUTE = (UINT16) 420,
+    STUN_ERROR_ALLOCATION_MISMATCH = (UINT16) 437,
     STUN_ERROR_STALE_NONCE = (UINT16) 438,
+    STUN_ERROR_WRONG_CREDENTIALS = (UINT16) 441,
+    STUN_ERROR_UNSUPPORTED_TRANSPORT_ADDRESS = (UINT16) 442,
+    STUN_ERROR_ALLOCATION_QUOTA_REACHED = (UINT16) 486,
+    STUN_ERROR_SERVER_ERROR = (UINT16) 500,
+    STUN_ERROR_INSUFFICIENT_CAPACITY = (UINT16) 508,
 } STUN_ERROR_CODE;
 
 /**
- * STUN attribute types
- */
+ * @brief   STUN attribute types
+ *          https://tools.ietf.org/html/rfc5389#section-18.2
+*/
 typedef enum {
+    // Comprehension-required range (0x0000-0x7FFF)
+    STUN_ATTRIBUTE_TYPE_RESERVED = (UINT16) 0x0000,
     STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS = (UINT16) 0x0001,
     STUN_ATTRIBUTE_TYPE_RESPONSE_ADDRESS = (UINT16) 0x0002,
     STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST = (UINT16) 0x0003,
@@ -204,12 +220,7 @@ typedef enum {
     STUN_ATTRIBUTE_TYPE_ERROR_CODE = (UINT16) 0x0009,
     STUN_ATTRIBUTE_TYPE_UNKNOWN_ATTRIBUTES = (UINT16) 0x000A,
     STUN_ATTRIBUTE_TYPE_REFLECTED_FROM = (UINT16) 0x000B,
-    STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS = (UINT16) 0x0020,
-    STUN_ATTRIBUTE_TYPE_PRIORITY = (UINT16) 0x0024,
-    STUN_ATTRIBUTE_TYPE_USE_CANDIDATE = (UINT16) 0x0025,
-    STUN_ATTRIBUTE_TYPE_FINGERPRINT = (UINT16) 0x8028,
-    STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED = (UINT16) 0x8029,
-    STUN_ATTRIBUTE_TYPE_ICE_CONTROLLING = (UINT16) 0x802A,
+    // // https://tools.ietf.org/html/rfc5766#section-14
     STUN_ATTRIBUTE_TYPE_CHANNEL_NUMBER = (UINT16) 0x000C,
     STUN_ATTRIBUTE_TYPE_LIFETIME = (UINT16) 0x000D,
     STUN_ATTRIBUTE_TYPE_XOR_PEER_ADDRESS = (UINT16) 0x0012,
@@ -220,7 +231,16 @@ typedef enum {
     STUN_ATTRIBUTE_TYPE_EVEN_PORT = (UINT16) 0x0018,
     STUN_ATTRIBUTE_TYPE_REQUESTED_TRANSPORT = (UINT16) 0x0019,
     STUN_ATTRIBUTE_TYPE_DONT_FRAGMENT = (UINT16) 0x001A,
+    STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS = (UINT16) 0x0020,
     STUN_ATTRIBUTE_TYPE_RESERVATION_TOKEN = (UINT16) 0x0022,
+    STUN_ATTRIBUTE_TYPE_PRIORITY = (UINT16) 0x0024,
+    STUN_ATTRIBUTE_TYPE_USE_CANDIDATE = (UINT16) 0x0025,
+    // Comprehension-optional range (0x8000-0xFFFF)
+    STUN_ATTRIBUTE_TYPE_SOFTWARE = (UINT16) 0x8022,
+    STUN_ATTRIBUTE_TYPE_ALTERNATE_SERVER = (UINT16) 0x8023,
+    STUN_ATTRIBUTE_TYPE_FINGERPRINT = (UINT16) 0x8028,
+    STUN_ATTRIBUTE_TYPE_ICE_CONTROLLED = (UINT16) 0x8029,
+    STUN_ATTRIBUTE_TYPE_ICE_CONTROLLING = (UINT16) 0x802A,
 
 } STUN_ATTRIBUTE_TYPE;
 
@@ -364,54 +384,49 @@ typedef struct {
  */
 typedef struct {
     // Stun header
-    StunHeader header;
+    StunHeader header;//!< the stun header.
 
     // Number of attributes in the list
     UINT32 attributesCount;
 
     // The entire structure allocation size
-    UINT32 allocationSize;
+    UINT32 allocationSize;//!< the size of allocated buffer. #YC_TBD, need to review the size.
 
     // Stun attributes
-    PStunAttributeHeader* attributeList;
+    PStunAttributeHeader* attributeList;//!< the buffer of stun attributes.
 } StunPacket, *PStunPacket;
 
-STATUS serializeStunPacket(PStunPacket, PBYTE, UINT32, BOOL, BOOL, PBYTE, PUINT32);
-STATUS deserializeStunPacket(PBYTE, UINT32, PBYTE, UINT32, PStunPacket*);
-STATUS freeStunPacket(PStunPacket*);
-STATUS createStunPacket(STUN_PACKET_TYPE, PBYTE, PStunPacket*);
-STATUS appendStunAddressAttribute(PStunPacket, STUN_ATTRIBUTE_TYPE, PKvsIpAddress);
-STATUS appendStunUsernameAttribute(PStunPacket, PCHAR);
-STATUS appendStunFlagAttribute(PStunPacket, STUN_ATTRIBUTE_TYPE);
-STATUS appendStunPriorityAttribute(PStunPacket, UINT32);
-STATUS appendStunLifetimeAttribute(PStunPacket, UINT32);
-STATUS appendStunRequestedTransportAttribute(PStunPacket, UINT8);
-STATUS appendStunRealmAttribute(PStunPacket, PCHAR);
-STATUS appendStunNonceAttribute(PStunPacket, PBYTE, UINT16);
-STATUS updateStunNonceAttribute(PStunPacket, PBYTE, UINT16);
-STATUS appendStunErrorCodeAttribute(PStunPacket, PCHAR, UINT16);
-STATUS appendStunIceControllAttribute(PStunPacket, STUN_ATTRIBUTE_TYPE, UINT64);
-STATUS appendStunDataAttribute(PStunPacket, PBYTE, UINT16);
-STATUS appendStunChannelNumberAttribute(PStunPacket, UINT16);
-STATUS appendStunChangeRequestAttribute(PStunPacket, UINT32);
+STATUS stunSerializePacket(PStunPacket, PBYTE, UINT32, BOOL, BOOL, PBYTE, PUINT32);
+STATUS stunDeserializePacket(PBYTE, UINT32, PBYTE, UINT32, PStunPacket*);
+STATUS stunFreePacket(PStunPacket*);
+STATUS stunCreatePacket(STUN_PACKET_TYPE, PBYTE, PStunPacket*);
+STATUS stunAppendAttrAddress(PStunPacket, STUN_ATTRIBUTE_TYPE, PKvsIpAddress);
+STATUS stunAppendAttrUsername(PStunPacket, PCHAR);
+STATUS stunAppendAttrFlag(PStunPacket, STUN_ATTRIBUTE_TYPE);
+STATUS stunAppendAttrPriority(PStunPacket, UINT32);
+STATUS stunAppendAttrLifetime(PStunPacket, UINT32);
+STATUS stunAppendAttrRequestedTransport(PStunPacket, UINT8);
+STATUS stunAppendAttrRealm(PStunPacket, PCHAR);
+STATUS stunAppendAttrNonce(PStunPacket, PBYTE, UINT16);
+STATUS stunUpdateAttrNonce(PStunPacket, PBYTE, UINT16);
+STATUS stunAppendAttrErrorCode(PStunPacket, PCHAR, UINT16);
+STATUS stunAppendAttrIceControl(PStunPacket, STUN_ATTRIBUTE_TYPE, UINT64);
+STATUS stunAppendAttrData(PStunPacket, PBYTE, UINT16);
+STATUS stunAppendAttrChannelNumber(PStunPacket, UINT16);
+STATUS stunAppendAttrChangeRequest(PStunPacket, UINT32);
 
-/**
- * check if PStunPacket has an attribute of type STUN_ATTRIBUTE_TYPE. If so, return the first occurrence through
- * PStunAttributeHeader*
- * @return STATUS of operations
- */
-STATUS getStunAttribute(PStunPacket, STUN_ATTRIBUTE_TYPE, PStunAttributeHeader*);
+STATUS stunGetAttribute(PStunPacket, STUN_ATTRIBUTE_TYPE, PStunAttributeHeader*);
 
 /**
  * xor an ip address in place
  */
-STATUS xorIpAddress(PKvsIpAddress, PBYTE);
+STATUS stunXorIpAddress(PKvsIpAddress, PBYTE);
 //
 // Internal functions
 //
 STATUS stunPackageIpAddr(PStunHeader, STUN_ATTRIBUTE_TYPE, PKvsIpAddress, PBYTE, PUINT32);
-UINT16 getPackagedStunAttributeSize(PStunAttributeHeader);
-STATUS getFirstAvailableStunAttribute(PStunPacket, PStunAttributeHeader*);
+UINT16 stunGetPackagedAttributeSize(PStunAttributeHeader);
+STATUS stunGetFirstAvailableAttribute(PStunPacket, PStunAttributeHeader*);
 
 #ifdef __cplusplus
 }

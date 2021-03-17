@@ -670,7 +670,7 @@ TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
     EXPECT_EQ(STATUS_SUCCESS, createConnectionListener(&pConnectionListener));
     EXPECT_EQ(STATUS_SUCCESS, timerQueueCreate(&timerQueueHandle));
     EXPECT_EQ(STATUS_SUCCESS,
-              createIceAgent(localIceUfrag, localIcePwd, &iceAgentCallbacks, &configuration, timerQueueHandle, pConnectionListener, &pIceAgent));
+              iceAgentCreate(localIceUfrag, localIcePwd, &iceAgentCallbacks, &configuration, timerQueueHandle, pConnectionListener, &pIceAgent));
 
     EXPECT_EQ(STATUS_SUCCESS, iceAgentStartGathering(pIceAgent));
 
@@ -695,7 +695,7 @@ TEST_F(IceFunctionalityTest, IceAgentCandidateGatheringTest)
     EXPECT_TRUE(foundHostCandidate && foundSrflxCandidate && foundRelayCandidate);
     EXPECT_EQ(STATUS_SUCCESS, iceAgentShutdown(pIceAgent));
     EXPECT_EQ(STATUS_SUCCESS, timerQueueShutdown(timerQueueHandle));
-    EXPECT_EQ(STATUS_SUCCESS, freeIceAgent(&pIceAgent));
+    EXPECT_EQ(STATUS_SUCCESS, iceAgentFree(&pIceAgent));
     EXPECT_EQ(STATUS_SUCCESS, timerQueueFree(&timerQueueHandle));
 
     deinitializeSignalingClient();

@@ -15,7 +15,7 @@ STATUS natTestIncomingDataHandler(UINT64 customData, PSocketConnection pSocketCo
 
     MUTEX_LOCK(pNatTestData->lock);
     if (pNatTestData->bindingResponseCount < DEFAULT_NAT_TEST_MAX_BINDING_REQUEST_COUNT * NAT_BEHAVIOR_DISCOVER_PROCESS_TEST_COUNT) {
-        CHK_STATUS(deserializeStunPacket(pBuffer, bufferLen, NULL, 0, &pStunPacket));
+        CHK_STATUS(stunDeserializePacket(pBuffer, bufferLen, NULL, 0, &pStunPacket));
         pNatTestData->bindingResponseList[pNatTestData->bindingResponseCount++] = pStunPacket;
     }
     MUTEX_UNLOCK(pNatTestData->lock);
@@ -46,7 +46,7 @@ STATUS executeNatTest(PStunPacket bindingRequest, PKvsIpAddress pDestAddr, PSock
     /* Use testIndex as transactionId. */
     putInt32((PINT32) bindingRequest->header.transactionId, testIndex);
     for (i = 0; i < pData->bindingResponseCount; ++i) {
-        freeStunPacket(&pData->bindingResponseList[i]);
+        stunFreePacket(&pData->bindingResponseList[i]);
     }
     pData->bindingResponseCount = 0;
 
@@ -82,9 +82,9 @@ STATUS getMappAddressAttribute(PStunPacket pBindingResponse, PStunAttributeAddre
 
     CHK(pBindingResponse != NULL && ppStunAttributeAddress != NULL, STATUS_NULL_ARG);
 
-    CHK_STATUS(getStunAttribute(pBindingResponse, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, (PStunAttributeHeader*) &pStunAttributeAddress));
+    CHK_STATUS(stunGetAttribute(pBindingResponse, STUN_ATTRIBUTE_TYPE_XOR_MAPPED_ADDRESS, (PStunAttributeHeader*) &pStunAttributeAddress));
     if (pStunAttributeAddress == NULL) {
-        CHK_STATUS(getStunAttribute(pBindingResponse, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, (PStunAttributeHeader*) &pStunAttributeAddress));
+        CHK_STATUS(stunGetAttribute(pBindingResponse, STUN_ATTRIBUTE_TYPE_MAPPED_ADDRESS, (PStunAttributeHeader*) &pStunAttributeAddress));
     }
 
     CHK_ERR(pStunAttributeAddress != NULL, STATUS_INVALID_OPERATION,
@@ -119,7 +119,7 @@ STATUS discoverNatMappingBehavior(PIceServer pStunServer, PNatTestData data, PSo
     MEMSET(&otherAddress, 0x00, SIZEOF(KvsIpAddress));
     MEMSET(&testDestAddress, 0x00, SIZEOF(KvsIpAddress));
 
-    CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, NULL, &bindingRequest));
+    CHK_STATUS(stunCreatePacket(STUN_PACKET_TYPE_BINDING_REQUEST, NULL, &bindingRequest));
 
     /* execute test I */
     DLOGD("Running mapping behavior test I. Send binding request");
@@ -131,7 +131,7 @@ STATUS discoverNatMappingBehavior(PIceServer pStunServer, PNatTestData data, PSo
     }
 
     CHK_STATUS(getMappAddressAttribute(bindingResponse, &pStunAttributeMappedAddress));
-    CHK_STATUS(getStunAttribute(bindingResponse, STUN_ATTRIBUTE_TYPE_CHANGED_ADDRESS, (PStunAttributeHeader*) &pStunAttributeOtherAddress));
+    CHK_STATUS(stunGetAttribute(bindingResponse, STUN_ATTRIBUTE_TYPE_CHANGED_ADDRESS, (PStunAttributeHeader*) &pStunAttributeOtherAddress));
     CHK_ERR(pStunAttributeOtherAddress != NULL, retStatus, "Expect binding response to have other address or changed address attribute");
     mappedAddress = pStunAttributeMappedAddress->address;
     otherAddress = pStunAttributeOtherAddress->address;
@@ -177,12 +177,12 @@ CleanUp:
     }
 
     if (bindingRequest != NULL) {
-        freeStunPacket(&bindingRequest);
+        stunFreePacket(&bindingRequest);
     }
 
     if (data != NULL) {
         for (i = 0; i < data->bindingResponseCount; ++i) {
-            freeStunPacket(&data->bindingResponseList[i]);
+            stunFreePacket(&data->bindingResponseList[i]);
         }
     }
 
@@ -204,7 +204,7 @@ STATUS discoverNatFilteringBehavior(PIceServer pStunServer, PNatTestData data, P
 
     CHK(pStunServer != NULL && data != NULL && pSocketConnection != NULL && pNatFilteringBehavior != NULL, STATUS_NULL_ARG);
 
-    CHK_STATUS(createStunPacket(STUN_PACKET_TYPE_BINDING_REQUEST, NULL, &bindingRequest));
+    CHK_STATUS(stunCreatePacket(STUN_PACKET_TYPE_BINDING_REQUEST, NULL, &bindingRequest));
 
     /* execute test I */
     DLOGD("Running filtering behavior test I. Send binding request");
@@ -216,7 +216,7 @@ STATUS discoverNatFilteringBehavior(PIceServer pStunServer, PNatTestData data, P
 
     /* execute test II */
     DLOGD("Running filtering behavior test II. Send binding request with change ip and change port flag");
-    CHK_STATUS(appendStunChangeRequestAttribute(bindingRequest,
+    CHK_STATUS(stunAppendAttrChangeRequest(bindingRequest,
                                                 STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_CHANGE_IP | STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_CHANGE_PORT));
 
     CHK_STATUS(executeNatTest(bindingRequest, &pStunServer->ipAddress, pSocketConnection, testIndex++, data, &bindingResponse));
@@ -227,7 +227,7 @@ STATUS discoverNatFilteringBehavior(PIceServer pStunServer, PNatTestData data, P
 
     /* execute test III */
     DLOGD("Running filtering behavior test III. Send binding request with change port flag");
-    CHK_STATUS(getStunAttribute(bindingRequest, STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST, (PStunAttributeHeader*) &pStunAttributeChangeRequest));
+    CHK_STATUS(stunGetAttribute(bindingRequest, STUN_ATTRIBUTE_TYPE_CHANGE_REQUEST, (PStunAttributeHeader*) &pStunAttributeChangeRequest));
     pStunAttributeChangeRequest->changeFlag = STUN_ATTRIBUTE_CHANGE_REQUEST_FLAG_CHANGE_PORT;
 
     CHK_STATUS(executeNatTest(bindingRequest, &pStunServer->ipAddress, pSocketConnection, testIndex++, data, &bindingResponse));
@@ -245,12 +245,12 @@ CleanUp:
     }
 
     if (bindingRequest != NULL) {
-        freeStunPacket(&bindingRequest);
+        stunFreePacket(&bindingRequest);
     }
 
     if (data != NULL) {
         for (i = 0; i < data->bindingResponseCount; ++i) {
-            freeStunPacket(&data->bindingResponseList[i]);
+            stunFreePacket(&data->bindingResponseList[i]);
         }
     }
 
@@ -349,7 +349,7 @@ CleanUp:
     }
 
     for (i = 0; i < customData.bindingResponseCount; ++i) {
-        freeStunPacket(&customData.bindingResponseList[i]);
+        stunFreePacket(&customData.bindingResponseList[i]);
     }
 
     if (cvar != INVALID_CVAR_VALUE) {

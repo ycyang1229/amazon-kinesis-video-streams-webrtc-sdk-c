@@ -155,7 +155,7 @@ typedef struct {
     UINT32 foundation;
     /* If candidate is local and relay, then store the
      * pTurnConnection this candidate is associated to */
-    struct __TurnConnection* pTurnConnection;
+    struct __TurnConnection* pTurnConnection;//!< the context of the turn connection.
 
     /* store pointer to iceAgent to pass it to incomingDataHandler in incomingRelayedDataHandler
      * we pass pTurnConnectionTrack as customData to incomingRelayedDataHandler to avoid look up
@@ -187,11 +187,11 @@ typedef struct {
 } IceCandidatePair, *PIceCandidatePair;
 
 struct __IceAgent {
-    volatile ATOMIC_BOOL agentStartGathering;
-    volatile ATOMIC_BOOL remoteCredentialReceived;
+    volatile ATOMIC_BOOL agentStartGathering;//!< indicate the ice agent is starting gathering or not.
+    volatile ATOMIC_BOOL remoteCredentialReceived;//!< true: receive the username/password of remote peer.
     volatile ATOMIC_BOOL candidateGatheringFinished;
     volatile ATOMIC_BOOL shutdown;
-    volatile ATOMIC_BOOL restart;
+    volatile ATOMIC_BOOL restart;//!< indicate the ice agent is restarting or not.
     volatile ATOMIC_BOOL processStun;
 
     CHAR localUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
@@ -206,7 +206,7 @@ struct __IceAgent {
 
     PHashTable requestTimestampDiagnostics;
 
-    PDoubleList localCandidates;
+    PDoubleList localCandidates;//!< store all the local candidates including host, server-reflexive, and relayed.
     PDoubleList remoteCandidates;
     // store PIceCandidatePair which will be immediately checked for connectivity when the timer is fired.
     // #YC_TBD, receive the stun request, and store the corresponding candidate pair into this queue.
@@ -215,7 +215,7 @@ struct __IceAgent {
     // https://tools.ietf.org/html/rfc5245#section-5.8
     // https://tools.ietf.org/html/rfc5245#section-7.2.1.4
     PStackQueue triggeredCheckQueue;
-    PDoubleList iceCandidatePairs;
+    PDoubleList iceCandidatePairs;//!< the ice candidate pairs.
 
     PConnectionListener pConnectionListener;
     
@@ -227,12 +227,12 @@ struct __IceAgent {
     MUTEX lock;
 
     // timer tasks
-    UINT32 iceAgentStateTimerTask;
+    UINT32 iceAgentFsmTimerTask;
     UINT32 keepAliveTimerTask;
     UINT32 iceCandidateGatheringTimerTask;
 
     // Current ice agent state
-    UINT64 iceAgentState;
+    UINT64 iceAgentState;//!< used for the setup of ice agent fsm.
     // The state machine
     PStateMachine pStateMachine;
     STATUS iceAgentStatus;
@@ -250,7 +250,7 @@ struct __IceAgent {
 
     UINT32 foundationCounter;
 
-    UINT32 relayCandidateCount;
+    UINT32 relayCandidateCount;//!< the number of relay candidates.
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
     UINT64 lastDataReceivedTime;
@@ -262,7 +262,7 @@ struct __IceAgent {
 
     // Pre-allocated stun packets
     PStunPacket pBindingIndication;
-    PStunPacket pBindingRequest;
+    PStunPacket pBindingRequest;//!< the packet of binding request.
 
     // store transaction ids for stun binding request.
     PTransactionIdStore pStunBindingRequestTransactionIdStore;
@@ -272,25 +272,15 @@ struct __IceAgent {
 // internal functions
 //////////////////////////////////////////////
 
-/**
- * allocate the IceAgent struct and store username and password
- *
- * @param[in] PCHAR - IN - username
- * @param[in] PCHAR - IN - password
- * @param[in] PIceAgentCallbacks - IN - callback for inbound packets
- * @param[in] PRtcConfiguration - IN - RtcConfig
- * @param[out] PIceAgent* - OUT - the created IceAgent struct
- *
- * @return - STATUS - status of execution
- */
-STATUS createIceAgent(PCHAR, PCHAR, PIceAgentCallbacks, PRtcConfiguration, TIMER_QUEUE_HANDLE, PConnectionListener, PIceAgent*);
+
+STATUS iceAgentCreate(PCHAR, PCHAR, PIceAgentCallbacks, PRtcConfiguration, TIMER_QUEUE_HANDLE, PConnectionListener, PIceAgent*);
 
 /**
  * deallocate the PIceAgent object and all its resources.
  *
  * @return - STATUS - status of execution
  */
-STATUS freeIceAgent(PIceAgent*);
+STATUS iceAgentFree(PIceAgent*);
 
 /**
  * if PIceCandidate doesnt exist already in remoteCandidates, create a copy and add to remoteCandidates
@@ -302,25 +292,8 @@ STATUS freeIceAgent(PIceAgent*);
  */
 STATUS iceAgentAddRemoteCandidate(PIceAgent, PCHAR);
 
-/**
- * Initiates stun communication with remote candidates.
- *
- * @param - PIceAgent - IN - IceAgent object
- * @param - PCHAR - IN - remote username
- * @param - PCHAR - IN - remote password
- * @param - BOOL - IN - is controlling agent
- *
- * @return - STATUS - status of execution
- */
-STATUS iceAgentStartAgent(PIceAgent, PCHAR, PCHAR, BOOL);
+STATUS iceAgentStart(PIceAgent, PCHAR, PCHAR, BOOL);
 
-/**
- * Initiates candidate gathering
- *
- * @param - PIceAgent - IN - IceAgent object
- *
- * @return - STATUS - status of execution
- */
 STATUS iceAgentStartGathering(PIceAgent);
 
 /**
@@ -334,15 +307,6 @@ STATUS iceAgentStartGathering(PIceAgent);
  */
 STATUS iceCandidateSerialize(PIceCandidate, PCHAR, PUINT32);
 
-/**
- * Send data through selected connection. PIceAgent has to be in ICE_AGENT_CONNECTION_STATE_CONNECTED state.
- *
- * @param - PIceAgent - IN - IceAgent object
- * @param - PBYTE - IN - buffer storing the data to be sent
- * @param - UINT32 - IN - length of data
- *
- * @return - STATUS - status of execution
- */
 STATUS iceAgentSendPacket(PIceAgent, PBYTE, UINT32);
 
 
@@ -372,7 +336,7 @@ STATUS iceAgentShutdown(PIceAgent);
 
 /**
  * Restart IceAgent. IceAgent is reset back to the same state when it was first created. Once iceAgentRestart() return,
- * call iceAgentStartGathering() to start gathering and call iceAgentStartAgent() to give iceAgent the new remote uFrag
+ * call iceAgentStartGathering() to start gathering and call iceAgentStart() to give iceAgent the new remote uFrag
  * and uPwd. While Ice is restarting, iceAgentSendPacket can still be called to send data if a connected pair exists.
  *
  * @param - PIceAgent - IN - IceAgent object
@@ -389,7 +353,7 @@ STATUS iceAgentValidateKvsRtcConfig(PKvsRtcConfiguration);
 // Incoming data handling functions
 STATUS incomingDataHandler(UINT64, PSocketConnection, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress);
 STATUS incomingRelayedDataHandler(UINT64, PSocketConnection, PBYTE, UINT32, PKvsIpAddress, PKvsIpAddress);
-STATUS handleStunPacket(PIceAgent, PBYTE, UINT32, PSocketConnection, PKvsIpAddress, PKvsIpAddress);
+STATUS iceAgentHandleStunPacket(PIceAgent, PBYTE, UINT32, PSocketConnection, PKvsIpAddress, PKvsIpAddress);
 
 // IceCandidate functions
 STATUS updateCandidateAddress(PIceCandidate, PKvsIpAddress);
@@ -409,14 +373,6 @@ STATUS iceAgentCheckCandidatePairConnection(PIceAgent);
 STATUS iceAgentSendCandidateNomination(PIceAgent);
 STATUS iceAgentSendStunPacket(PStunPacket, PBYTE, UINT32, PIceAgent, PIceCandidate, PKvsIpAddress);
 
-/**
- * gather local ip addresses and create a udp port. If port creation succeeded then create a new candidate
- * and store it in localCandidates. Ips that are already a local candidate will not be added again.
- *
- * @param - PIceAgent - IN - IceAgent object
- *
- * @return - STATUS - status of execution
- */
 STATUS iceAgentInitHostCandidate(PIceAgent);
 STATUS iceAgentInitSrflxCandidate(PIceAgent);
 STATUS iceAgentInitRelayCandidates(PIceAgent);

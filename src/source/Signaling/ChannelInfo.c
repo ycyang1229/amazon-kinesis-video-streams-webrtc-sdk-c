@@ -105,14 +105,6 @@ STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* pp
     pChannelInfo->messageTtl = pOrigChannelInfo->messageTtl;
     pChannelInfo->tagCount = pOrigChannelInfo->tagCount;
 
-    // V1 handling
-    if (pOrigChannelInfo->version > 0) {
-        pChannelInfo->cachingPolicy = pOrigChannelInfo->cachingPolicy;
-        pChannelInfo->asyncIceServerConfig = pOrigChannelInfo->asyncIceServerConfig;
-    } else {
-        pChannelInfo->cachingPolicy = SIGNALING_API_CALL_CACHE_TYPE_NONE;
-        pChannelInfo->asyncIceServerConfig = FALSE;
-    }
 
     // set the current pointer to internal structure.
     pCurPtr = (PCHAR)(pChannelInfo + 1);

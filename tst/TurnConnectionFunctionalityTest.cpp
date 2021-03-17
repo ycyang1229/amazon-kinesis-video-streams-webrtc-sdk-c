@@ -70,7 +70,7 @@ class TurnConnectionFunctionalityTest : public WebRtcClientTestBase {
                                          &pTurnServer->ipAddress, (UINT64) this, onDataHandler, 0, &pTurnSocket));
         EXPECT_EQ(STATUS_SUCCESS, connectionListenerAddConnection(pConnectionListener, pTurnSocket));
         ASSERT_EQ(STATUS_SUCCESS,
-                  createTurnConnection(pTurnServer, timerQueueHandle, TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL, KVS_ICE_DEFAULT_TURN_PROTOCOL,
+                  turnConnectionCreate(pTurnServer, timerQueueHandle, TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL, KVS_ICE_DEFAULT_TURN_PROTOCOL,
                                        NULL, pTurnSocket, pConnectionListener, &pTurnConnection));
         EXPECT_EQ(STATUS_SUCCESS, connectionListenerStart(pConnectionListener));
     }
@@ -78,7 +78,7 @@ class TurnConnectionFunctionalityTest : public WebRtcClientTestBase {
     VOID freeTestTurnConnection()
     {
         EXPECT_TRUE(pTurnConnection != NULL);
-        EXPECT_EQ(STATUS_SUCCESS, freeTurnConnection(&pTurnConnection));
+        EXPECT_EQ(STATUS_SUCCESS, turnConnectionFree(&pTurnConnection));
         EXPECT_EQ(STATUS_SUCCESS, freeConnectionListener(&pConnectionListener));
         timerQueueFree(&timerQueueHandle);
         deinitializeSignalingClient();

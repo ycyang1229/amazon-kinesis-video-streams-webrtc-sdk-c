@@ -10,6 +10,14 @@ Signaling internal include file
 extern "C" {
 #endif
 
+#define SIGNALING_HTTPS_INIT_MSG           (1<<0)
+#define SIGNALING_HTTPS_UNINIT_MSG         (1<<0)
+
+#define SIGNALING_WSS_SEND_MSG         (1<<0)
+#define SIGNALING_WSS_RECV_MSG         (1<<0)
+#define SIGNALING_WSS_CONN_ERR_MSG         (1<<0)
+
+
 // Request id header name
 #define SIGNALING_REQUEST_ID_HEADER_NAME KVS_REQUEST_ID_HEADER_NAME ":"
 
@@ -66,7 +74,8 @@ extern "C" {
     }
 
 // Forward declaration
-typedef struct __LwsCallInfo* PLwsCallInfo;
+typedef struct __LwsHttpInfo* PLwsHttpInfo;
+typedef struct __LwsWssInfo* PLwsWssInfo;
 
 // Testability hooks functions
 typedef STATUS (*SignalingApiCallHookFunc)(UINT64);
@@ -132,16 +141,22 @@ typedef struct {
     UINT64 dpApiLatency;
 } SignalingDiagnostics, PSignalingDiagnostics;
 
+
+typedef struct {
+    struct lws_context* pLwsContext;//!< the context of websockets.
+};
+
+
 /**
  * Internal representation of the Signaling client.
  */
 typedef struct {
     volatile SIZE_T result;//!< Current service call result
     // Sent message result
-    volatile SIZE_T messageResult;
+    volatile SIZE_T messageResult;//!< the message result of websocket service. SERVICE_CALL_RESULT.
 
     // Client is ready to connect to signaling channel
-    volatile ATOMIC_BOOL clientReady;//!< Inidicate the singaling fsm is ready.
+    //volatile ATOMIC_BOOL clientReady;//!< Inidicate the singaling fsm is ready.
 
     // Shutting down the entire client
     volatile ATOMIC_BOOL shutdown;//!< Indicate the signaling is freed.
@@ -156,10 +171,6 @@ typedef struct {
 
     // The channel is deleted
     volatile ATOMIC_BOOL deleted;
-
-    // Based on the channel info we can async the ice config on create channel
-    // call only and not async on repeat state transition when refreshing for example.
-    volatile ATOMIC_BOOL asyncGetIceConfig;
 
     // Having state machine logic rely on call result of SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE
     // to transition to ICE config state is not enough in Async update mode when
@@ -187,11 +198,13 @@ typedef struct {
     PChannelInfo pChannelInfo;
 
     // Returned signaling channel description
-    SignalingChannelDescription channelDescription;
+    SignalingChannelDescription channelDescription;//!< the information from calling the api of describing the channel.
 
-    // Signaling endpoint
+    /**
+     * https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_ResourceEndpointListItem.html
+    */
+   // Signaling endpoint
     CHAR channelEndpointWss[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
-
     // Signaling endpoint
     CHAR channelEndpointHttps[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
 
@@ -211,7 +224,7 @@ typedef struct {
     ServiceCallContext serviceCallContext;
 
     // Indicates whether to self-prime on Ready or not
-    BOOL continueOnReady;
+    BOOL continueOnReady;//!< Indicate connect to signaling channel or not.
 
     // Interlocking the state transitions
     MUTEX stateLock;
@@ -220,13 +233,14 @@ typedef struct {
     MUTEX connectedLock;
 
     // Conditional variable for Connected state
+    // wait for the lws to notify the connection is established or not.
     CVAR connectedCvar;
 
     // Sync mutex for sending condition variable
     MUTEX sendLock;
 
     // Conditional variable for sending interlock
-    CVAR sendCvar;
+    CVAR sendCvar; //!< the lock for protecting the process of sending the websocket message.
 
     // Sync mutex for receiving response to the message condition variable
     MUTEX receiveLock;
@@ -238,20 +252,22 @@ typedef struct {
     UINT64 stepUntil;
 
     // Ongoing listener call info
-    PLwsCallInfo pOngoingCallInfo;
+    PLwsWssInfo pOngoingWssInfo;//!< setup by the lws aip of connecting signaling channel.
 
     // Listener thread for the socket
-    ThreadTracker listenerTracker;
+    ThreadTracker wssIOThread;
 
     // Restarted thread handler
     ThreadTracker reconnecterTracker;//!< receive the connection error msg or closed msg from lws.
                                         //!< spin off one thread to re-connect.
-
+    // unified thread handler
+    ThreadTracker lwsThracker;
     // LWS context to use for Restful API
-    struct lws_context* pLwsContext;
+    struct lws_context* pLwsContext;//!< the context of websockets.
 
     // Signaling protocols
-    struct lws_protocols signalingProtocols[3];
+    // for libwebsockets.
+    struct lws_protocols signalingProtocols[2];
 
     // List of the ongoing messages
     PStackQueue pMessageQueue;//!< the queue of singaling ongoing messsages.
@@ -263,7 +279,7 @@ typedef struct {
     MUTEX lwsServiceLock;
 
     // Serialized access to LWS service call
-    MUTEX lwsSerializerLock;
+    MUTEX lwsSerializerLock;//!< the lock of lws service call.
 
     // Re-entrant lock for diagnostics/stats
     MUTEX diagnosticsLock;
@@ -275,7 +291,7 @@ typedef struct {
     SignalingDiagnostics diagnostics;
 
     // Tracking when was the Last time the APIs were called
-    UINT64 describeTime;
+    UINT64 describeTime;//!< the time of describing the channel.
     UINT64 createTime;
     UINT64 getEndpointTime;
     UINT64 getIceConfigTime;

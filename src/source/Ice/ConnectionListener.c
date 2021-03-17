@@ -105,8 +105,8 @@ CleanUp:
 /**
  * add a new PSocketConnection to listen for incoming data
  *
- * @param[in] - PConnectionListener      - IN - the ConnectionListener struct to use
- * @param[in] - PSocketConnection   - IN - new PSocketConnection to listen for incoming data
+ * @param[in] pConnectionListener the ConnectionListener struct to use
+ * @param[in] pSocketConnection new PSocketConnection to listen for incoming data
  *
  * @return - STATUS status of execution
  */

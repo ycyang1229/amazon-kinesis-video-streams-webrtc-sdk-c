@@ -5,9 +5,28 @@
 #include "../Include_i.h"
 
 typedef STATUS (*RtpPayloadFunc)(UINT32, PBYTE, UINT32, PBYTE, PUINT32, PUINT32, PUINT32);
-
-STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, PKvsPeerConnection pKvsPeerConnection, UINT32 ssrc, UINT32 rtxSsrc,
-                               PRtcMediaStreamTrack pRtcMediaStreamTrack, PJitterBuffer pJitterBuffer, RTC_CODEC rtcCodec,
+/**
+ * @brief   create the context of rtp transceiver.
+ * 
+ * @param[in]
+ * @param[in]
+ * @param[in]
+ * @param[in]
+ * @param[in]
+ * @param[in]
+ * @param[in]
+ * @param[in, out] ppKvsRtpTransceiver the context of KvsRtpTransceiver
+ * 
+ * @return
+ * 
+*/
+STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction,
+                               PKvsPeerConnection pKvsPeerConnection,
+                               UINT32 ssrc,
+                               UINT32 rtxSsrc,
+                               PRtcMediaStreamTrack pRtcMediaStreamTrack,
+                               PJitterBuffer pJitterBuffer,
+                               RTC_CODEC rtcCodec,
                                PKvsRtpTransceiver* ppKvsRtpTransceiver)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -17,18 +36,23 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, PKvsPeer
 
     pKvsRtpTransceiver = (PKvsRtpTransceiver) MEMCALLOC(1, SIZEOF(KvsRtpTransceiver));
     CHK(pKvsRtpTransceiver != NULL, STATUS_NOT_ENOUGH_MEMORY);
-
-    pKvsRtpTransceiver->peerFrameBufferSize = DEFAULT_PEER_FRAME_BUFFER_SIZE;
+    /**
+     * @YC_TBD, this needs to be alloocated dynamically.
+    */
+    pKvsRtpTransceiver->peerFrameBufferSize = DEFAULT_PEER_FRAME_BUFFER_SIZE;//!< #YC_TBD, 5k bytes, need to confirm this size.
     pKvsRtpTransceiver->peerFrameBuffer = (PBYTE) MEMALLOC(pKvsRtpTransceiver->peerFrameBufferSize);
     CHK(pKvsRtpTransceiver->peerFrameBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY);
     pKvsRtpTransceiver->pKvsPeerConnection = pKvsPeerConnection;
     pKvsRtpTransceiver->statsLock = MUTEX_CREATE(FALSE);
+    //
     pKvsRtpTransceiver->sender.ssrc = ssrc;
     pKvsRtpTransceiver->sender.rtxSsrc = rtxSsrc;
     pKvsRtpTransceiver->sender.track = *pRtcMediaStreamTrack;
     pKvsRtpTransceiver->sender.packetBuffer = NULL;
     pKvsRtpTransceiver->sender.retransmitter = NULL;
+    //
     pKvsRtpTransceiver->pJitterBuffer = pJitterBuffer;
+    //
     pKvsRtpTransceiver->transceiver.receiver.track.codec = rtcCodec;
     pKvsRtpTransceiver->transceiver.receiver.track.kind = pRtcMediaStreamTrack->kind;
     pKvsRtpTransceiver->transceiver.direction = direction;
@@ -92,7 +116,15 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief   setup the context of jitter buffer.
+ * 
+ * @param[in]
+ * @param[in]
+ * 
+ * @return
+ * 
+*/
 STATUS kvsRtpTransceiverSetJitterBuffer(PKvsRtpTransceiver pKvsRtpTransceiver, PJitterBuffer pJitterBuffer)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -182,7 +214,14 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief Packetizes and sends media via the configuration specified by the RtcRtpTransceiver
+ *
+ * @param[in] PRtcRtpTransceiver Configured and connected RtcRtpTransceiver to send media
+ * @param[in] PFrame Frame of media that will be sent
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS writeFrame(PRtcRtpTransceiver pRtcRtpTransceiver, PFrame pFrame)
 {
     STATUS retStatus = STATUS_SUCCESS;

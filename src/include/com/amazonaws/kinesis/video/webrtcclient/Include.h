@@ -321,7 +321,8 @@ extern "C" {
 #define STATUS_SIGNALING_CREATE_THREAD_FAILED                      STATUS_SIGNALING_BASE + 0x00000035
 #define STATUS_SIGNALING_CREATE_MSGQ_FAILED                        STATUS_SIGNALING_BASE + 0x00000036
 #define STATUS_SIGNALING_DISPATCH_FAILED                           STATUS_SIGNALING_BASE + 0x00000037
-
+#define STATUS_SIGNALING_HTTP_ERROR                                STATUS_SIGNALING_BASE + 0x00000038
+#define STATUS_SIGNALING_WSS_ERROR                                STATUS_SIGNALING_BASE + 0x00000039
 /*!@} */
 
 /////////////////////////////////////////////////////
@@ -784,14 +785,17 @@ typedef enum {
 } SIGNALING_CHANNEL_STATUS;
 
 /**
- * @brief Defines different signaling messages
+ * @brief   Defines different signaling messages
+ *          https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis-7.html
  */
 typedef enum {
     SIGNALING_MESSAGE_TYPE_OFFER,                //!< This message type leads to checks in existence of peer id and payload in the message
     SIGNALING_MESSAGE_TYPE_ANSWER,               //!< This message type leads to checks in length/existence of payload in the message
     SIGNALING_MESSAGE_TYPE_ICE_CANDIDATE,        //!< This message type leads to checks in length/existence of payload in the message
     SIGNALING_MESSAGE_TYPE_GO_AWAY,              //!< This message moves signaling back to describe state
+                                                    //!< This message is used to initiate the connection shutdown. It enables a client to gracefully process previous messages, disconnect, and reconnect to the signaling channel if needed.
     SIGNALING_MESSAGE_TYPE_RECONNECT_ICE_SERVER, //!< This message moves signaling state back to get ICE config
+                                                    //!< This message is used to initiate the relay connection shutdown and enables a client to gracefully disconnect, obtain a new ICE server configuration, and reconnect to the relay servers if needed.
     SIGNALING_MESSAGE_TYPE_STATUS_RESPONSE,      //!< This message notifies the awaiting send after checking for failure in message delivery
     SIGNALING_MESSAGE_TYPE_UNKNOWN,              //!< This message type is set when the type of message received is unknown
 } SIGNALING_MESSAGE_TYPE;
@@ -1242,8 +1246,6 @@ typedef struct {
 
     SIGNALING_API_CALL_CACHE_TYPE cachingPolicy; //!< Backend API call caching policy
 
-    BOOL asyncIceServerConfig; //!< When creating channel synchronously, do not await for the ICE
-                               //!< server configurations before returning from the call.
 } ChannelInfo, *PChannelInfo;
 
 /**
@@ -1324,7 +1326,8 @@ typedef struct {
 } SignalingClientCallbacks, *PSignalingClientCallbacks;
 
 /**
- * @brief Signaling channel description returned from the service
+ * @brief   Signaling channel description returned from the service
+ *          https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_ChannelInfo.html
  */
 typedef struct {
     UINT32 version;                                 //!< Version of the SignalingChannelDescription struct
