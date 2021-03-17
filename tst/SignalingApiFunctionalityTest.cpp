@@ -234,7 +234,7 @@ TEST_F(SignalingApiFunctionalityTest, basicCreateConnectFree)
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&signalingHandle));
 }
@@ -363,7 +363,7 @@ TEST_F(SignalingApiFunctionalityTest, mockMaster)
     THREAD_SLEEP(1 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
     // Delete the created channel
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&signalingHandle));
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
@@ -470,7 +470,7 @@ TEST_F(SignalingApiFunctionalityTest, mockViewer)
 
     THREAD_SLEEP(1 * HUNDREDS_OF_NANOS_IN_A_SECOND);
 
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&signalingHandle));
     EXPECT_FALSE(IS_VALID_SIGNALING_CLIENT_HANDLE(signalingHandle));
@@ -748,7 +748,7 @@ TEST_F(SignalingApiFunctionalityTest, invalidChannelInfoInput)
     // Should fail
     EXPECT_NE(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&signalingHandle));
 }
@@ -814,7 +814,7 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
                      "        \"description\": \"Test attempt to reconnect ice server\"\n"
                      "    }\n"
                      "}";
-    EXPECT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, message, ARRAY_SIZE(message)));
+    EXPECT_EQ(STATUS_SUCCESS, lwsReceiveMessage(pSignalingClient, message, ARRAY_SIZE(message)));
 
     DLOGV("After RECONNECT_ICE_SERVER injection");
 
@@ -830,7 +830,7 @@ TEST_F(SignalingApiFunctionalityTest, iceReconnectEmulation)
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&signalingHandle));
 }
@@ -951,7 +951,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulation)
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&signalingHandle));
 }
@@ -1040,7 +1040,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationAuthExpiration)
     // We are re-setting to this state on an ice failure
     EXPECT_EQ(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     // Ensure we had failed the ICE config
     EXPECT_EQ(STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED, errStatus);
@@ -1156,7 +1156,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionNoDis
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&signalingHandle));
 }
@@ -1269,7 +1269,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionAuthE
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&signalingHandle));
 }
@@ -1386,7 +1386,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&signalingHandle));
 }
@@ -1465,7 +1465,7 @@ TEST_F(SignalingApiFunctionalityTest, iceRefreshEmulationWithFaultInjectionError
     // Reset it back to cause normal execution
     pSignalingClient->pAwsCredentials->secretKey[0] = firstByte;
 
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     // Ensure we had failed the ICE config
     EXPECT_EQ(STATUS_SIGNALING_ICE_CONFIG_REFRESH_FAILED, errStatus);
@@ -1534,7 +1534,7 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
                      "        \"description\": \"Test attempt to send GO_AWAY message\"\n"
                      "    }\n"
                      "}";
-    EXPECT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, message, ARRAY_SIZE(message)));
+    EXPECT_EQ(STATUS_SUCCESS, lwsReceiveMessage(pSignalingClient, message, ARRAY_SIZE(message)));
 
     DLOGV("After GO_AWAY injection");
 
@@ -1550,7 +1550,7 @@ TEST_F(SignalingApiFunctionalityTest, goAwayEmulation)
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&signalingHandle));
 }
@@ -1616,7 +1616,7 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
                      "        \"description\": \"Test attempt to send an unknown message\"\n"
                      "    }\n"
                      "}";
-    EXPECT_EQ(STATUS_SUCCESS, receiveLwsMessage(pSignalingClient, message, ARRAY_SIZE(message)));
+    EXPECT_EQ(STATUS_SUCCESS, lwsReceiveMessage(pSignalingClient, message, ARRAY_SIZE(message)));
 
     DLOGV("After Unknown message type injection");
 
@@ -1635,7 +1635,7 @@ TEST_F(SignalingApiFunctionalityTest, unknownMessageTypeEmulation)
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&signalingHandle));
 }
@@ -1733,7 +1733,7 @@ TEST_F(SignalingApiFunctionalityTest, connectTimeoutEmulation)
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&signalingHandle));
 }
@@ -1864,7 +1864,7 @@ TEST_F(SignalingApiFunctionalityTest, channelInfoArnSkipDescribe)
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientSendMessage(signalingHandle, &signalingMessage));
 
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&signalingHandle));
 }
@@ -2106,7 +2106,7 @@ TEST_F(SignalingApiFunctionalityTest, deleteChannelCreatedAuthExpiration)
     // Shouldn't be able to connect as it's not in ready state
     EXPECT_NE(STATUS_SUCCESS, signalingClientConnect(signalingHandle));
 
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&signalingHandle));
 }
@@ -2285,7 +2285,7 @@ TEST_F(SignalingApiFunctionalityTest, cachingWithFaultInjection)
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientDisconnect(signalingHandle));
 
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&signalingHandle));
 }
@@ -2523,7 +2523,7 @@ TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshBeforeConnect)
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&signalingHandle));
 }
@@ -2635,7 +2635,7 @@ TEST_F(SignalingApiFunctionalityTest, asyncIceConfigRefreshParallelToConnect)
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_CONNECTED]);
     EXPECT_EQ(1, signalingStatesCounts[SIGNALING_CLIENT_STATE_DISCONNECTED]);
 
-    deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
+    lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(signalingHandle), 0);
 
     EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&signalingHandle));
 }

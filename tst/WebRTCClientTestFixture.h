@@ -123,7 +123,7 @@ class WebRtcClientTestBase : public ::testing::Test {
     {
         // Delete the created channel
         if (mAccessKeyIdSet) {
-            deleteChannelLws(FROM_SIGNALING_CLIENT_HANDLE(mSignalingClientHandle), 0);
+            lwsDeleteChannel(FROM_SIGNALING_CLIENT_HANDLE(mSignalingClientHandle), 0);
         }
 
         EXPECT_EQ(STATUS_SUCCESS, signalingClientFree(&mSignalingClientHandle));

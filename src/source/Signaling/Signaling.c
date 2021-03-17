@@ -316,7 +316,7 @@ STATUS signalingTerminateOngoingOperations(PSignalingClient pSignalingClient, BO
     }
 
     // Terminate the listener thread if alive
-    terminateLwsListenerLoop(pSignalingClient);
+    lwsTerminateListenerLoop(pSignalingClient);
 
     // Await for the reconnect thread to exit
     signalingAwaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
@@ -367,7 +367,7 @@ STATUS signalingSendMessage(PSignalingClient pSignalingClient, PSignalingMessage
     removeFromList = TRUE;
 
     // Perform the call
-    CHK_STATUS(sendLwsMessage(pSignalingClient, pOfferType, pSignalingMessage->peerClientId, pSignalingMessage->payload,
+    CHK_STATUS(lwsSendMessage(pSignalingClient, pOfferType, pSignalingMessage->peerClientId, pSignalingMessage->payload,
                               pSignalingMessage->payloadLen, pSignalingMessage->correlationId, 0));
 
     // Update the internal diagnostics only after successfully sending
@@ -970,7 +970,7 @@ STATUS signalingDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
             }
 
             if (STATUS_SUCCEEDED(retStatus)) {
-                retStatus = describeChannelLws(pSignalingClient, time);
+                retStatus = lwsDescribeChannel(pSignalingClient, time);
 
                 // Store the last call time on success
                 if (STATUS_SUCCEEDED(retStatus)) {
@@ -1021,7 +1021,7 @@ STATUS signalingCreateChannel(PSignalingClient pSignalingClient, UINT64 time)
     }
 
     if (STATUS_SUCCEEDED(retStatus)) {
-        retStatus = createChannelLws(pSignalingClient, time);
+        retStatus = lwsCreateChannel(pSignalingClient, time);
 
         // Store the time of the call on success
         if (STATUS_SUCCEEDED(retStatus)) {
@@ -1084,7 +1084,7 @@ STATUS signalingGetChannelEndpoint(PSignalingClient pSignalingClient, UINT64 tim
             }
 
             if (STATUS_SUCCEEDED(retStatus)) {
-                retStatus = getChannelEndpointLws(pSignalingClient, time);
+                retStatus = lwsGetChannelEndpoint(pSignalingClient, time);
 
                 if (STATUS_SUCCEEDED(retStatus)) {
                     pSignalingClient->getEndpointTime = time;
@@ -1165,7 +1165,7 @@ STATUS signalingGetIceConfig(PSignalingClient pSignalingClient, UINT64 time)
     }
 
     if (STATUS_SUCCEEDED(retStatus)) {
-        retStatus = getIceConfigLws(pSignalingClient, time);
+        retStatus = lwsGetIceConfig(pSignalingClient, time);
 
         if (STATUS_SUCCEEDED(retStatus)) {
             pSignalingClient->getIceConfigTime = time;
@@ -1210,7 +1210,7 @@ STATUS signalingDeleteChannel(PSignalingClient pSignalingClient, UINT64 time)
     }
 
     if (STATUS_SUCCEEDED(retStatus)) {
-        retStatus = deleteChannelLws(pSignalingClient, time);
+        retStatus = lwsDeleteChannel(pSignalingClient, time);
 
         // Store the time of the call on success
         if (STATUS_SUCCEEDED(retStatus)) {
@@ -1266,7 +1266,7 @@ STATUS signalingConnectChannel(PSignalingClient pSignalingClient, UINT64 time)
         // No need to reconnect again if already connected. This can happen if we get to this state after ice refresh
         if (!ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-            retStatus = connectSignalingChannelLws(pSignalingClient, time);
+            retStatus = lwsConnectSignalingChannel(pSignalingClient, time);
 
             // Store the time of the call on success
             if (STATUS_SUCCEEDED(retStatus)) {
