@@ -382,6 +382,21 @@ extern "C" {
 #define STATUS_RTCP_NULL_ARG                     STATUS_RTCP_BASE + 0x00000009
 /*!@} */
 
+
+
+/////////////////////////////////////////////////////
+/// AWSSignerV4 related status codes
+/////////////////////////////////////////////////////
+
+/*! \addtogroup AWSSignerV4StatusCodes
+ * WEBRTC AWSSignerV4 related codes. Values are derived from STATUS_AWS_SIGNER_BASE (0x70000000)
+ *  @{
+ */
+#define STATUS_AWS_SIGNER_BASE                         STATUS_RTCP_BASE + 0x01000000
+#define STATUS_AWS_SIGNER_FAIL_TO_CALCULATE_HASH                         STATUS_RTCP_BASE + 0x01000001
+/*!@} */
+
+
 /////////////////////////////////////////////////////
 /// Rolling buffer related status codes
 /////////////////////////////////////////////////////
