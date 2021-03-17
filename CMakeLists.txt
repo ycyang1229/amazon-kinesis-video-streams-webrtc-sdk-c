@@ -117,6 +117,8 @@ if(BUILD_DEPENDENCIES)
     build_dependency(mbedtls ${BUILD_ARGS})
   endif()
 
+  build_dependency(llhttp ${BUILD_ARGS})
+
   set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                  -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
                  -DUSE_OPENSSL=${USE_OPENSSL}
