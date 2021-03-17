@@ -37,7 +37,7 @@ STATUS createTurnConnection(PIceServer pTurnServer,
         !IS_EMPTY_STRING(pTurnServer->credential) &&
         !IS_EMPTY_STRING(pTurnServer->username), STATUS_INVALID_ARG);
 
-    // #YC_TBD, #heap, #memory.
+    // #YC_TBD, #heap, #memory. this is around 20kbytes.
     pTurnConnection = (PTurnConnection) MEMCALLOC(1, SIZEOF(TurnConnection) +
                                                         DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN * 2 +
                                                         DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN);
@@ -69,6 +69,7 @@ STATUS createTurnConnection(PIceServer pTurnServer,
         pTurnConnection->turnConnectionCallbacks = *pTurnConnectionCallbacks;
     }
     // #YC_TBD, #memory, #heap.
+    // send buffer -> recv buffer -> complete buffer.
     pTurnConnection->recvDataBufferSize = DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN;
     pTurnConnection->dataBufferSize = DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN;
     pTurnConnection->sendDataBuffer = (PBYTE)(pTurnConnection + 1);
@@ -287,6 +288,8 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
             pStunAttributeAddress = (PStunAttributeAddress) pStunAttr;
             pTurnConnection->relayAddress = pStunAttributeAddress->address;
             ATOMIC_STORE_BOOL(&pTurnConnection->hasAllocation, TRUE);
+            // #YC_TBD, need to compare the address family of the mapped address with relayed address.
+            // https://tools.ietf.org/html/rfc5766#section-6.3
             // the callback for notifying the user of the information of xor relay address.
             if (!pTurnConnection->relayAddressReported && pTurnConnection->turnConnectionCallbacks.relayAddressAvailableFn != NULL) {
                 pTurnConnection->relayAddressReported = TRUE;
@@ -296,7 +299,8 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
                 locked = FALSE;
 
                 pTurnConnection->turnConnectionCallbacks.relayAddressAvailableFn(pTurnConnection->turnConnectionCallbacks.customData,
-                                                                                 &pTurnConnection->relayAddress, pTurnConnection->pControlChannel);
+                                                                                 &pTurnConnection->relayAddress,
+                                                                                 pTurnConnection->pControlChannel);
             }
 
             break;
@@ -332,6 +336,7 @@ STATUS turnConnectionHandleStun(PTurnConnection pTurnConnection, PBYTE pBuffer, 
 
                     pTurnPeer->permissionExpirationTime = TURN_PERMISSION_LIFETIME + currentTime;
                 }
+                // #YC_TBD, add the condition of "early return"
             }
 
             break;
@@ -538,7 +543,7 @@ STATUS turnConnectionHandleChannelData(PTurnConnection pTurnConnection, PBYTE pB
              * be able to parse it.
              */
             pChannelData->data = pBuffer + TURN_DATA_CHANNEL_SEND_OVERHEAD;
-            pChannelData->size = GET_STUN_PACKET_SIZE(pBuffer);
+            pChannelData->size = GET_STUN_PACKET_SIZE(pBuffer);//!< #YC_TBD, should not use this.
             pChannelData->senderAddr = pTurnPeer->address;
             turnChannelDataCount = 1;
 
@@ -756,8 +761,8 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
     locked = TRUE;
     // check the status of turn connection.
     if (!(pTurnConnection->state == TURN_STATE_CREATE_PERMISSION || 
-            pTurnConnection->state == TURN_STATE_BIND_CHANNEL ||
-            pTurnConnection->state == TURN_STATE_READY)) {
+        pTurnConnection->state == TURN_STATE_BIND_CHANNEL ||
+        pTurnConnection->state == TURN_STATE_READY)) {
         DLOGV("TurnConnection not ready to send data");
 
         // If turn is not ready yet. Drop the send since ice will retry.
@@ -786,7 +791,15 @@ STATUS turnConnectionSendData(PTurnConnection pTurnConnection, PBYTE pBuf, UINT3
     sendLocked = TRUE;
 
     CHK(pTurnConnection->dataBufferSize - TURN_DATA_CHANNEL_SEND_OVERHEAD >= bufLen, STATUS_BUFFER_TOO_SMALL);
-
+    /**
+     * Over TCP and TLS-over-TCP, the ChannelData message MUST be padded to 
+     * a multiple of four bytes in order to ensure the alignment of 
+     * subsequent messages. The padding is not reflected in the length
+     * field of the ChannelData message, so the actual size of a ChannelData
+     * message (including padding) is (4 + Length) rounded up to the nearest
+     * multiple of 4
+     * https://tools.ietf.org/html/rfc5766#section-11.5
+    */
     paddedDataLen = (UINT32) ROUND_UP(TURN_DATA_CHANNEL_SEND_OVERHEAD + bufLen, 4);
 
     /* generate data channel TURN message */
@@ -821,9 +834,12 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief
+ * @brief   start the procedure of turn connection, allocation, create-permission, and channel-bind. 
+ *          schedule the periodical fsm timer.
  * 
- * @param
+ * @param[in]
+ * 
+ * @return
 */
 STATUS turnConnectionStart(PTurnConnection pTurnConnection)
 {
@@ -978,6 +994,10 @@ CleanUp:
 }
 /**
  * @brief   
+ * 
+ * @param[in]
+ * 
+ * @return
  * 
 */
 STATUS turnConnectionStepState(PTurnConnection pTurnConnection)
@@ -1220,7 +1240,9 @@ CleanUp:
 
     CHK_LOG_ERR(retStatus);
 
-    if (STATUS_SUCCEEDED(retStatus) && ATOMIC_LOAD_BOOL(&pTurnConnection->stopTurnConnection) && pTurnConnection->state != TURN_STATE_CLEAN_UP &&
+    if (STATUS_SUCCEEDED(retStatus) &&
+        ATOMIC_LOAD_BOOL(&pTurnConnection->stopTurnConnection) &&
+        pTurnConnection->state != TURN_STATE_CLEAN_UP &&
         pTurnConnection->state != TURN_STATE_NEW) {
         pTurnConnection->state = TURN_STATE_CLEAN_UP;
         pTurnConnection->stateTimeoutTime = currentTime + DEFAULT_TURN_CLEAN_UP_TIMEOUT;
@@ -1276,7 +1298,14 @@ CleanUp:
     CHK_LOG_ERR(retStatus);
     return retStatus;
 }
-
+/**
+ * @brief   
+ * 
+ * @param[]
+ * @param[]
+ * 
+ * @return
+*/
 STATUS turnConnectionShutdown(PTurnConnection pTurnConnection, UINT64 waitUntilAllocationFreedTimeout)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -1346,6 +1375,12 @@ BOOL turnConnectionGetRelayAddress(PTurnConnection pTurnConnection, PKvsIpAddres
 }
 /**
  * @brief the task handler of turn connection.
+ * 
+ * @param[in] timerId the timer id.
+ * @param[in] currentTime current time
+ * @param[in] customData the context of the turn connection.
+ * 
+ * @return
 */
 STATUS turnConnectionTimerCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
@@ -1539,18 +1574,22 @@ CleanUp:
 }
 
 /**
- * @brief   generate the stun packet of turn allocation.
+ * @brief   generate the stun packet of turn allocation request.
  *          https://tools.ietf.org/html/rfc5766#section-2.2
  * 
- * @param[in] username
+ * @param[in] username this comes from the configuration of the ice server.
  * @param[in] realm
  * @param[in] nonce
  * @param[in] nonceLen
  * @param[in] lifetime  the life time of this turn allocation.
- * @param[out] ppStunPacket the pointer of this stun packet.
+ * @param[in, out] ppStunPacket the pointer of this stun packet.
  * 
 */
-STATUS turnConnectionPackageTurnAllocationRequest(PCHAR username, PCHAR realm, PBYTE nonce, UINT16 nonceLen, UINT32 lifetime,
+STATUS turnConnectionPackageTurnAllocationRequest(PCHAR username,
+                                                  PCHAR realm,
+                                                  PBYTE nonce,
+                                                  UINT16 nonceLen,
+                                                  UINT32 lifetime,
                                                   PStunPacket* ppStunPacket)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -1627,8 +1666,8 @@ PTurnPeer turnConnectionGetPeerWithChannelNumber(PTurnConnection pTurnConnection
 /**
  * @brief   find the corresponding turn peer with the ip address.
  * 
- * @param[in]
- * @param[in]
+ * @param[in] pTurnConnection 
+ * @param[in] pKvsIpAddress
  * 
  * @return 
 */

@@ -2,9 +2,26 @@
 #define LOG_CLASS "JitterBuffer"
 
 #include "../Include_i.h"
-
-STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc, FrameDroppedFunc onFrameDroppedFunc, DepayRtpPayloadFunc depayRtpPayloadFunc,
-                          UINT32 maxLatency, UINT32 clockRate, UINT64 customData, PJitterBuffer* ppJitterBuffer)
+/**
+ * @brief   create the context of the jitter buffer.
+ * 
+ * @param[in] onFrameReadyFunc
+ * @param[in] onFrameDroppedFunc
+ * @param[in] depayRtpPayloadFunc
+ * @param[in] maxLatency
+ * @param[in] clockRate
+ * @param[in] customData
+ * @param[in, out] ppJitterBuffer the context of jitter buffer.
+ * 
+ * @return
+*/
+STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc,
+                          FrameDroppedFunc onFrameDroppedFunc,
+                          DepayRtpPayloadFunc depayRtpPayloadFunc,
+                          UINT32 maxLatency,
+                          UINT32 clockRate,
+                          UINT64 customData,
+                          PJitterBuffer* ppJitterBuffer)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -33,7 +50,8 @@ STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc, FrameDroppedFunc onFr
     pJitterBuffer->started = FALSE;
 
     pJitterBuffer->customData = customData;
-    CHK_STATUS(hashTableCreateWithParams(JITTER_BUFFER_HASH_TABLE_BUCKET_COUNT, JITTER_BUFFER_HASH_TABLE_BUCKET_LENGTH,
+    CHK_STATUS(hashTableCreateWithParams(JITTER_BUFFER_HASH_TABLE_BUCKET_COUNT,
+                                         JITTER_BUFFER_HASH_TABLE_BUCKET_LENGTH,
                                          &pJitterBuffer->pPkgBufferHashTable));
 
 CleanUp:
@@ -49,7 +67,12 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief   free the related buffers of jitter butter.
+ * 
+ * @param[in] ppJitterBuffer
+ * 
+*/
 STATUS freeJitterBuffer(PJitterBuffer* ppJitterBuffer)
 {
     ENTERS();
@@ -75,7 +98,15 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief   push the rtp packet into pPkgBufferHashTable, and pop the jitter buffer.
+ * 
+ * @param[in] pJitterBuffer
+ * @param[in] pRtpPacket the context of rtp packet.
+ * @param[in] pPacketDiscarded
+ * 
+ * @return
+*/
 STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOOL pPacketDiscarded)
 {
     ENTERS();
@@ -92,19 +123,22 @@ STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOO
         pJitterBuffer->started = TRUE;
         pJitterBuffer->lastRemovedSequenceNumber = UINT16_DEC(pRtpPacket->header.sequenceNumber);
     }
-
+    // #YC_TBD, need to handle wrap around.
     if (pJitterBuffer->lastPushTimestamp < pRtpPacket->header.timestamp) {
         pJitterBuffer->lastPushTimestamp = pRtpPacket->header.timestamp;
     }
 
     if ((pRtpPacket->header.timestamp < pJitterBuffer->maxLatency && pJitterBuffer->lastPushTimestamp <= pJitterBuffer->maxLatency) ||
         pRtpPacket->header.timestamp >= pJitterBuffer->lastPushTimestamp - pJitterBuffer->maxLatency) {
+        // check the same sequence number is existed or not.
         status = hashTableGet(pJitterBuffer->pPkgBufferHashTable, pRtpPacket->header.sequenceNumber, &hashValue);
         pCurPacket = (PRtpPacket) hashValue;
+        // remove the old sequence number.
         if (STATUS_SUCCEEDED(status) && pCurPacket != NULL) {
             freeRtpPacket(&pCurPacket);
             CHK_STATUS(hashTableRemove(pJitterBuffer->pPkgBufferHashTable, pRtpPacket->header.sequenceNumber));
         }
+        // push the new sequence number.
         CHK_STATUS(hashTablePut(pJitterBuffer->pPkgBufferHashTable, pRtpPacket->header.sequenceNumber, (UINT64) pRtpPacket));
         pJitterBuffer->lastPopTimestamp = MIN(pJitterBuffer->lastPopTimestamp, pRtpPacket->header.timestamp);
         DLOGS("jitterBufferPush get packet timestamp %lu seqNum %lu", pRtpPacket->header.timestamp, pRtpPacket->header.sequenceNumber);
@@ -125,7 +159,13 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief   
+ * 
+ * @param[in]
+ * 
+ * @return
+*/
 STATUS jitterBufferPop(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
 {
     ENTERS();

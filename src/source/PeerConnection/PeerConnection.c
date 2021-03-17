@@ -262,7 +262,14 @@ CleanUp:
     return retStatus;
 }
 #endif
-
+/**
+ * @brief   set the state machine of peer connection, and invoke the callback for user layer.
+ * 
+ * @param[]
+ * @param[]
+ * 
+ * @return
+*/
 STATUS changePeerConnectionState(PKvsPeerConnection pKvsPeerConnection, RTC_PEER_CONNECTION_STATE newState)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -273,9 +280,9 @@ STATUS changePeerConnectionState(PKvsPeerConnection pKvsPeerConnection, RTC_PEER
     locked = TRUE;
 
     /* new and closed state are terminal*/
-    CHK(pKvsPeerConnection->connectionState != newState && pKvsPeerConnection->connectionState != RTC_PEER_CONNECTION_STATE_FAILED &&
-            pKvsPeerConnection->connectionState != RTC_PEER_CONNECTION_STATE_CLOSED,
-        retStatus);
+    CHK(pKvsPeerConnection->connectionState != newState &&
+        pKvsPeerConnection->connectionState != RTC_PEER_CONNECTION_STATE_FAILED &&
+        pKvsPeerConnection->connectionState != RTC_PEER_CONNECTION_STATE_CLOSED, retStatus);
 
     pKvsPeerConnection->connectionState = newState;
     MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
@@ -296,6 +303,14 @@ CleanUp:
 }
 
 #ifdef ENABLE_STREAMING
+/**
+ * @brief   the calback for the wrapper of jitter buffer.
+ * 
+ * @param[in] customData the context of KvsRtpTransceiver
+ * 
+ * 
+ * @return
+*/
 STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, UINT32 frameSize)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -316,6 +331,7 @@ STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, U
         CHK(FALSE, retStatus);
     }
     CHK(pPacket != NULL, STATUS_NULL_ARG);
+    // #stat
     MUTEX_LOCK(pTransceiver->statsLock);
     // https://www.w3.org/TR/webrtc-stats/#dom-rtcinboundrtpstreamstats-jitterbufferdelay
     pTransceiver->inboundStats.jitterBufferDelay += (DOUBLE)(GETTIME() - pPacket->receivedTime) / HUNDREDS_OF_NANOS_IN_A_SECOND;
@@ -381,7 +397,13 @@ CleanUp:
     return retStatus;
 }
 #endif
-
+/**
+ * @brief   the callback for the ice agent.
+ * 
+ * @param[in]
+ * 
+ * @return
+*/
 VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -593,6 +615,15 @@ CleanUp:
 
 //#ifdef ENABLE_STREAMING
 #if 1//def ENABLE_STREAMING
+/**
+ * @brief   
+ * 
+ * @param[in]
+ * @param[in]
+ * @param[in]
+ * 
+ * @return
+*/
 STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerId);
@@ -648,8 +679,11 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
     delay = 100 + (RAND() % 200);
     DLOGS("next sender report %u in %" PRIu64 " msec", ssrc, delay);
     // reschedule timer with 200msec +- 100ms
-    CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle, delay * HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                                  TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, rtcpReportsCallback, (UINT64) pKvsRtpTransceiver,
+    CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle,
+                                  delay * HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                                  TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
+                                  rtcpReportsCallback,
+                                  (UINT64) pKvsRtpTransceiver,
                                   &pKvsRtpTransceiver->rtcpReportsTimerId));
 
 CleanUp:
@@ -658,7 +692,17 @@ CleanUp:
     return retStatus;
 }
 #endif
-
+/*! \addtogroup PublicMemberFunctions
+ * @brief   Initialize a RtcPeerConnection with the provided Configuration
+ *          Reference: https://www.w3.org/TR/webrtc/#constructor
+ *          It looks likes you need to prepare the configuration of ice server if you want to use turn service. #YC_TBD.
+ *
+ * @param[in] PConfiguration Configuration to initialize provided RtcPeerConnection
+ * @param[in,out] PRtcPeerConnection Uninitialized RtcPeerConnection
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ * @{
+ */
 STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection* ppPeerConnection)
 {
     ENTERS();
@@ -682,12 +726,14 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIceUfrag, LOCAL_ICE_UFRAG_LEN));
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIcePwd, LOCAL_ICE_PWD_LEN));
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localCNAME, LOCAL_CNAME_LEN));
-
-    CHK_STATUS(createDtlsSession(
-        &dtlsSessionCallbacks, pKvsPeerConnection->timerQueueHandle, pConfiguration->kvsRtcConfiguration.generatedCertificateBits,
-        pConfiguration->kvsRtcConfiguration.generateRSACertificate, pConfiguration->certificates, &pKvsPeerConnection->pDtlsSession));
-    CHK_STATUS(
-        dtlsSessionOnOutBoundData(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsOutboundPacket));
+    // #dlts session.
+    CHK_STATUS(createDtlsSession(&dtlsSessionCallbacks,
+                                    pKvsPeerConnection->timerQueueHandle,
+                                    pConfiguration->kvsRtcConfiguration.generatedCertificateBits,
+                                    pConfiguration->kvsRtcConfiguration.generateRSACertificate,
+                                    pConfiguration->certificates,
+                                    &pKvsPeerConnection->pDtlsSession));
+    CHK_STATUS(dtlsSessionOnOutBoundData(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsOutboundPacket));
     CHK_STATUS(dtlsSessionOnStateChange(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsStateChange));
     // #codec.
     CHK_STATUS(hashTableCreateWithParams(CODEC_HASH_TABLE_BUCKET_COUNT, CODEC_HASH_TABLE_BUCKET_LENGTH, &pKvsPeerConnection->pCodecTable));
@@ -875,6 +921,15 @@ CleanUp:
 }
 #endif
 
+/**
+ * Set a callback for connection state change
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in] UINT64 User customData that will be passed along when RtcOnDataChannel is called
+ * @param[in] RtcOnIceCandidate User RtcOnConnectionStateChange callback
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS peerConnectionOnConnectionStateChange(PRtcPeerConnection pRtcPeerConnection, UINT64 customData,
                                              RtcOnConnectionStateChange rtcOnConnectionStateChange)
 {
@@ -901,6 +956,14 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ * Load the sdp field of PRtcSessionDescriptionInit with pending or current local session description
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in,out] PRtcSessionDescriptionInit the buffer of session description init.This api will modify the content. IN/PRtcSessionDescriptionInit whose sdp field will be modified.
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS peerConnectionGetLocalDescription(PRtcPeerConnection pRtcPeerConnection, PRtcSessionDescriptionInit pRtcSessionDescriptionInit)
 {
     ENTERS();
@@ -933,6 +996,14 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ * Load the sdp field of PRtcSessionDescriptionInit with current local session description
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in,out] PRtcSessionDescriptionInit IN/PRtcSessionDescriptionInit whose sdp field will be modified.
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS peerConnectionGetCurrentLocalDescription(PRtcPeerConnection pRtcPeerConnection, PRtcSessionDescriptionInit pRtcSessionDescriptionInit)
 {
     ENTERS();
@@ -996,6 +1067,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
         if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "fingerprint") == 0) {
             STRNCPY(pKvsPeerConnection->remoteCertificateFingerprint, pSessionDescription->sdpAttributes[i].attributeValue + 8,
                     CERTIFICATE_FINGERPRINT_LENGTH);
+        // #YC_TBD, need to be fixed.
         } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "ice-options") == 0 &&
                    STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "trickle") == 0) {
             NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
@@ -1054,7 +1126,9 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     STRNCPY(pKvsPeerConnection->remoteIceUfrag, remoteIceUfrag, MAX_ICE_UFRAG_LEN);
     STRNCPY(pKvsPeerConnection->remoteIcePwd, remoteIcePwd, MAX_ICE_PWD_LEN);
 
-    CHK_STATUS(iceAgentStartAgent(pKvsPeerConnection->pIceAgent, pKvsPeerConnection->remoteIceUfrag, pKvsPeerConnection->remoteIcePwd,
+    CHK_STATUS(iceAgentStartAgent(pKvsPeerConnection->pIceAgent,
+                                  pKvsPeerConnection->remoteIceUfrag,
+                                  pKvsPeerConnection->remoteIcePwd,
                                   pKvsPeerConnection->isOffer));
 //#ifdef ENABLE_STREAMING
 #if 1//def ENABLE_STREAMING
@@ -1155,6 +1229,18 @@ CleanUp:
 
 //#ifdef ENABLE_STREAMING
 #if 1//def ENABLE_STREAMING
+/**
+ * @brief Create a new RtcRtpTransceiver and add it to the set of transceivers.
+ *
+ * Reference https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-addtransceiver
+ *
+ * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
+ * @param[in] PRtcMediaStreamTrack Stream track information for the codec appropriate codec, or NULL for RECVONLY
+ * @param[in] PRtcRtpTransceiverInit PRtcRtpTransceiverInit that may configure our new Transceiver
+ * @param[in,out] PRtcRtpTransceiver* IN/Initialized and configured RtcRtpTransceiver
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS addTransceiver(  PRtcPeerConnection pPeerConnection,
                         PRtcMediaStreamTrack pRtcMediaStreamTrack,
                         PRtcRtpTransceiverInit pRtcRtpTransceiverInit,
@@ -1169,7 +1255,7 @@ STATUS addTransceiver(  PRtcPeerConnection pPeerConnection,
     DepayRtpPayloadFunc depayFunc;
     UINT32 clockRate = 0;
     UINT32 ssrc = (UINT32) RAND(), rtxSsrc = (UINT32) RAND();
-    RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;//!< #YC_TBD. need to be exported.
 
     if (pRtcRtpTransceiverInit != NULL) {
         direction = pRtcRtpTransceiverInit->direction;
@@ -1204,10 +1290,22 @@ STATUS addTransceiver(  PRtcPeerConnection pPeerConnection,
     }
 
     // TODO: Add ssrc duplicate detection here not only relying on RAND()
-    CHK_STATUS(createKvsRtpTransceiver(direction, pKvsPeerConnection, ssrc, rtxSsrc, pRtcMediaStreamTrack, NULL, pRtcMediaStreamTrack->codec,
+    CHK_STATUS(createKvsRtpTransceiver(direction,
+                                       pKvsPeerConnection,
+                                       ssrc,
+                                       rtxSsrc,
+                                       pRtcMediaStreamTrack,
+                                       NULL,
+                                       pRtcMediaStreamTrack->codec,
                                        &pKvsRtpTransceiver));
-    CHK_STATUS(createJitterBuffer(onFrameReadyFunc, onFrameDroppedFunc, depayFunc, DEFAULT_JITTER_BUFFER_MAX_LATENCY, clockRate,
-                                  (UINT64) pKvsRtpTransceiver, &pJitterBuffer));
+    // create the context of jitter buffer.
+    CHK_STATUS(createJitterBuffer(onFrameReadyFunc,
+                                  onFrameDroppedFunc,
+                                  depayFunc,
+                                  DEFAULT_JITTER_BUFFER_MAX_LATENCY,
+                                  clockRate,
+                                  (UINT64) pKvsRtpTransceiver,
+                                  &pJitterBuffer));
     CHK_STATUS(kvsRtpTransceiverSetJitterBuffer(pKvsRtpTransceiver, pJitterBuffer));
 
     // after pKvsRtpTransceiver is successfully created, jitterBuffer will be freed by pKvsRtpTransceiver.
@@ -1215,9 +1313,13 @@ STATUS addTransceiver(  PRtcPeerConnection pPeerConnection,
 
     CHK_STATUS(doubleListInsertItemHead(pKvsPeerConnection->pTransceivers, (UINT64) pKvsRtpTransceiver));
     *ppRtcRtpTransceiver = (PRtcRtpTransceiver) pKvsRtpTransceiver;
-
-    CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle, RTCP_FIRST_REPORT_DELAY, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
-                                  rtcpReportsCallback, (UINT64) pKvsRtpTransceiver, &pKvsRtpTransceiver->rtcpReportsTimerId));
+    // schedule the rtcp send report callback.
+    CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle,
+                                  RTCP_FIRST_REPORT_DELAY,
+                                  TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
+                                  rtcpReportsCallback,
+                                  (UINT64) pKvsRtpTransceiver,
+                                  &pKvsRtpTransceiver->rtcpReportsTimerId));
 
     pKvsRtpTransceiver = NULL;
 

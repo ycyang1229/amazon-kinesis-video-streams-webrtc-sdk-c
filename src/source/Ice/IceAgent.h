@@ -155,7 +155,7 @@ typedef struct {
     UINT32 foundation;
     /* If candidate is local and relay, then store the
      * pTurnConnection this candidate is associated to */
-    struct __TurnConnection* pTurnConnection;
+    struct __TurnConnection* pTurnConnection;//!< the context of the turn connection.
 
     /* store pointer to iceAgent to pass it to incomingDataHandler in incomingRelayedDataHandler
      * we pass pTurnConnectionTrack as customData to incomingRelayedDataHandler to avoid look up
@@ -187,11 +187,11 @@ typedef struct {
 } IceCandidatePair, *PIceCandidatePair;
 
 struct __IceAgent {
-    volatile ATOMIC_BOOL agentStartGathering;
-    volatile ATOMIC_BOOL remoteCredentialReceived;
+    volatile ATOMIC_BOOL agentStartGathering;//!< indicate the ice agent is starting gathering or not.
+    volatile ATOMIC_BOOL remoteCredentialReceived;//!< true: receive the username/password of remote peer.
     volatile ATOMIC_BOOL candidateGatheringFinished;
     volatile ATOMIC_BOOL shutdown;
-    volatile ATOMIC_BOOL restart;
+    volatile ATOMIC_BOOL restart;//!< indicate the ice agent is restarting or not.
     volatile ATOMIC_BOOL processStun;
 
     CHAR localUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
@@ -206,7 +206,7 @@ struct __IceAgent {
 
     PHashTable requestTimestampDiagnostics;
 
-    PDoubleList localCandidates;
+    PDoubleList localCandidates;//!< store all the local candidates including host, server-reflexive, and relayed.
     PDoubleList remoteCandidates;
     // store PIceCandidatePair which will be immediately checked for connectivity when the timer is fired.
     // #YC_TBD, receive the stun request, and store the corresponding candidate pair into this queue.
@@ -215,7 +215,7 @@ struct __IceAgent {
     // https://tools.ietf.org/html/rfc5245#section-5.8
     // https://tools.ietf.org/html/rfc5245#section-7.2.1.4
     PStackQueue triggeredCheckQueue;
-    PDoubleList iceCandidatePairs;
+    PDoubleList iceCandidatePairs;//!< the ice candidate pairs.
 
     PConnectionListener pConnectionListener;
     
@@ -232,7 +232,7 @@ struct __IceAgent {
     UINT32 iceCandidateGatheringTimerTask;
 
     // Current ice agent state
-    UINT64 iceAgentState;
+    UINT64 iceAgentState;//!< used for the setup of ice agent fsm.
     // The state machine
     PStateMachine pStateMachine;
     STATUS iceAgentStatus;
@@ -250,7 +250,7 @@ struct __IceAgent {
 
     UINT32 foundationCounter;
 
-    UINT32 relayCandidateCount;
+    UINT32 relayCandidateCount;//!< the number of relay candidates.
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
     UINT64 lastDataReceivedTime;
@@ -262,7 +262,7 @@ struct __IceAgent {
 
     // Pre-allocated stun packets
     PStunPacket pBindingIndication;
-    PStunPacket pBindingRequest;
+    PStunPacket pBindingRequest;//!< the packet of binding request.
 
     // store transaction ids for stun binding request.
     PTransactionIdStore pStunBindingRequestTransactionIdStore;

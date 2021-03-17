@@ -330,6 +330,9 @@ CleanUp:
 }
 /**
  * @brief   
+ *          https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis3.html
+ *          https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis4.html
+ *          https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis5.html
  * 
  * @param[]
  * @param[]
@@ -644,7 +647,7 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief   
+ * @brief   refresh the information of ice server.
 */
 STATUS signalingRefreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UINT64 customData)
 {

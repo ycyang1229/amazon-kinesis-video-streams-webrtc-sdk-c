@@ -49,16 +49,16 @@ typedef struct {
     RtcPeerConnection peerConnection;
     PIceAgent pIceAgent;
     PDtlsSession pDtlsSession;
-    BOOL dtlsIsServer;
+    BOOL dtlsIsServer;//!< indicate the role of dtls session.
 
-    MUTEX pSrtpSessionLock;
+    MUTEX pSrtpSessionLock;//!< the lock for srtp session.
     PSrtpSession pSrtpSession;
 #ifdef ENABLE_DATA_CHANNEL
     PSctpSession pSctpSession;
 #endif
-    SessionDescription remoteSessionDescription;
-    PDoubleList pTransceivers;
-    BOOL sctpIsEnabled;
+    SessionDescription remoteSessionDescription;//!< the session desciption of the remote peer.
+    PDoubleList pTransceivers;//!< the transceivers.
+    BOOL sctpIsEnabled;//!< enable the data channel or not. indicate that support sctp or not.
 
     CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
     CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
@@ -96,12 +96,13 @@ typedef struct {
     RtcOnIceCandidate onIceCandidate;
 
     UINT64 onConnectionStateChangeCustomData;
-    RtcOnConnectionStateChange onConnectionStateChange;
+    RtcOnConnectionStateChange onConnectionStateChange;//!< the callback of peer connection change.
     RTC_PEER_CONNECTION_STATE connectionState;
 
     UINT16 MTU;
 
-    NullableBool canTrickleIce;
+    NullableBool canTrickleIce;//!< indicate the behavior of ice, trickle ice or non-trickle ice.
+                                ///!< https://tools.ietf.org/html/rfc8838
 } KvsPeerConnection, *PKvsPeerConnection;
 #ifdef ENABLE_DATA_CHANNEL
 typedef struct {

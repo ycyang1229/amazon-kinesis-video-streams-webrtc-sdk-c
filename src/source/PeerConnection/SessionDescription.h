@@ -41,7 +41,11 @@ extern "C" {
 #define DEFAULT_PAYLOAD_OPUS  (UINT64) 111
 #define DEFAULT_PAYLOAD_VP8   (UINT64) 96
 #define DEFAULT_PAYLOAD_H264  (UINT64) 125
-
+/**
+ * a=rtpmap:0 PCMU/8000\r\n
+ * a=rtpmap:8 PCMA/8000\r\n
+ * a=rtpmap:111 opus/48000/2\r\n
+*/
 #define DEFAULT_PAYLOAD_MULAW_STR (PCHAR) "0"
 #define DEFAULT_PAYLOAD_ALAW_STR  (PCHAR) "8"
 

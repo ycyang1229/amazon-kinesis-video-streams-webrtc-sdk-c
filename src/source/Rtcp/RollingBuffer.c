@@ -2,6 +2,15 @@
 
 #include "../Include_i.h"
 
+/**
+ * @brief   create the rolling buffer.
+ * 
+ * @param[in] capacity
+ * @param[in] freeDataFunc
+ * @param[in, out] ppRollingBuffer
+ * 
+ * @return
+*/
 STATUS createRollingBuffer(UINT32 capacity, FreeDataFunc freeDataFunc, PRollingBuffer* ppRollingBuffer)
 {
     ENTERS();

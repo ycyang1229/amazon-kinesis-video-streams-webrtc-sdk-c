@@ -2,6 +2,14 @@
 
 #include "../Include_i.h"
 
+/**
+ * @brief   create the rolling buffer of rtp.
+ * 
+ * @param[in]
+ * @param[in]
+ * 
+ * @return
+*/
 STATUS createRtpRollingBuffer(UINT32 capacity, PRtpRollingBuffer* ppRtpRollingBuffer)
 {
     ENTERS();

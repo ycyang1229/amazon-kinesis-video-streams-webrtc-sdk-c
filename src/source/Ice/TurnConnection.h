@@ -15,6 +15,8 @@ extern "C" {
 #define TURN_REQUEST_TRANSPORT_TCP               6
 #define DEFAULT_TURN_ALLOCATION_LIFETIME_SECONDS 600
 // required by rfc5766 to be 300s
+// The Permission Lifetime MUST be 300 seconds (= 5 minutes).
+// https://tools.ietf.org/html/rfc5766#section-8
 #define TURN_PERMISSION_LIFETIME                 (300 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define DEFAULT_TURN_TIMER_INTERVAL_BEFORE_READY (150 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND) //!< 150ms
 #define DEFAULT_TURN_TIMER_INTERVAL_AFTER_READY  (1 * HUNDREDS_OF_NANOS_IN_A_SECOND)
@@ -28,6 +30,8 @@ extern "C" {
 #define DEFAULT_TURN_BIND_CHANNEL_TIMEOUT      (3 * HUNDREDS_OF_NANOS_IN_A_SECOND) //!< 3 sec
 #define DEFAULT_TURN_CLEAN_UP_TIMEOUT          (10 * HUNDREDS_OF_NANOS_IN_A_SECOND) //!< 10 sec
 
+// #YC_TBD, It is suggested that the client refresh the allocation roughly 1 minute before it expires.
+// https://tools.ietf.org/html/rfc5766#section-7
 #define DEFAULT_TURN_ALLOCATION_REFRESH_GRACE_PERIOD (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define DEFAULT_TURN_PERMISSION_REFRESH_GRACE_PERIOD (30 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 
@@ -38,6 +42,10 @@ extern "C" {
 #define DEFAULT_TURN_MAX_PEER_COUNT                       32 //!< 
 
 // all turn channel numbers must be greater than 0x4000 and less than 0x7FFF
+// 0x0000 through 0x3FFF: These values can never be used for channel numbers.
+// 0x4000 through 0x7FFF: These values are the allowed channel numbers (16,383 possible values).
+// 0x8000 through 0xFFFF: These values are reserved for future use.
+// https://tools.ietf.org/html/rfc5766#section-11
 #define TURN_CHANNEL_BIND_CHANNEL_NUMBER_BASE (UINT16) 0x4000
 
 // 2 byte channel number 2 data byte size
@@ -63,7 +71,7 @@ typedef enum {
     TURN_STATE_NEW,
     TURN_STATE_CHECK_SOCKET_CONNECTION,
     TURN_STATE_GET_CREDENTIALS,
-    TURN_STATE_ALLOCATION,
+    TURN_STATE_ALLOCATION,//!< https://tools.ietf.org/html/rfc5766#section-5
     TURN_STATE_CREATE_PERMISSION,
     TURN_STATE_BIND_CHANNEL,
     TURN_STATE_READY,
@@ -82,8 +90,8 @@ typedef enum {
 } TURN_PEER_CONNECTION_STATE;
 
 typedef enum {
-    TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION,
-    TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL,
+    TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION,//!< https://tools.ietf.org/html/rfc5766#section-2.4
+    TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL,//!< https://tools.ietf.org/html/rfc5766#section-2.5
 } TURN_CONNECTION_DATA_TRANSFER_MODE;
 // 4+4+24=32
 typedef struct {
@@ -119,7 +127,7 @@ struct __TurnConnection {
     /* shutdown is complete when turn socket is closed */
     volatile ATOMIC_BOOL shutdownComplete;
     volatile ATOMIC_BOOL hasAllocation;//!< get the allocation response of turn connection. It means we have the turn relay address.
-    volatile SIZE_T timerCallbackId;
+    volatile SIZE_T timerCallbackId;//!< the timer callback id.
 
     // realm attribute in Allocation response
     CHAR turnRealm[STUN_MAX_REALM_LEN + 1];
@@ -129,9 +137,9 @@ struct __TurnConnection {
     BOOL credentialObtained;//!< get the nonce and realm from 401 response. true: got the information.
     BOOL relayAddressReported;//!< get the xor relay address.
 
-    PSocketConnection pControlChannel;//!< the socket hanlder of this turn connection.
+    PSocketConnection pControlChannel;//!< the socket hanlder between local and ice server.
 
-    TurnPeer turnPeerList[DEFAULT_TURN_MAX_PEER_COUNT];
+    TurnPeer turnPeerList[DEFAULT_TURN_MAX_PEER_COUNT];//!< #YC_TBD, need to review this. it should be reduced.
     UINT32 turnPeerCount;//!< the number of remote candidates for this turn connection.
 
     TIMER_QUEUE_HANDLE timerQueueHandle;

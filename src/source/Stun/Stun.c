@@ -67,9 +67,17 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief   serialize the s
+ * @brief   serialize the human-readable stun packet into the raw stun packet.
  * 
- * @param[in]
+ * @param[in] pStunPacket the buffer of the human-readable stun packet.
+ * @param[in] password the key for the message integrity.
+ * @param[in] passwordLen the length of the password.
+ * @param[in] generateMessageIntegrity add the message integrity in the raw stun packet or not.
+ * @param[in] generateFingerprint add the fingerprint in the raw stun packet or not.
+ * @param[in, out] pBuffer the buffer of the raw stun packet.
+ * @param[in, out] pSize the size of the raw stun packet.
+ * 
+ * @return
 */
 STATUS serializeStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen, BOOL generateMessageIntegrity, BOOL generateFingerprint,
                            PBYTE pBuffer, PUINT32 pSize)
@@ -1082,6 +1090,15 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
+/**
+ * @brief   create the stun packet with pre-allocated stun payload.
+ * 
+ * @param[in] stunPacketType the type of stun packet.
+ * @param[in] transactionId the transation id for the stun packet.
+ * @param[in, out] ppStunPacket return the context of the stun packet.
+ * 
+ * @return
+*/
 
 STATUS createStunPacket(STUN_PACKET_TYPE stunPacketType, PBYTE transactionId, PStunPacket* ppStunPacket)
 {

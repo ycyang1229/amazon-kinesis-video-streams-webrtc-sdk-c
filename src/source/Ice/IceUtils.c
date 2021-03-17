@@ -153,13 +153,13 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief   prepare the stun packet for sending it out.
+ * @brief   serialize the stun packet.
  * 
- * @param[in] pStunPacket
- * @param[in] password
- * @param[in] passwordLen
- * @param[in, out] pBuffer the pointer of this serialized stun packet.
- * @param[in, out] pBufferLen the length of this serialized stun packet.
+ * @param[in] pStunPacket the buffer of human-readable stun packet.
+ * @param[in] password the key for the message integrity of the stun packet.
+ * @param[in] passwordLen the length of password.
+ * @param[in, out] pBuffer the pointer of this raw stun packet.
+ * @param[in, out] pBufferLen the length of this raw stun packet.
  * 
  * @return 
 */
@@ -175,7 +175,7 @@ STATUS iceUtilsPackageStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32
     if (password != NULL) {
         addMessageIntegrity = TRUE;
     }
-
+    // pre-calculate the size of raw stun packet.
     CHK_STATUS(serializeStunPacket(pStunPacket, password, passwordLen, addMessageIntegrity, TRUE, NULL, &stunPacketSize));
     CHK(stunPacketSize <= *pBufferLen, STATUS_BUFFER_TOO_SMALL);
     CHK_STATUS(serializeStunPacket(pStunPacket, password, passwordLen, addMessageIntegrity, TRUE, pBuffer, &stunPacketSize));
@@ -188,24 +188,31 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief   packsend the stun packet and send the stun packet.
+ * @brief   pack the stun packet and send the stun packet.
  * 
- * @param[in]
- * @param[in]
- * @param[in]
- * @param[in]
- * @param[in]
- * @param[in]
+ * @param[in] pStunPacket
+ * @param[in] password
+ * @param[in] passwordLen
+ * @param[in] pDest
+ * @param[in] pSocketConnection
+ * @param[in] pTurnConnection the context of the turn connection.
+ * @param[in] useTurn use the turn connection.
  * 
  * @return 
 */
-STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen, PKvsIpAddress pDest, PSocketConnection pSocketConnection,
-                              PTurnConnection pTurnConnection, BOOL useTurn)
+STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket,
+                              PBYTE password,
+                              UINT32 passwordLen,
+                              PKvsIpAddress pDest,
+                              PSocketConnection pSocketConnection,
+                              PTurnConnection pTurnConnection,
+                              BOOL useTurn)
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 stunPacketSize = STUN_PACKET_ALLOCATION_SIZE;
     PBYTE stunPacketBuffer = NULL;
     // #memory, #heap. #YC_TBD.
+    // allocate the buffer of raw stun packet.
     CHK(NULL != (stunPacketBuffer = (PBYTE) MEMALLOC(STUN_PACKET_ALLOCATION_SIZE)), STATUS_NOT_ENOUGH_MEMORY);
     //DLOGD("%s, ip: %d.%d.%d.%d", useTurn == TRUE ? "turn":"non-turn", pDest->address[0], pDest->address[1], pDest->address[2], pDest->address[3]);
     CHK_STATUS(iceUtilsPackageStunPacket(pStunPacket, password, passwordLen, stunPacketBuffer, &stunPacketSize));
@@ -228,7 +235,11 @@ CleanUp:
  * @param[in] useTurn indicate this remote candidate belongs to the turn connection.
  * 
 */
-STATUS iceUtilsSendData(PBYTE buffer, UINT32 size, PKvsIpAddress pDest, PSocketConnection pSocketConnection, PTurnConnection pTurnConnection,
+STATUS iceUtilsSendData(PBYTE buffer,
+                        UINT32 size,
+                        PKvsIpAddress pDest,
+                        PSocketConnection pSocketConnection,
+                        PTurnConnection pTurnConnection,
                         BOOL useTurn)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -252,9 +263,11 @@ CleanUp:
     return retStatus;
 }
 /**
+ * @brief   #YC_TBD, consider to change this api, but it is not a bottleneck.
  * 
- * #YC_TBD, consider to change this api, but it is not a bottleneck.
+ * @param[in]
  * 
+ * @return
 */
 STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR credential)
 {

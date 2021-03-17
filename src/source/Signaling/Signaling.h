@@ -138,7 +138,7 @@ typedef struct {
 typedef struct {
     volatile SIZE_T result;//!< Current service call result
     // Sent message result
-    volatile SIZE_T messageResult;
+    volatile SIZE_T messageResult;//!< the message result of websocket service. SERVICE_CALL_RESULT.
 
     // Client is ready to connect to signaling channel
     volatile ATOMIC_BOOL clientReady;//!< Inidicate the singaling fsm is ready.
@@ -187,9 +187,12 @@ typedef struct {
     PChannelInfo pChannelInfo;
 
     // Returned signaling channel description
-    SignalingChannelDescription channelDescription;
+    SignalingChannelDescription channelDescription;//!< the information from calling the api of describing the channel.
 
-    // Signaling endpoint
+    /**
+     * https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_ResourceEndpointListItem.html
+    */
+   // Signaling endpoint
     CHAR channelEndpointWss[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
 
     // Signaling endpoint
@@ -211,7 +214,7 @@ typedef struct {
     ServiceCallContext serviceCallContext;
 
     // Indicates whether to self-prime on Ready or not
-    BOOL continueOnReady;
+    BOOL continueOnReady;//!< Indicate connect to signaling channel or not.
 
     // Interlocking the state transitions
     MUTEX stateLock;
@@ -220,13 +223,14 @@ typedef struct {
     MUTEX connectedLock;
 
     // Conditional variable for Connected state
+    // wait for the lws to notify the connection is established or not.
     CVAR connectedCvar;
 
     // Sync mutex for sending condition variable
     MUTEX sendLock;
 
     // Conditional variable for sending interlock
-    CVAR sendCvar;
+    CVAR sendCvar; //!< the lock for protecting the process of sending the websocket message.
 
     // Sync mutex for receiving response to the message condition variable
     MUTEX receiveLock;
@@ -238,7 +242,7 @@ typedef struct {
     UINT64 stepUntil;
 
     // Ongoing listener call info
-    PLwsCallInfo pOngoingCallInfo;
+    PLwsCallInfo pOngoingCallInfo;//!< setup by the lws aip of connecting signaling channel.
 
     // Listener thread for the socket
     ThreadTracker listenerTracker;
@@ -263,7 +267,7 @@ typedef struct {
     MUTEX lwsServiceLock;
 
     // Serialized access to LWS service call
-    MUTEX lwsSerializerLock;
+    MUTEX lwsSerializerLock;//!< the lock of lws service call.
 
     // Re-entrant lock for diagnostics/stats
     MUTEX diagnosticsLock;
@@ -275,7 +279,7 @@ typedef struct {
     SignalingDiagnostics diagnostics;
 
     // Tracking when was the Last time the APIs were called
-    UINT64 describeTime;
+    UINT64 describeTime;//!< the time of describing the channel.
     UINT64 createTime;
     UINT64 getEndpointTime;
     UINT64 getIceConfigTime;

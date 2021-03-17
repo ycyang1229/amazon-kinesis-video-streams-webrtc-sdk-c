@@ -7,8 +7,24 @@ mbedtls_ssl_srtp_profile DTLS_SRTP_SUPPORTED_PROFILES[] = {
     MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_32,
 };
 
-STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, INT32 certificateBits,
-                         BOOL generateRSACertificate, PRtcCertificate pRtcCertificates, PDtlsSession* ppDtlsSession)
+
+/**
+ * Create DTLS session. Not thread safe.
+ * @param[in] PDtlsSessionCallbacks - callbacks
+ * @param[in] TIMER_QUEUE_HANDLE - timer handle to schedule timer task with
+ * @param[in] INT32 - size of generated certificate
+ * @param[in] BOOL - whether to generate certificate or not
+ * @param[in] PRtcCertificate - user provided certificate
+ * @param[in] PDtlsSession* - pointer to created DtlsSession object
+ *
+ * @return STATUS - status of operation
+ */
+STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks,
+                         TIMER_QUEUE_HANDLE timerQueueHandle,
+                         INT32 certificateBits,
+                         BOOL generateRSACertificate,
+                         PRtcCertificate pRtcCertificates,
+                         PDtlsSession* ppDtlsSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -254,6 +270,20 @@ INT32 dtlsSessionKeyDerivationCallback(PVOID customData, const unsigned char* pM
     return 0;
 }
 
+/**
+ * 
+ * @param PDtlsSession - DtlsSession object
+ * @param BOOL - is server
+ * @return STATUS - status of operation
+ */
+/**
+ * @brief   Start DTLS handshake. Not thread safe. Basically, we start dtls session after the state of the ice agent is connected.
+ * 
+ * @param[in]
+ * @param[in]
+ * 
+ * @return
+*/
 STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
 {
     ENTERS();
@@ -298,8 +328,12 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
 
     // Start non-blocking handshaking
     pDtlsSession->dtlsSessionStartTime = GETTIME();
-    CHK_STATUS(timerQueueAddTimer(pDtlsSession->timerQueueHandle, DTLS_SESSION_TIMER_START_DELAY, DTLS_TRANSMISSION_INTERVAL,
-                                  dtlsTransmissionTimerCallback, (UINT64) pDtlsSession, &pDtlsSession->timerId));
+    CHK_STATUS(timerQueueAddTimer(pDtlsSession->timerQueueHandle,
+                                    DTLS_SESSION_TIMER_START_DELAY,
+                                    DTLS_TRANSMISSION_INTERVAL,
+                                    dtlsTransmissionTimerCallback,
+                                    (UINT64) pDtlsSession,
+                                    &pDtlsSession->timerId));
 
 CleanUp:
     if (locked) {
@@ -424,7 +458,15 @@ CleanUp:
     LEAVES();
     return STATUS_SUCCESS;
 }
-
+/**
+ * @brief   return the buffer of the certificate, and need to pass the address of the buffer.
+ * 
+ * @param[in] pDtlsSession the context of the dtls session.
+ * @param[in, out] pBuff the buffer of the certificate.
+ * @param[in] buffLen the size of certificate.
+ * 
+ * @return
+*/
 STATUS dtlsSessionGetLocalCertificateFingerprint(PDtlsSession pDtlsSession, PCHAR pBuff, UINT32 buffLen)
 {
     ENTERS();
@@ -438,6 +480,7 @@ STATUS dtlsSessionGetLocalCertificateFingerprint(PDtlsSession pDtlsSession, PCHA
     locked = TRUE;
 
     // TODO: Use the 0th certificate for now
+    // #YC_TBD. need to check the relationship of certificate.
     MEMCPY(pBuff, pDtlsSession->certificates[0].fingerprint, buffLen);
 
 CleanUp:

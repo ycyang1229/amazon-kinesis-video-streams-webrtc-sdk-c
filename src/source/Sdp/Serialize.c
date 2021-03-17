@@ -162,7 +162,15 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief   // Return code maps to a code if we are trying to serialize an invalid session_description
+ * 
+ * @param[in] pSessionDescription
+ * @param[in, out] sdpBytes the output buffer.
+ * @param[in, out] sdpBytesLength the length of the output buffer
+ * 
+ * @return
+*/
 STATUS serializeSessionDescription(PSessionDescription pSessionDescription, PCHAR sdpBytes, PUINT32 sdpBytesLength)
 {
     ENTERS();

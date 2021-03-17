@@ -236,7 +236,14 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief   
+ * 
+ * @param[in] pHostIpAddress address for the socket to bind. PKvsIpAddress->port will be changed to the actual port number
+ * @param[in] sockfd valid socket fd
+ *
+ * @return - STATUS status of execution
+ */
 STATUS socketBind(PKvsIpAddress pHostIpAddress, INT32 sockfd)
 {
     STATUS retStatus = STATUS_SUCCESS;
