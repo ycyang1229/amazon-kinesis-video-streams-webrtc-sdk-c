@@ -184,7 +184,7 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     if (pSignalingClient->signalingClientCallbacks.stateChangeFn != NULL) {
         CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.stateChangeFn(pSignalingClient->signalingClientCallbacks.customData,
-                                                                            getSignalingStateFromStateMachineState(pStateMachineState->state)));
+                                                                            signalingFsmGetState(pStateMachineState->state)));
     }
 
     // Set the async processing based on the channel info
@@ -194,7 +194,7 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     ATOMIC_STORE_BOOL(&pSignalingClient->refreshIceConfig, FALSE);
 
     // Prime the state machine
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, STATUS_SUCCESS));
+    CHK_STATUS(signalingFsmStep(pSignalingClient, STATUS_SUCCESS));
 
 CleanUp:
 
@@ -367,8 +367,13 @@ STATUS signalingSendMessage(PSignalingClient pSignalingClient, PSignalingMessage
     removeFromList = TRUE;
 
     // Perform the call
-    CHK_STATUS(lwsSendMessage(pSignalingClient, pOfferType, pSignalingMessage->peerClientId, pSignalingMessage->payload,
-                              pSignalingMessage->payloadLen, pSignalingMessage->correlationId, 0));
+    CHK_STATUS(lwsSendMessage(pSignalingClient,
+                                pOfferType,
+                                pSignalingMessage->peerClientId,
+                                pSignalingMessage->payload,
+                                pSignalingMessage->payloadLen,
+                                pSignalingMessage->correlationId,
+                                0));
 
     // Update the internal diagnostics only after successfully sending
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesSent);
@@ -461,7 +466,7 @@ STATUS signalingConnect(PSignalingClient pSignalingClient)
     // Set the time out before execution
     pSignalingClient->stepUntil = GETTIME() + SIGNALING_CONNECT_STATE_TIMEOUT;
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+    CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
 
 CleanUp:
 
@@ -494,7 +499,7 @@ STATUS signalingDisconnect(PSignalingClient pSignalingClient)
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+    CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
 
 CleanUp:
 
@@ -525,7 +530,7 @@ STATUS signalingDelete(PSignalingClient pSignalingClient)
     // Set the time out before execution
     pSignalingClient->stepUntil = GETTIME() + SIGNALING_DELETE_TIMEOUT;
 
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+    CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
 
 CleanUp:
 
@@ -685,7 +690,7 @@ STATUS signalingRefreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduled
         // Set the time out before execution
         pSignalingClient->stepUntil = GETTIME() + SIGNALING_REFRESH_ICE_CONFIG_STATE_TIMEOUT;
 
-        CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+        CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
     }
 
 CleanUp:

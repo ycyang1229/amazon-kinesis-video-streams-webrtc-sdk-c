@@ -69,6 +69,17 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ * @brief Send a message through a Signaling client.
+ *
+ * NOTE: The call will fail if the client is not in the CONNECTED state.
+ * NOTE: This is a synchronous call. It will block and wait for sending the data and await for the ACK from the service.
+ *
+ * @param[in] SIGNALING_CLIENT_HANDLE Signaling client handle
+ * @param[in] PSignalingMessage Message to send.
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 STATUS signalingClientSendMessage(SIGNALING_CLIENT_HANDLE signalingClientHandle, PSignalingMessage pSignalingMessage)
 {
     ENTERS();
@@ -184,7 +195,7 @@ STATUS signalingClientGetCurrentState(SIGNALING_CLIENT_HANDLE signalingClientHan
     CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
 
     CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
-    state = getSignalingStateFromStateMachineState(pStateMachineState->state);
+    state = signalingFsmGetState(pStateMachineState->state);
 
 CleanUp:
 

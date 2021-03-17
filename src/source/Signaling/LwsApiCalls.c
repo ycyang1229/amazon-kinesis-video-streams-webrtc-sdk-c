@@ -1437,7 +1437,7 @@ PVOID lwsReconnectHandler(PVOID args)
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfReconnects);
 
     // Attempt to reconnect by driving the state machine to connected state
-    CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+    CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
 
 CleanUp:
 
@@ -1481,7 +1481,7 @@ STATUS lwsSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCH
     BOOL awaitForResponse;
 
     // Ensure we are in a connected state
-    CHK_STATUS(acceptSignalingStateMachineState(pSignalingClient, SIGNALING_STATE_CONNECTED));
+    CHK_STATUS(signalingFsmAccept(pSignalingClient, SIGNALING_STATE_CONNECTED));
 
     CHK(pSignalingClient != NULL && pSignalingClient->pOngoingCallInfo != NULL, STATUS_NULL_ARG);
     // #YC_TBD, need to enhance, #heap.
@@ -1785,7 +1785,7 @@ STATUS lwsReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
             SAFE_MEMFREE(pSignalingMessageWrapper);
 
             // Iterate the state machinery
-            CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+            CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
 
             CHK(FALSE, retStatus);
             break;
@@ -1798,7 +1798,7 @@ STATUS lwsReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
             SAFE_MEMFREE(pSignalingMessageWrapper);
 
             // Iterate the state machinery
-            CHK_STATUS(stepSignalingStateMachine(pSignalingClient, retStatus));
+            CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
 
             CHK(FALSE, retStatus);
             break;
