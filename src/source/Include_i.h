@@ -165,6 +165,7 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Rtp/Codecs/RtpG711Payloader.h"
 #endif
 #include "Signaling/AwsSignerV4.h"
+#include "Signaling/network_api.h"
 #include "Signaling/FileCache.h"
 #include "Signaling/Signaling.h"
 #include "Signaling/ChannelInfo.h"
