@@ -25,6 +25,8 @@ else()
     file(COPY ${CMAKE_CURRENT_BINARY_DIR}/${llhttp_release_folder}/README.md DESTINATION ${CMAKE_CURRENT_SOURCE_DIR})
     file(COPY ${CMAKE_CURRENT_BINARY_DIR}/${llhttp_release_folder}/LICENSE-MIT DESTINATION ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
+# #YC_TBD,
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 
 add_library(llhttp STATIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src/api.c

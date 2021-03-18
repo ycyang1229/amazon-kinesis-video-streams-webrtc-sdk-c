@@ -1,0 +1,13 @@
+cmake_minimum_required(VERSION 2.8)
+
+project(libwslay-download NONE)
+
+
+include(ExternalProject)
+ExternalProject_Add(project_libwslay
+    GIT_REPOSITORY    git@github.com:ycyang1229/private-wslay.git
+    GIT_TAG           main
+    PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
+    CMAKE_ARGS        -D CMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+                      -D CMAKE_INSTALL_PREFIX:STRING=${OPEN_SRC_INSTALL_PREFIX}
+)

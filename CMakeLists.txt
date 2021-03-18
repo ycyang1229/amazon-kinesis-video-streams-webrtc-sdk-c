@@ -118,6 +118,8 @@ if(BUILD_DEPENDENCIES)
   endif()
 
   build_dependency(llhttp ${BUILD_ARGS})
+  build_dependency(parson ${BUILD_ARGS})
+  build_dependency(wslay)
 
   set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
                  -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
@@ -164,6 +166,14 @@ else()
   if(NOT KVS_PLAT_ESP_FREERTOS)
     find_package(MbedTLS REQUIRED)
     set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${MBEDTLS_INCLUDE_DIRS})
+  endif()
+endif()
+
+if (ENABLE_STREAMING AND NOT KVS_PLAT_ESP_FREERTOS)
+  if (OPEN_SRC_INSTALL_PREFIX)
+    find_library(LLHTTP_LIBRARIES llhttp REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
+  else()
+    find_library(LLHTTP_LIBRARIES llhttp REQUIRED )
   endif()
 endif()
 
@@ -347,7 +357,8 @@ target_link_libraries(
          ${EXTRA_DEPS}
          ${OPENSSL_SSL_LIBRARY}
          ${OPENSSL_CRYPTO_LIBRARY}
-         ${MBEDTLS_LIBRARIES})
+         ${MBEDTLS_LIBRARIES}
+         ${LLHTTP_LIBRARIES})
 
 if (WIN32)
   target_link_libraries(kvsWebrtcClient PRIVATE "Ws2_32" "iphlpapi")
