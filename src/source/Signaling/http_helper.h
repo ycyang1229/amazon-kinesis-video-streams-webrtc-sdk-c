@@ -13,43 +13,54 @@
  * permissions and limitations under the License.
  */
 
-#ifndef _HTTP_HELPER_H_
-#define _HTTP_HELPER_H_
+#ifndef __KINESIS_VIDEO_WEBRTC_HTTP_HELPER_H__
+#define __KINESIS_VIDEO_WEBRTC_HTTP_HELPER_H__
 
 #include <inttypes.h>
 
 #include "llhttp.h"
 #include "list.h"
 
+#pragma once
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 typedef struct http_field
 {
-    char* field;
-    uint32_t fieldLen;
-    char* value;
-    uint32_t valueLen;
+    PCHAR field;
+    UINT32 fieldLen;
+    PCHAR value;
+    UINT32 valueLen;
     struct list_head list;
 }http_field_t;
 
 typedef struct http_response_context
 {
-    uint32_t uhttpStatusCode;
-    uint32_t uhttpBodyLen;
-    char* phttpBodyLoc;
+    UINT32 uhttpStatusCode;
+    UINT32 uhttpBodyLen;
+    PCHAR phttpBodyLoc;
     http_field_t curField;
     struct list_head* requiredHeader;
 }http_response_context_t;
 
-int32_t parseHttpResponse( char *pBuf, uint32_t uLen );
-uint32_t getLastHttpStatusCode( void );
-char * getLastHttpBodyLoc( void );
-uint32_t getLastHttpBodyLen( void );
+STATUS parseHttpResponse( PCHAR pBuf, UINT32 uLen );
+UINT32 getLastHttpStatusCode( VOID );
+PCHAR getLastHttpBodyLoc( VOID );
+UINT32 getLastHttpBodyLen( VOID );
 
 // new interface
-int32_t http_add_required_header(struct list_head* head, char* field, uint32_t fieldLen, char* value, uint32_t valudLen);
-http_field_t* http_get_value_by_field(struct list_head* head, char* field, uint32_t fieldLen);
-int32_t http_parse_start(http_response_context_t** ppHttpRspCtx, char *pBuf, uint32_t uLen, struct list_head* requiredHeader);
-uint32_t http_get_http_status_code(http_response_context_t* pHttpRspCtx);
-char* http_get_http_body_location(http_response_context_t* pHttpRspCtx);
-uint32_t http_get_http_body_length(http_response_context_t* pHttpRspCtx);
-int32_t http_parse_detroy(http_response_context_t* pHttpRspCtx);
+
+INT32 http_add_required_header(struct list_head* head, PCHAR field, UINT32 fieldLen, PCHAR value, UINT32 valudLen);
+http_field_t* http_get_value_by_field(struct list_head* head, PCHAR field, UINT32 fieldLen);
+UINT32 http_get_http_status_code(http_response_context_t* pHttpRspCtx);
+PCHAR http_get_http_body_location(http_response_context_t* pHttpRspCtx);
+UINT32 http_get_http_body_length(http_response_context_t* pHttpRspCtx);
+STATUS http_parse_start(http_response_context_t** ppHttpRspCtx, PCHAR pBuf, UINT32 uLen, struct list_head* requiredHeader);
+STATUS http_parse_detroy(http_response_context_t* pHttpRspCtx);
+#ifdef __cplusplus
+}
 #endif
+#endif/* __KINESIS_VIDEO_WEBRTC_HTTP_HELPER_H__ */
