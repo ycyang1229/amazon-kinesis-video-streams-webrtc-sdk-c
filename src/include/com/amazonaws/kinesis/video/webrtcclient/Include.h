@@ -406,6 +406,36 @@ extern "C" {
 /*!@} */
 
 
+
+/////////////////////////////////////////////////////
+/// Json related status codes
+/////////////////////////////////////////////////////
+
+/*! \addtogroup JsonStatusCodes
+ * WEBRTC json related codes. Values are derived from STATUS_JSON_BASE (0x70000000)
+ *  @{
+ */
+#define STATUS_JSON_BASE                         STATUS_AWS_SIGNER_BASE + 0x01000000
+#define STATUS_JSON_PARSE_ERROR                         STATUS_AWS_SIGNER_BASE + 0x01000001
+/*!@} */
+
+
+/////////////////////////////////////////////////////
+/// http related status codes
+/////////////////////////////////////////////////////
+
+/*! \addtogroup httpStatusCodes
+ * WEBRTC http related codes. Values are derived from STATUS_JSON_BASE (0x70000000)
+ *  @{
+ */
+#define STATUS_HTTP_BASE                         STATUS_JSON_BASE + 0x01000000
+#define STATUS_HTTP_RES_NOT_FOUND_ERROR                         STATUS_JSON_BASE + 0x01000001
+#define STATUS_HTTP_REST_EXCEPTION_ERROR                         STATUS_JSON_BASE + 0x01000002
+#define STATUS_HTTP_REST_NOT_AUTHORIZED_ERROR                         STATUS_JSON_BASE + 0x01000003
+#define STATUS_HTTP_REST_UNKNOWN_ERROR                         STATUS_JSON_BASE + 0x01000004
+/*!@} */
+
+
 /////////////////////////////////////////////////////
 /// Rolling buffer related status codes
 /////////////////////////////////////////////////////

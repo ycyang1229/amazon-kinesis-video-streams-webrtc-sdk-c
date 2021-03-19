@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8)
 
 project(libwslay-download NONE)
 
+# #YC_TBD,
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
 
 include(ExternalProject)
 ExternalProject_Add(project_libwslay
@@ -10,4 +12,5 @@ ExternalProject_Add(project_libwslay
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
     CMAKE_ARGS        -D CMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
                       -D CMAKE_INSTALL_PREFIX:STRING=${OPEN_SRC_INSTALL_PREFIX}
+                      -D CMAKE_C_FLAGS=${CMAKE_C_FLAGS}
 )
