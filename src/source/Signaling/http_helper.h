@@ -16,16 +16,17 @@
 #ifndef __KINESIS_VIDEO_WEBRTC_HTTP_HELPER_H__
 #define __KINESIS_VIDEO_WEBRTC_HTTP_HELPER_H__
 
-#include <inttypes.h>
-
-#include "llhttp.h"
-#include "list.h"
-
 #pragma once
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
+
+#include <inttypes.h>
+#include "llhttp.h"
+#include "list.h"
 
 
 typedef struct http_field

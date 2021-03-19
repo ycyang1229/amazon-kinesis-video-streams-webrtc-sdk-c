@@ -179,6 +179,15 @@ endif()
 
 if (ENABLE_STREAMING AND NOT KVS_PLAT_ESP_FREERTOS)
   if (OPEN_SRC_INSTALL_PREFIX)
+    find_library(PARSON_LIBRARIES parson REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
+  else()
+    find_library(PARSON_LIBRARIES parson REQUIRED )
+  endif()
+endif()
+
+
+if (ENABLE_STREAMING AND NOT KVS_PLAT_ESP_FREERTOS)
+  if (OPEN_SRC_INSTALL_PREFIX)
     find_library(SRTP_LIBRARIES srtp2 REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
   else()
     find_library(SRTP_LIBRARIES srtp2 REQUIRED )
@@ -358,7 +367,8 @@ target_link_libraries(
          ${OPENSSL_SSL_LIBRARY}
          ${OPENSSL_CRYPTO_LIBRARY}
          ${MBEDTLS_LIBRARIES}
-         ${LLHTTP_LIBRARIES})
+         ${LLHTTP_LIBRARIES}
+         ${PARSON_LIBRARIES})
 
 if (WIN32)
   target_link_libraries(kvsWebrtcClient PRIVATE "Ws2_32" "iphlpapi")
