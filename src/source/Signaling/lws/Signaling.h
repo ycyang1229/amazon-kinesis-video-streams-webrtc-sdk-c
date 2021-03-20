@@ -65,13 +65,6 @@ extern "C" {
         ATOMIC_INCREMENT(&(pClient)->diagnostics.numberOfErrors);                                                                                    \
     }
 
-#define SIGNALING_SDP_TYPE_OFFER       "SDP_OFFER"
-#define SIGNALING_SDP_TYPE_ANSWER      "SDP_ANSWER"
-#define SIGNALING_ICE_CANDIDATE        "ICE_CANDIDATE"
-#define SIGNALING_GO_AWAY              "GO_AWAY"
-#define SIGNALING_RECONNECT_ICE_SERVER "RECONNECT_ICE_SERVER"
-#define SIGNALING_STATUS_RESPONSE      "STATUS_RESPONSE"
-
 // Forward declaration
 typedef struct __LwsCallInfo* PLwsCallInfo;
 
@@ -259,7 +252,10 @@ typedef struct {
                                         //!< spin off one thread to re-connect.
 
     // LWS context to use for Restful API
-    PVOID pWssContext;
+    struct lws_context* pLwsContext;
+
+    // Signaling protocols
+    struct lws_protocols signalingProtocols[3];
 
     // List of the ongoing messages
     PStackQueue pMessageQueue;//!< the queue of singaling ongoing messsages.
@@ -294,17 +290,6 @@ typedef struct {
 // Public handle to and from object converters
 #define TO_SIGNALING_CLIENT_HANDLE(p)   ((SIGNALING_CLIENT_HANDLE)(p))
 #define FROM_SIGNALING_CLIENT_HANDLE(h) (IS_VALID_SIGNALING_CLIENT_HANDLE(h) ? (PSignalingClient)(h) : NULL)
-
-
-typedef STATUS (*httpApi)(PSignalingClient, UINT64);
-// Check for the stale credentials
-#define CHECK_SIGNALING_CREDENTIALS_EXPIRATION(p)                                                                                                    \
-    do {                                                                                                                                             \
-        if (GETTIME() >= (p)->pAwsCredentials->expiration) {                                                                                         \
-            ATOMIC_STORE(&(p)->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED);                                                                        \
-            CHK(FALSE, retStatus);                                                                                                                   \
-        }                                                                                                                                            \
-    } while (FALSE)
 
 STATUS signalingCreate(PSignalingClientInfoInternal, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
 STATUS signalingFree(PSignalingClient*);

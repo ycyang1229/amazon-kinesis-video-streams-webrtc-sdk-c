@@ -16,12 +16,6 @@
 #define LOG_CLASS "wss_client"
 #include "../Include_i.h"
 
-
-#include "webrtc_rest_api.h"
-#include "webrtc_wss_api.h"
-#include "webrtc_wss_client.h"
-#include "AwsSignerV4.h"
-#include "network_api.h"
 #include "json_helper.h"
 #include "http_helper.h"
 #include "parson.h"

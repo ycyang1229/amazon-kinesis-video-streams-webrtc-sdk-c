@@ -22,10 +22,10 @@
 extern "C" {
 #endif
 
-#include "webrtc_rest_api.h"
-INT32 webrtc_connect_end_point( webrtcServiceParameter_t * pServiceParameter,
-                        webrtcChannelInfo_t * pChannelInfo);
-
+STATUS wssConnectSignalingChannel( webrtcServiceParameter_t * pServiceParameter, webrtcChannelInfo_t * pChannelInfo);
+STATUS wssSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCHAR peerClientId, PCHAR pMessage, UINT32 messageLen,
+                      PCHAR pCorrelationId, UINT32 correlationIdLen);
+STATUS wssTerminateThread(PSignalingClient pSignalingClient);
 #ifdef __cplusplus
 }
 #endif

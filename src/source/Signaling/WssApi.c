@@ -13,20 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#define LOG_CLASS "wss_api"
+#define LOG_CLASS "WssApi"
 #include "../Include_i.h"
 
-
-
-#include "webrtc_rest_api.h"
-#include "webrtc_wss_api.h"
-#include "AwsSignerV4.h"
-#include "network_api.h"
 #include "json_helper.h"
 #include "http_helper.h"
 #include "parson.h"
 #include "wslay/wslay.h"
-#include "webrtc_wss_client.h"
+
 /*-----------------------------------------------------------*/
 
 #define KVS_ENDPOINT_TCP_PORT   "443"
@@ -112,10 +106,10 @@ static VOID uriEncode(CHAR *ori, CHAR *dst)
 
 /*-----------------------------------------------------------*/
 
-int webrtc_connect_end_point( webrtcServiceParameter_t * pServiceParameter,
+STATUS wssConnectSignalingChannel( webrtcServiceParameter_t * pServiceParameter,
                         webrtcChannelInfo_t * pChannelInfo)
 {
-    int retStatus = STATUS_SUCCESS;
+    STATUS retStatus = STATUS_SUCCESS;
     CHAR *p = NULL;
     BOOL bUseIotCert = false;
 
@@ -387,3 +381,16 @@ int webrtc_connect_end_point( webrtcServiceParameter_t * pServiceParameter,
 
 
 
+STATUS wssSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCHAR peerClientId, PCHAR pMessage, UINT32 messageLen,
+                      PCHAR pCorrelationId, UINT32 correlationIdLen)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    return retStatus;
+}
+
+
+STATUS wssTerminateThread(PSignalingClient pSignalingClient)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    return retStatus;
+}

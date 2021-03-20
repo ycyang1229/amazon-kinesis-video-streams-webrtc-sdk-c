@@ -22,12 +22,10 @@
 extern "C" {
 #endif
 
-#include "network_api.h"
-#include "webrtc_rest_api.h"
 // wslay related lib.
 #include "wslay/wslay.h"
 
-
+// SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS
 #define WSS_CLIENT_RFC6455_UUID "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 #define WSS_CLIENT_RFC6455_UUID_LEN strlen(WSS_CLIENT_RFC6455_UUID)
 #define WSS_CLIENT_RANDOM_SEED_LEN 16

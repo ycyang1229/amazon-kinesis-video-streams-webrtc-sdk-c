@@ -74,9 +74,11 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     strcpy(pSampleConfiguration->clientInfo.clientId, SAMPLE_MASTER_CLIENT_ID);
 
-    retStatus = signalingClientCreate(&pSampleConfiguration->clientInfo, &pSampleConfiguration->channelInfo,
-                                          &pSampleConfiguration->signalingClientCallbacks, pSampleConfiguration->pCredentialProvider,
-                                          &pSampleConfiguration->signalingClientHandle);
+    retStatus = signalingClientCreate(&pSampleConfiguration->clientInfo,
+                                      &pSampleConfiguration->channelInfo,
+                                      &pSampleConfiguration->signalingClientCallbacks,
+                                      pSampleConfiguration->pCredentialProvider,
+                                      &pSampleConfiguration->signalingClientHandle);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS Master] signalingClientCreate(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;

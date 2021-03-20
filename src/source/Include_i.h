@@ -164,14 +164,18 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Rtp/Codecs/RtpOpusPayloader.h"
 #include "Rtp/Codecs/RtpG711Payloader.h"
 #endif
-#include "Signaling/AwsSignerV4.h"
-#include "Signaling/network_api.h"
 #include "Signaling/FileCache.h"
 #include "Signaling/Signaling.h"
 #include "Signaling/ChannelInfo.h"
 #include "Signaling/StateMachine.h"
-#include "Signaling/LwsApiCalls.h"
 #include "Metrics/Metrics.h"
+// new
+#include "Signaling/AwsSignerV4.h"
+#include "Signaling/network_api.h"
+#include "Signaling/HttpApi.h"
+#include "Signaling/WssApi.h"
+#include "Signaling/WssClient.h"
+
 
 ////////////////////////////////////////////////////
 // Project internal defines

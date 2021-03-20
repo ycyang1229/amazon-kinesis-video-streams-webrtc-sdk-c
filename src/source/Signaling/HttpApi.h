@@ -22,8 +22,6 @@
 extern "C" {
 #endif
 
-
-#include <stdint.h>
 /**
  * Max update version length in chars
  * https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_DeleteSignalingChannel.html#KinesisVideo-DeleteSignalingChannel-request-CurrentVersion
@@ -175,8 +173,7 @@ CHAR* webrtc_getStringFromChannelRoleType(WEBRTC_CHANNEL_ROLE_TYPE type);
  *
  * @return KVS error code
  */
-STATUS webrtc_create_signalingchannl( webrtcServiceParameter_t * pServiceParameter,
-                      webrtcChannelInfo_t * pchannelInfo);
+STATUS httpApiCreateSignalingChannl( webrtcServiceParameter_t * pServiceParameter, webrtcChannelInfo_t * pchannelInfo);
 
 /**
  * @brief Describe a Stream
@@ -189,13 +186,11 @@ STATUS webrtc_create_signalingchannl( webrtcServiceParameter_t * pServiceParamet
  *
  * @return KVS error code
  */
-STATUS webrtc_describe_signalingchannel( webrtcServiceParameter_t * pServiceParameter,
-                        webrtcChannelInfo_t * pChannelInfo);
+STATUS httpApiDescribeSignalingChannel( webrtcServiceParameter_t * pServiceParameter, webrtcChannelInfo_t * pChannelInfo);
 
 
-STATUS webrtc_get_endPoint( webrtcServiceParameter_t * pServiceParameter,
-                        webrtcChannelInfo_t * pChannelInfo);
-
+STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, webrtcChannelInfo_t * pChannelInfo);
+STATUS httpApiGetIceConfig( webrtcServiceParameter_t * pServiceParameter, webrtcChannelInfo_t * pChannelInfo);
 // rsp
 STATUS parseCreateChannel( const CHAR * pJsonSrc,
                                   UINT32 uJsonSrcLen,

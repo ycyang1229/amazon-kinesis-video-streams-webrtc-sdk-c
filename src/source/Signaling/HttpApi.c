@@ -13,13 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#define LOG_CLASS "rest_api"
+#define LOG_CLASS "HttpApi"
 #include "../Include_i.h"
 
-
-#include "webrtc_rest_api.h"
-#include "AwsSignerV4.h"
-#include "network_api.h"
 #include "json_helper.h"
 #include "http_helper.h"
 #include "parson.h"
@@ -248,8 +244,7 @@ static STATUS checkServiceParameter( webrtcServiceParameter_t * pServiceParamete
 /**
  * 
 */
-STATUS webrtc_create_signalingchannl( webrtcServiceParameter_t * pServiceParameter,
-                      webrtcChannelInfo_t * pChannelInfo)
+STATUS httpApiCreateSignalingChannl( webrtcServiceParameter_t * pServiceParameter, webrtcChannelInfo_t * pChannelInfo)
 {
     STATUS retStatus = STATUS_SUCCESS;
     CHAR *p = NULL;
@@ -458,7 +453,7 @@ STATUS webrtc_create_signalingchannl( webrtcServiceParameter_t * pServiceParamet
 
 /*-----------------------------------------------------------*/
 
-STATUS webrtc_describe_signalingchannel( webrtcServiceParameter_t * pServiceParameter,
+STATUS httpApiDescribeSignalingChannel( webrtcServiceParameter_t * pServiceParameter,
                         webrtcChannelInfo_t * pChannelInfo)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -700,8 +695,7 @@ STATUS webrtc_describe_signalingchannel( webrtcServiceParameter_t * pServicePara
 
 /*-----------------------------------------------------------*/
 
-STATUS webrtc_get_endPoint( webrtcServiceParameter_t * pServiceParameter,
-                        webrtcChannelInfo_t * pChannelInfo)
+STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, webrtcChannelInfo_t * pChannelInfo)
 {
     STATUS retStatus = STATUS_SUCCESS;
     CHAR *p = NULL;
@@ -945,5 +939,90 @@ STATUS webrtc_get_endPoint( webrtcServiceParameter_t * pServiceParameter,
 
 /*-----------------------------------------------------------*/
 
+STATUS httpApiGetIceConfig( webrtcServiceParameter_t * pServiceParameter, webrtcChannelInfo_t * pChannelInfo)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    #if 0
+    char *method = "POST";
+    char *uri = "/v1/get-ice-server-config";
+    char *parameter = "";
+
+    char *p;
+    int n;
+    char pHttpBody[ MAX_HTTP_BODY_LEN ];
+
+    /* Variables for AWS signer V4 */
+    AwsSignerV4Context_t signerContext = { 0 };
+    char pXAmzDate[ SIGNATURE_DATE_TIME_STRING_LEN ];
+
+    NetworkContext_t networkContext;
+
+    snprintf( pHttpBody, MAX_HTTP_BODY_LEN, "{\n"
+                                            "\t\"ChannelARN\": \"%s\",\n"
+                                            "\t\"ClientId\": \"%s\",\n"
+                                            "\t\"Service\": \"TURN\"\n"
+                                            "}", pChannelArn, pClientId );
+
+    getTimeInIso8601( pXAmzDate, sizeof( pXAmzDate ) );
+
+    AwsSignerV4_initContext( &signerContext, 2048 );
+    AwsSignerV4_initCanonicalRequest( &signerContext, method, strlen(method), uri, strlen(uri), parameter, strlen(parameter) );
+    AwsSignerV4_addCanonicalHeader( &signerContext, "host", strlen("host"), pHost, strlen( pHost ) );
+    AwsSignerV4_addCanonicalHeader( &signerContext, "user-agent", strlen("user-agent"), pUserAgent, strlen( pUserAgent ) );
+    AwsSignerV4_addCanonicalHeader( &signerContext, "x-amz-date", strlen("x-amz-date"), pXAmzDate, strlen( pXAmzDate ) );
+    AwsSignerV4_addCanonicalBody( &signerContext, pHttpBody, strlen( pHttpBody ) );
+    AwsSignerV4_sign( &signerContext, pSecretKey, strlen(pSecretKey), pRegion, strlen(pRegion), pService, strlen(pService), pXAmzDate, strlen(pXAmzDate) );
+
+    initNetworkContext( &networkContext );
+
+    connectToServer( &networkContext, pHost, "443" );
+
+    p = networkContext.pHttpSendBuffer;
+    p += sprintf(p, "%s %s HTTP/1.1\r\n", method, uri);
+    p += sprintf(p, "Host: %s\r\n", pHost);
+    p += sprintf(p, "Accept: */*\r\n");
+    p += sprintf(p, "Authorization: %s Credential=%s/%s, SignedHeaders=%s, Signature=%s\r\n",
+                 AWS_SIG_V4_ALGORITHM,
+                 pAccessKey,
+                 AwsSignerV4_getScope( &signerContext ),
+                 "host;user-agent;x-amz-date",
+                 AwsSignerV4_getHmacEncoded( &signerContext )
+    );
+    p += sprintf(p, "content-length: %lu\r\n", strlen(pHttpBody));
+    p += sprintf(p, "content-type: application/json\r\n");
+    p += sprintf(p, "user-agent: %s\r\n", pUserAgent);
+    p += sprintf(p, "X-Amz-Date: %s\r\n", pXAmzDate);
+    p += sprintf(p, "\r\n");
+    p += sprintf(p, "%s", pHttpBody);
+
+    AwsSignerV4_terminateContext( &signerContext );
+
+    printf("sendbuf:\n%s\n", networkContext.pHttpSendBuffer);
+
+    n = mbedtls_ssl_write( &(networkContext.ssl), networkContext.pHttpSendBuffer, p - (char *) networkContext.pHttpSendBuffer );
+    if ( n > 0 )
+    {
+        n = mbedtls_ssl_read( &(networkContext.ssl), networkContext.pHttpRecvBuffer, networkContext.uHttpRecvBufferLen );
+        if ( n > 0 )
+        {
+            printf("httpRecvBuf:\n%s\n", networkContext.pHttpRecvBuffer);
+        }
+        else
+        {
+            printf("fail to connect\n");
+        }
+    }
+
+    disconnectFromServer( &networkContext );
+
+    terminateNetworkContext( &networkContext );
+    #endif
+    return retStatus;
+}
 
 
+STATUS httpApiDeleteChannel( webrtcServiceParameter_t * pServiceParameter, webrtcChannelInfo_t * pChannelInfo)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    return retStatus;
+}

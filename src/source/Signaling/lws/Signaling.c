@@ -25,7 +25,7 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     PSignalingClient pSignalingClient = NULL;
     PCHAR userLogLevelStr = NULL;
     UINT32 userLogLevel;
-    
+    struct lws_context_creation_info creationInfo;
     PStateMachineState pStateMachineState;
     BOOL cacheFound = FALSE;
     PSignalingFileCacheEntry pFileCacheEntry = NULL;
@@ -97,10 +97,33 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
                                     CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient),
                                     &pSignalingClient->pStateMachine));
 
-    // Prepare the signaling channel protocols array for lws
+    // Prepare the signaling channel protocols array
     // for the https connection.
+    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS].name = HTTPS_SCHEME_NAME;
+    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS].callback = (lws_callback_function*)lwsHttpCallbackRoutine;
     // for the websocket connection.
-    // original design initilizes the lws context here. #YC_TBD.
+    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_WSS].name = WSS_SCHEME_NAME;
+    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_WSS].callback = (lws_callback_function*)lwsWssCallbackRoutine;
+
+    // #lws, for the wrap of libwebsockets.
+    MEMSET(&creationInfo, 0x00, SIZEOF(struct lws_context_creation_info));
+    creationInfo.options = LWS_SERVER_OPTION_DO_SSL_GLOBAL_INIT;
+    creationInfo.port = CONTEXT_PORT_NO_LISTEN;
+    creationInfo.protocols = pSignalingClient->signalingProtocols;
+    creationInfo.timeout_secs = SIGNALING_SERVICE_API_CALL_TIMEOUT_IN_SECONDS;
+    creationInfo.gid = -1;
+    creationInfo.uid = -1;
+    creationInfo.client_ssl_ca_filepath = pChannelInfo->pCertPath;
+    creationInfo.client_ssl_cipher_list = "HIGH:!PSK:!RSP:!eNULL:!aNULL:!RC4:!MD5:!DES:!3DES:!aDH:!kDH:!DSS";
+    creationInfo.ka_time = SIGNALING_SERVICE_TCP_KEEPALIVE_IN_SECONDS;
+    creationInfo.ka_probes = SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_COUNT;
+    creationInfo.ka_interval = SIGNALING_SERVICE_TCP_KEEPALIVE_PROBE_INTERVAL_IN_SECONDS;
+/** the new interface of libwebsocket does not have this, so i removed it first.*/
+#if !defined(KVS_PLAT_ESP_FREERTOS) && !defined(KVS_PLAT_RTK_FREERTOS)
+    creationInfo.ws_ping_pong_interval = SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS;
+#endif
+
+    CHK(NULL != (pSignalingClient->pLwsContext = lws_create_context(&creationInfo)), STATUS_SIGNALING_LWS_CREATE_CONTEXT_FAILED);
 
     ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, FALSE);
@@ -204,7 +227,12 @@ STATUS signalingFree(PSignalingClient* ppSignalingClient)
 
     signalingTerminateOngoingOperations(pSignalingClient, TRUE);
 
-    // original design un-initilizes the lws context here. #YC_TBD.
+    if (pSignalingClient->pLwsContext != NULL) {
+        MUTEX_LOCK(pSignalingClient->lwsSerializerLock);
+        lws_context_destroy(pSignalingClient->pLwsContext);
+        pSignalingClient->pLwsContext = NULL;
+        MUTEX_UNLOCK(pSignalingClient->lwsSerializerLock);
+    }
 
     freeStateMachine(pSignalingClient->pStateMachine);
 
@@ -288,10 +316,7 @@ STATUS signalingTerminateOngoingOperations(PSignalingClient pSignalingClient, BO
     }
 
     // Terminate the listener thread if alive
-    //lwsTerminateListenerLoop(pSignalingClient);
-    // #YC_TBD, #WSS
-    wssTerminateThread(pSignalingClient);
-    
+    lwsTerminateListenerLoop(pSignalingClient);
 
     // Await for the reconnect thread to exit
     signalingAwaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
@@ -345,15 +370,7 @@ STATUS signalingSendMessage(PSignalingClient pSignalingClient, PSignalingMessage
     removeFromList = TRUE;
 
     // Perform the call
-    //CHK_STATUS(lwsSendMessage(pSignalingClient,
-    //                            pOfferType,
-    //                            pSignalingMessage->peerClientId,
-    //                            pSignalingMessage->payload,
-    //                            pSignalingMessage->payloadLen,
-    //                            pSignalingMessage->correlationId,
-    //                            0));
-    // #YC_TBD, #WSS.
-    CHK_STATUS(wssSendMessage(pSignalingClient,
+    CHK_STATUS(lwsSendMessage(pSignalingClient,
                                 pOfferType,
                                 pSignalingMessage->peerClientId,
                                 pSignalingMessage->payload,
@@ -961,9 +978,7 @@ STATUS signalingDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
             }
 
             if (STATUS_SUCCEEDED(retStatus)) {
-                //retStatus = lwsDescribeChannel(pSignalingClient, time);
-                // #YC_TBD, #HTTP.
-                retStatus = httpApiDescribeSignalingChannel(NULL, NULL);
+                retStatus = lwsDescribeChannel(pSignalingClient, time);
 
                 // Store the last call time on success
                 if (STATUS_SUCCEEDED(retStatus)) {
@@ -1014,9 +1029,7 @@ STATUS signalingCreateChannel(PSignalingClient pSignalingClient, UINT64 time)
     }
 
     if (STATUS_SUCCEEDED(retStatus)) {
-        //retStatus = lwsCreateChannel(pSignalingClient, time);
-        // #YC_TBD. #HTTP
-        retStatus = httpApiCreateSignalingChannl(NULL, NULL);
+        retStatus = lwsCreateChannel(pSignalingClient, time);
 
         // Store the time of the call on success
         if (STATUS_SUCCEEDED(retStatus)) {
@@ -1079,9 +1092,7 @@ STATUS signalingGetChannelEndpoint(PSignalingClient pSignalingClient, UINT64 tim
             }
 
             if (STATUS_SUCCEEDED(retStatus)) {
-                //retStatus = lwsGetChannelEndpoint(pSignalingClient, time);
-                // #YC_TBD, #HTTP.
-                retStatus = httpApiGetChannelEndpoint(NULL, NULL);
+                retStatus = lwsGetChannelEndpoint(pSignalingClient, time);
 
                 if (STATUS_SUCCEEDED(retStatus)) {
                     pSignalingClient->getEndpointTime = time;
@@ -1162,8 +1173,7 @@ STATUS signalingGetIceConfig(PSignalingClient pSignalingClient, UINT64 time)
     }
 
     if (STATUS_SUCCEEDED(retStatus)) {
-        //retStatus = lwsGetIceConfig(pSignalingClient, time);
-        retStatus = httpApiGetIceConfig(NULL, NULL);
+        retStatus = lwsGetIceConfig(pSignalingClient, time);
 
         if (STATUS_SUCCEEDED(retStatus)) {
             pSignalingClient->getIceConfigTime = time;
@@ -1208,10 +1218,7 @@ STATUS signalingDeleteChannel(PSignalingClient pSignalingClient, UINT64 time)
     }
 
     if (STATUS_SUCCEEDED(retStatus)) {
-        //retStatus = lwsDeleteChannel(pSignalingClient, time);
-        // #YC_TBD, #HTTP
-        retStatus = httpApiDeleteChannel(NULL, NULL);
-        
+        retStatus = lwsDeleteChannel(pSignalingClient, time);
 
         // Store the time of the call on success
         if (STATUS_SUCCEEDED(retStatus)) {
@@ -1267,9 +1274,7 @@ STATUS signalingConnectChannel(PSignalingClient pSignalingClient, UINT64 time)
         // No need to reconnect again if already connected. This can happen if we get to this state after ice refresh
         if (!ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-            //retStatus = lwsConnectSignalingChannel(pSignalingClient, time);
-            // #YC_TBD, #WSS
-            retStatus = wssConnectSignalingChannel(NULL, NULL);
+            retStatus = lwsConnectSignalingChannel(pSignalingClient, time);
 
             // Store the time of the call on success
             if (STATUS_SUCCEEDED(retStatus)) {

@@ -16,7 +16,7 @@
 #define LOG_CLASS "rest_rsp"
 #include "../Include_i.h"
 
-#include "webrtc_rest_api.h"
+#include "HttpApi.h"
 #include "AwsSignerV4.h"
 #include "network_api.h"
 #include "json_helper.h"
