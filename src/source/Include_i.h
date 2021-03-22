@@ -41,7 +41,19 @@ extern "C" {
 #include <mbedtls/error.h>
 #include <mbedtls/certs.h>
 #include <mbedtls/sha256.h>
+// new interface.
+#include <mbedtls/net.h>
+#include <mbedtls/base64.h>
+#include <mbedtls/sha1.h>
+#include <mbedtls/debug.h>
 #endif
+
+#include <llhttp.h>
+#include <parson.h>
+#include <wslay/wslay.h>
+#include <errno.h> // #YC_TBD.
+#include <sys/epoll.h>// #YC_TBD.
+#include <pthread.h>
 
 #ifdef ENABLE_STREAMING
 #if defined(KVS_PLAT_ESP_FREERTOS) || defined(KVS_PLAT_RTK_FREERTOS)
@@ -68,6 +80,7 @@ extern "C" {
 #else
 //#error "need to add the network interface."
 #endif
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
@@ -164,17 +177,23 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Rtp/Codecs/RtpOpusPayloader.h"
 #include "Rtp/Codecs/RtpG711Payloader.h"
 #endif
+// new
+#include "Signaling/list.h"
+#include "Signaling/WebrtcPort.h"
+#include "Signaling/AwsSignerV4.h"
+#include "Signaling/NetworkApi.h"
+#include "Signaling/HttpHelper.h"
+#include "Signaling/JsonHelper.h"
+#include "Signaling/HttpApi.h"
 #include "Signaling/FileCache.h"
-#include "Signaling/Signaling.h"
+#include "Signaling/WssClient.h"
+#include "Signaling/WssApi.h"
 #include "Signaling/ChannelInfo.h"
+#include "Signaling/Signaling.h"
+
 #include "Signaling/StateMachine.h"
 #include "Metrics/Metrics.h"
-// new
-#include "Signaling/AwsSignerV4.h"
-#include "Signaling/network_api.h"
-#include "Signaling/HttpApi.h"
-#include "Signaling/WssApi.h"
-#include "Signaling/WssClient.h"
+
 
 
 ////////////////////////////////////////////////////

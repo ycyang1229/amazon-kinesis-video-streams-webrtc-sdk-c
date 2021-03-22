@@ -23,9 +23,9 @@ extern "C" {
 #endif
 
 STATUS wssConnectSignalingChannel( webrtcServiceParameter_t * pServiceParameter, webrtcChannelInfo_t * pChannelInfo);
-STATUS wssSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCHAR peerClientId, PCHAR pMessage, UINT32 messageLen,
+STATUS wssSendMessage(PVOID pSignalingClient, PCHAR pMessageType, PCHAR peerClientId, PCHAR pMessage, UINT32 messageLen,
                       PCHAR pCorrelationId, UINT32 correlationIdLen);
-STATUS wssTerminateThread(PSignalingClient pSignalingClient);
+STATUS wssTerminateThread(PVOID pSignalingClient);
 #ifdef __cplusplus
 }
 #endif

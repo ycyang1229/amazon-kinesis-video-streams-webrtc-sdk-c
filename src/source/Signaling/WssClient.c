@@ -16,22 +16,22 @@
 #define LOG_CLASS "wss_client"
 #include "../Include_i.h"
 
-#include "json_helper.h"
-#include "http_helper.h"
-#include "parson.h"
-#include "wslay/wslay.h"
+//#include "json_helper.h"
+//#include "http_helper.h"
+//#include "parson.h"
+//#include "wslay/wslay.h"
 //mbedtls
-#include <mbedtls/base64.h>
-#include <mbedtls/sha1.h>
-#include "mbedtls/entropy.h"
-#include "mbedtls/ctr_drbg.h"
+//#include <mbedtls/base64.h>
+//#include <mbedtls/sha1.h>
+//#include "mbedtls/entropy.h"
+//#include "mbedtls/ctr_drbg.h"
 
 // platform
-#include <errno.h> // #YC_TBD.
-#include <sys/epoll.h>// #YC_TBD.
-#include <pthread.h>
+//#include <errno.h> // #YC_TBD.
+//#include <sys/epoll.h>// #YC_TBD.
+//#include <pthread.h>
 // time
-#include <unistd.h>
+
 #define CLIENT_LOCK(pCtx) pthread_mutex_lock(&pCtx->client_lock)
 #define CLIENT_UNLOCK(pCtx) pthread_mutex_unlock(&pCtx->client_lock)
 
@@ -259,7 +259,7 @@ ssize_t feed_body_callback(wslay_event_context_ptr ctx, uint8_t *data,
 
 BOOL wss_client_want_read(wss_client_context_t* pCtx)
 {
-  BOOL retStatus = true;
+  BOOL retStatus = TRUE;
   CLIENT_LOCK(pCtx);
   retStatus = wslay_event_want_read(pCtx->event_ctx);
   CLIENT_UNLOCK(pCtx);
@@ -268,7 +268,7 @@ BOOL wss_client_want_read(wss_client_context_t* pCtx)
 
 BOOL wss_client_want_write(wss_client_context_t* pCtx)
 {
-  BOOL retStatus = true;
+  BOOL retStatus = TRUE;
   CLIENT_LOCK(pCtx);
   retStatus = wslay_event_want_write(pCtx->event_ctx);
   CLIENT_UNLOCK(pCtx);
@@ -277,7 +277,7 @@ BOOL wss_client_want_write(wss_client_context_t* pCtx)
 
 UINT32 wss_client_on_read_event(wss_client_context_t* pCtx)
 {
-  BOOL retStatus = true;
+  BOOL retStatus = TRUE;
   CLIENT_LOCK(pCtx);
   retStatus = wslay_event_recv(pCtx->event_ctx);
   CLIENT_UNLOCK(pCtx);
@@ -286,7 +286,7 @@ UINT32 wss_client_on_read_event(wss_client_context_t* pCtx)
 
 UINT32 wss_client_on_write_event(wss_client_context_t* pCtx)
 {
-  BOOL retStatus = true;
+  BOOL retStatus = TRUE;
   CLIENT_LOCK(pCtx);
   retStatus = wslay_event_send(pCtx->event_ctx);
   CLIENT_UNLOCK(pCtx);
@@ -435,7 +435,7 @@ INT32 wss_client_start(wss_client_context_t* pWssClientCtx)
 {
   static const SIZE_T MAX_EVENTS = 1;
   struct epoll_event events[MAX_EVENTS];
-  BOOL ok = true;
+  BOOL ok = TRUE;
 
   //
   wslay_event_config_set_callbacks(pWssClientCtx->event_ctx, &pWssClientCtx->event_callbacks);
@@ -480,7 +480,7 @@ INT32 wss_client_start(wss_client_context_t* pWssClientCtx)
     for (int n = 0; n < nfds; ++n) {
       if (((events[n].events & EPOLLIN) && wss_client_on_read_event(pWssClientCtx) != 0) ||
           ((events[n].events & EPOLLOUT) && wss_client_on_write_event(pWssClientCtx) != 0)) {
-        ok = false;
+        ok = FALSE;
         break;
       }
     }

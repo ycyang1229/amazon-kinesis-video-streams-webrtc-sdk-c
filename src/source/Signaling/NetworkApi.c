@@ -16,14 +16,14 @@
 #define LOG_CLASS "network_api"
 #include "../Include_i.h"
 
-#include <mbedtls/net.h>
-#include <mbedtls/ctr_drbg.h>
-#include <mbedtls/entropy.h>
+//#include <mbedtls/net.h>
+//#include <mbedtls/ctr_drbg.h>
+//#include <mbedtls/entropy.h>
 
-#include <sys/socket.h>
+//#include <sys/socket.h>
 
-#include "network_api.h"
-#include "mbedtls/debug.h"
+//#include "network_api.h"
+//#include "mbedtls/debug.h"
 /*-----------------------------------------------------------*/
 #define mbedtls_fprintf    fprintf
 static VOID my_debug( PVOID ctx, INT32 level,

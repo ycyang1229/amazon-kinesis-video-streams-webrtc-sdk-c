@@ -16,8 +16,6 @@
 #define LOG_CLASS "http_helper"
 #include "../Include_i.h"
 
-#include "json_helper.h"
-
 PCHAR json_object_dotget_serialize_to_string( const JSON_Object *pRootObject, const PCHAR pName, BOOL bRemoveQuotes )
 {
     PCHAR pRes = NULL;

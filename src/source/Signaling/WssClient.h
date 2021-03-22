@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 // wslay related lib.
-#include "wslay/wslay.h"
+//#include "wslay/wslay.h"
 
 // SIGNALING_SERVICE_WSS_PING_PONG_INTERVAL_IN_SECONDS
 #define WSS_CLIENT_RFC6455_UUID "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
@@ -36,7 +36,7 @@ extern "C" {
 typedef struct wss_client_context{
     wslay_event_context_ptr event_ctx;
     struct wslay_event_callbacks event_callbacks;
-    CHAR* client_key;
+    PCHAR client_key;
     UINT32 client_key_len;
     // socket related stuff.
     NetworkContext_t * pNetworkContext;

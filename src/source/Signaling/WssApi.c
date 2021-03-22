@@ -16,11 +16,6 @@
 #define LOG_CLASS "WssApi"
 #include "../Include_i.h"
 
-#include "json_helper.h"
-#include "http_helper.h"
-#include "parson.h"
-#include "wslay/wslay.h"
-
 /*-----------------------------------------------------------*/
 
 #define KVS_ENDPOINT_TCP_PORT   "443"
@@ -111,7 +106,7 @@ STATUS wssConnectSignalingChannel( webrtcServiceParameter_t * pServiceParameter,
 {
     STATUS retStatus = STATUS_SUCCESS;
     CHAR *p = NULL;
-    BOOL bUseIotCert = false;
+    BOOL bUseIotCert = FALSE;
 
     /* Variables for network connection */
     NetworkContext_t *pNetworkContext = NULL;
@@ -155,7 +150,7 @@ STATUS wssConnectSignalingChannel( webrtcServiceParameter_t * pServiceParameter,
 
         if( pServiceParameter->pToken != NULL )
         {
-            bUseIotCert = true;
+            bUseIotCert = TRUE;
         }
 
         /* generate HTTP request body */
@@ -381,15 +376,17 @@ STATUS wssConnectSignalingChannel( webrtcServiceParameter_t * pServiceParameter,
 
 
 
-STATUS wssSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCHAR peerClientId, PCHAR pMessage, UINT32 messageLen,
+//STATUS wssSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCHAR peerClientId, PCHAR pMessage, UINT32 messageLen,
+//                      PCHAR pCorrelationId, UINT32 correlationIdLen)
+STATUS wssSendMessage(PVOID pSignalingClient, PCHAR pMessageType, PCHAR peerClientId, PCHAR pMessage, UINT32 messageLen,
                       PCHAR pCorrelationId, UINT32 correlationIdLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
     return retStatus;
 }
 
-
-STATUS wssTerminateThread(PSignalingClient pSignalingClient)
+//STATUS wssTerminateThread(PSignalingClient pSignalingClient)
+STATUS wssTerminateThread(PVOID pSignalingClient)
 {
     STATUS retStatus = STATUS_SUCCESS;
     return retStatus;

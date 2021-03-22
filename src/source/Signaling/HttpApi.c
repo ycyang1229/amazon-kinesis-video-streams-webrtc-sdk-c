@@ -16,9 +16,6 @@
 #define LOG_CLASS "HttpApi"
 #include "../Include_i.h"
 
-#include "json_helper.h"
-#include "http_helper.h"
-#include "parson.h"
 
 /*-----------------------------------------------------------*/
 
@@ -458,7 +455,7 @@ STATUS httpApiDescribeSignalingChannel( webrtcServiceParameter_t * pServiceParam
 {
     STATUS retStatus = STATUS_SUCCESS;
     CHAR *p = NULL;
-    BOOL bUseIotCert = false;
+    BOOL bUseIotCert = FALSE;
 
     /* Variables for network connection */
     NetworkContext_t *pNetworkContext = NULL;
@@ -492,7 +489,7 @@ STATUS httpApiDescribeSignalingChannel( webrtcServiceParameter_t * pServiceParam
 
         if( pServiceParameter->pToken != NULL )
         {
-            bUseIotCert = true;
+            bUseIotCert = TRUE;
         }
 
         pHttpBody = (CHAR *) MEMALLOC( sizeof( DESCRIBE_CHANNEL_JSON_TEMPLATE ) + STRLEN( pChannelInfo->channelName ) + 1 );
@@ -699,7 +696,7 @@ STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, 
 {
     STATUS retStatus = STATUS_SUCCESS;
     CHAR *p = NULL;
-    BOOL bUseIotCert = false;
+    BOOL bUseIotCert = FALSE;
 
     /* Variables for network connection */
     NetworkContext_t *pNetworkContext = NULL;
@@ -732,7 +729,7 @@ STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, 
 
         if( pServiceParameter->pToken != NULL )
         {
-            bUseIotCert = true;
+            bUseIotCert = TRUE;
         }
 
         pHttpBody = (CHAR *) MEMALLOC( sizeof( GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE ) + 

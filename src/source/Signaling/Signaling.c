@@ -922,6 +922,32 @@ CleanUp:
     return retStatus;
 }
 
+/**
+ * 
+*/
+STATUS signalingTransferDescribeChannel(PSignalingClient pSignalingClient, webrtcServiceParameter_t * pServiceParameter, webrtcChannelInfo_t * pChannelInfo)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    pServiceParameter->pAccessKey = getenv(ACCESS_KEY_ENV_VAR);  // It's AWS access key if not using IoT certification.
+    pServiceParameter->pSecretKey = getenv(SECRET_KEY_ENV_VAR);  // It's secret of AWS access key if not using IoT certification.
+    pServiceParameter->pToken = NULL;      // Set to NULL if not using IoT certification.
+
+    pServiceParameter->pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
+    pServiceParameter->pService;    // KVS service name
+
+    PCHAR pTemp = MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN);
+
+    SNPRINTF(pTemp, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s.%s%s", KINESIS_VIDEO_SERVICE_NAME, pSignalingClient->pChannelInfo->pRegion,
+                 CONTROL_PLANE_URI_POSTFIX);
+    pServiceParameter->pHost = pTemp;       // Endpoint of the RESTful api    
+    pServiceParameter->pUserAgent = pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
+
+    STRNCPY(pChannelInfo->channelName, pSignalingClient->pChannelInfo->pChannelName, WEBRTC_CHANNEL_NAME_LEN_MAX);
+    pChannelInfo->channelRole = WEBRTC_CHANNEL_ROLE_TYPE_MASTER;
+
+    return retStatus;
+}
+
 STATUS signalingDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
@@ -963,7 +989,8 @@ STATUS signalingDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
             if (STATUS_SUCCEEDED(retStatus)) {
                 //retStatus = lwsDescribeChannel(pSignalingClient, time);
                 // #YC_TBD, #HTTP.
-                retStatus = httpApiDescribeSignalingChannel(NULL, NULL);
+                signalingTransferDescribeChannel(pSignalingClient, &pSignalingClient->pTmpServiceParameter, &pSignalingClient->pTmpChannelInfo);
+                retStatus = httpApiDescribeSignalingChannel(&pSignalingClient->pTmpServiceParameter, &pSignalingClient->pTmpChannelInfo);
 
                 // Store the last call time on success
                 if (STATUS_SUCCEEDED(retStatus)) {

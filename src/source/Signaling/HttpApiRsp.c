@@ -16,13 +16,6 @@
 #define LOG_CLASS "rest_rsp"
 #include "../Include_i.h"
 
-#include "HttpApi.h"
-#include "AwsSignerV4.h"
-#include "network_api.h"
-#include "json_helper.h"
-#include "http_helper.h"
-#include "parson.h"
-
 /*-----------------------------------------------------------*/
 
 /**
@@ -78,7 +71,7 @@ STATUS parseCreateChannel( const CHAR * pJsonSrc,
             break;
         }
 
-        pChannelArn = json_object_dotget_serialize_to_string( rootObject, "ChannelARN", true );
+        pChannelArn = json_object_dotget_serialize_to_string( rootObject, "ChannelARN", TRUE );
         if( pChannelArn == NULL )
         {
             retStatus = STATUS_JSON_PARSE_ERROR;
@@ -183,7 +176,7 @@ STATUS parseDescribeChannel( const CHAR * pJsonSrc,
             break;
         }
         
-        tempString = json_object_dotget_serialize_to_string( rootObject, "ChannelInfo.ChannelARN", true );
+        tempString = json_object_dotget_serialize_to_string( rootObject, "ChannelInfo.ChannelARN", TRUE );
 
         if( tempString == NULL )
         {
@@ -202,7 +195,7 @@ STATUS parseDescribeChannel( const CHAR * pJsonSrc,
             //DLOGD("pChannelInfo->channelArn:%s\n", pChannelInfo->channelArn);
             MEMFREE( tempString );
         }
-        tempString = json_object_dotget_serialize_to_string( rootObject, "ChannelInfo.ChannelName", true );
+        tempString = json_object_dotget_serialize_to_string( rootObject, "ChannelInfo.ChannelName", TRUE );
 
         if( tempString == NULL )
         {
@@ -222,7 +215,7 @@ STATUS parseDescribeChannel( const CHAR * pJsonSrc,
             MEMFREE( tempString );
         }
 
-        tempString = json_object_dotget_serialize_to_string( rootObject, "ChannelInfo.Version", true );
+        tempString = json_object_dotget_serialize_to_string( rootObject, "ChannelInfo.Version", TRUE );
         if( tempString == NULL )
         {
             retStatus = STATUS_JSON_PARSE_ERROR;
@@ -241,7 +234,7 @@ STATUS parseDescribeChannel( const CHAR * pJsonSrc,
             MEMFREE( tempString );
         }
 
-        tempString = json_object_dotget_serialize_to_string( rootObject, "ChannelInfo.ChannelStatus", true );
+        tempString = json_object_dotget_serialize_to_string( rootObject, "ChannelInfo.ChannelStatus", TRUE );
         if( tempString == NULL )
         {
             retStatus = STATUS_JSON_PARSE_ERROR;
@@ -249,7 +242,7 @@ STATUS parseDescribeChannel( const CHAR * pJsonSrc,
         }
         else
         {
-            //DLOGD("channelStatus:%s\n", tempString);
+            DLOGD("channelStatus:%s\n", tempString);
             tempStringLen = STRLEN( tempString );
             retStatus = STATUS_SUCCESS;
             
@@ -278,7 +271,7 @@ STATUS parseDescribeChannel( const CHAR * pJsonSrc,
         
         pChannelInfo->creationTime = json_object_dotget_uint64( rootObject, "ChannelInfo.CreationTime", 10 );
         //DLOGD("pChannelInfo->creationTime:%lu\n", pChannelInfo->creationTime);
-        pChannelInfo->singleMasterConf.messageTtlSeconds = json_object_dotget_uint64( rootObject, "ChannelInfo.SingleMasterConfiguration.MessageTtlSeconds", true );
+        pChannelInfo->singleMasterConf.messageTtlSeconds = json_object_dotget_uint64( rootObject, "ChannelInfo.SingleMasterConfiguration.MessageTtlSeconds", TRUE );
         //DLOGD("pChannelInfo->messageTtlSeconds:%lu\n", pChannelInfo->singleMasterConf.messageTtlSeconds);
 
     } while ( 0 );
@@ -421,8 +414,8 @@ STATUS parseGetEndPoint( const CHAR * pJsonSrc,
             JSON_Object * tempObj = json_array_get_object(rootArray, i);
             UINT32       tempObjNumber = json_object_get_count(tempObj);
             
-            protocolString = json_object_dotget_serialize_to_string( tempObj, "Protocol", true );
-            endPointString = json_object_dotget_serialize_to_string( tempObj, "ResourceEndpoint", true );
+            protocolString = json_object_dotget_serialize_to_string( tempObj, "Protocol", TRUE );
+            endPointString = json_object_dotget_serialize_to_string( tempObj, "ResourceEndpoint", TRUE );
             //DLOGD("protocolString:%s, endPointString:%s\n", protocolString, endPointString);
 
         }
@@ -443,7 +436,7 @@ STATUS parseGetEndPoint( const CHAR * pJsonSrc,
             //DLOGD("pChannelInfo->endPointType:%d\n", pChannelInfo->endPointType);
             MEMFREE( protocolString );
         }
-        tempString = json_object_dotget_serialize_to_string( rootObject, "ResourceEndpointList.ResourceEndpoint", true );
+        tempString = json_object_dotget_serialize_to_string( rootObject, "ResourceEndpointList.ResourceEndpoint", TRUE );
 
         if( endPointString == NULL )
         {

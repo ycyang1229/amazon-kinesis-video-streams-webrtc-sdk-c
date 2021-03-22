@@ -22,9 +22,6 @@
 extern "C" {
 #endif
 
-#include <stdint.h>
-
-
 /**
  * @brief sleep in milliseconds
  *

@@ -23,12 +23,6 @@ extern "C" {
 #endif
 
 
-
-#include <inttypes.h>
-#include "llhttp.h"
-#include "list.h"
-
-
 typedef struct http_field
 {
     PCHAR field;

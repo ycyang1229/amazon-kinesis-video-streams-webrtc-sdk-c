@@ -147,6 +147,9 @@ extern "C" {
  */
 #define WSS_SIGNALING_PROTOCOL_INDEX 1
 
+#define LWS_SCRATCH_BUFFER_SIZE (MAX_JSON_PARAMETER_STRING_LEN)
+#define LWS_MESSAGE_BUFFER_SIZE (SIZEOF(CHAR) * (MAX_SIGNALING_MESSAGE_LEN))
+
 typedef struct __LwsCallInfo LwsCallInfo;
 struct __LwsCallInfo {
     // Size of the data in the buffer

@@ -16,12 +16,6 @@
 #define LOG_CLASS "http_helper"
 #include "../Include_i.h"
 
-#include "http_helper.h"
-
-#include "llhttp.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 /*-----------------------------------------------------------*/
 

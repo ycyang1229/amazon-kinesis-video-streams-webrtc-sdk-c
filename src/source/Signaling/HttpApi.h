@@ -104,14 +104,14 @@ typedef enum {
 
 typedef struct
 {
-    CHAR * pAccessKey;  // It's AWS access key if not using IoT certification.
-    CHAR * pSecretKey;  // It's secret of AWS access key if not using IoT certification.
-    CHAR * pToken;      // Set to NULL if not using IoT certification.
+    PCHAR pAccessKey;  // It's AWS access key if not using IoT certification.
+    PCHAR pSecretKey;  // It's secret of AWS access key if not using IoT certification.
+    PCHAR pToken;      // Set to NULL if not using IoT certification.
 
-    CHAR * pRegion;     // The desired region of KVS service
-    CHAR * pService;    // KVS service name
-    CHAR * pHost;       // Endpoint of the RESTful api
-    CHAR * pUserAgent;  // HTTP agent name
+    PCHAR pRegion;     // The desired region of KVS service
+    PCHAR pService;    // KVS service name
+    PCHAR pHost;       // Endpoint of the RESTful api
+    PCHAR pUserAgent;  // HTTP agent name
 } webrtcServiceParameter_t;
 
 
