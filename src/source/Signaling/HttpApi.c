@@ -223,25 +223,6 @@ typedef struct
 /*-----------------------------------------------------------*/
 
 /*-----------------------------------------------------------*/
-
-static STATUS checkServiceParameter( webrtcServiceParameter_t * pServiceParameter )
-{
-    if( pServiceParameter->pAccessKey == NULL ||
-        pServiceParameter->pSecretKey == NULL ||
-        pServiceParameter->pRegion == NULL ||
-        pServiceParameter->pService == NULL ||
-        pServiceParameter->pHost == NULL ||
-        pServiceParameter->pUserAgent == NULL )
-    {
-        return STATUS_INVALID_ARG;
-    }
-    else
-    {
-        return STATUS_SUCCESS;
-    }
-}
-
-/*-----------------------------------------------------------*/
 /**
  * 
 */
@@ -250,7 +231,7 @@ STATUS httpApiCreateSignalingChannl(PSignalingClient pSignalingClient, UINT64 ti
     HTTP_API_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
     PChannelInfo pChannelInfo = pSignalingClient->pChannelInfo;
-    CHAR *p = NULL;
+    PCHAR p = NULL;
 
     /* Variables for network connection */
     NetworkContext_t *pNetworkContext = NULL;
@@ -1070,7 +1051,7 @@ CleanUp:
 }
 
 
-STATUS httpApiDeleteChannel( webrtcServiceParameter_t * pServiceParameter, webrtcChannelInfo_t * pChannelInfo)
+STATUS httpApiDeleteSignalingChannl(PSignalingClient pSignalingClient, UINT64 time)
 {
     STATUS retStatus = STATUS_SUCCESS;
     return retStatus;

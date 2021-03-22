@@ -1211,7 +1211,7 @@ STATUS signalingDeleteChannel(PSignalingClient pSignalingClient, UINT64 time)
     if (STATUS_SUCCEEDED(retStatus)) {
         //retStatus = lwsDeleteChannel(pSignalingClient, time);
         // #YC_TBD, #HTTP
-        retStatus = httpApiDeleteChannel(NULL, NULL);
+        retStatus = httpApiDeleteSignalingChannl(pSignalingClient, time);
         
 
         // Store the time of the call on success
@@ -1270,7 +1270,7 @@ STATUS signalingConnectChannel(PSignalingClient pSignalingClient, UINT64 time)
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
             //retStatus = lwsConnectSignalingChannel(pSignalingClient, time);
             // #YC_TBD, #WSS
-            retStatus = wssConnectSignalingChannel(NULL, NULL);
+            retStatus = wssConnectSignalingChannel(pSignalingClient, time);
 
             // Store the time of the call on success
             if (STATUS_SUCCEEDED(retStatus)) {

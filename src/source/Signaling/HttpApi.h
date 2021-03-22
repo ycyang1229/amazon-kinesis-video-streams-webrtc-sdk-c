@@ -170,6 +170,8 @@ typedef struct {
  * @return KVS error code
  */
 STATUS httpApiCreateSignalingChannl(PSignalingClient pSignalingClient, UINT64 time);
+// #YC_TBD.
+STATUS httpApiDeleteSignalingChannl(PSignalingClient pSignalingClient, UINT64 time);
 /**
  * @brief Describe a Stream
  *
@@ -186,6 +188,8 @@ STATUS httpApiGetChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
 STATUS httpApiGetIceConfig(PSignalingClient pSignalingClient, UINT64 time);
 // rsp
 STATUS httpApiRspCreateChannel( const CHAR * pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient);
+// #YC_TBD.
+STATUS httpApiRspDeleteChannel( const CHAR * pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient);
 STATUS httpApiRspDescribeChannel( const CHAR * pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient);
 STATUS httpApiRspGetChannelEndpoint( const CHAR * pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient);
 STATUS httpApiRspGetIceConfig( const CHAR * pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient);

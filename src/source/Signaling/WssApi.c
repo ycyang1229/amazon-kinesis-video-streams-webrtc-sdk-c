@@ -16,6 +16,9 @@
 #define LOG_CLASS "WssApi"
 #include "../Include_i.h"
 
+
+#define WSS_API_ENTER() DLOGD("enter")
+#define WSS_API_EXIT() DLOGD("exit")
 /*-----------------------------------------------------------*/
 
 #define KVS_ENDPOINT_TCP_PORT   "443"
@@ -57,23 +60,6 @@
 /*-----------------------------------------------------------*/
 /*-----------------------------------------------------------*/
 
-static INT32 checkServiceParameter( webrtcServiceParameter_t * pServiceParameter )
-{
-    if( pServiceParameter->pAccessKey == NULL ||
-        pServiceParameter->pSecretKey == NULL ||
-        pServiceParameter->pRegion == NULL ||
-        pServiceParameter->pService == NULL ||
-        pServiceParameter->pHost == NULL ||
-        pServiceParameter->pUserAgent == NULL )
-    {
-        return STATUS_INVALID_ARG;
-    }
-    else
-    {
-        return STATUS_SUCCESS;
-    }
-}
-
 static VOID uriEncode(CHAR *ori, CHAR *dst)
 {
     CHAR *p = dst;
@@ -82,16 +68,16 @@ static VOID uriEncode(CHAR *ori, CHAR *dst)
         switch(ori[i])
         {
             case ':':
-                p += sprintf(p, "%%3A");
+                p += SPRINTF(p, "%%3A");
                 break;
             case '/':
-                p += sprintf(p, "%%2F");
+                p += SPRINTF(p, "%%2F");
                 break;
             case '&':
-                p += sprintf(p, "%%3B");
+                p += SPRINTF(p, "%%3B");
                 break;
             default:
-                p += sprintf(p, "%c", ori[i]);
+                p += SPRINTF(p, "%c", ori[i]);
                 break;
         }
     }
@@ -101,13 +87,13 @@ static VOID uriEncode(CHAR *ori, CHAR *dst)
 
 /*-----------------------------------------------------------*/
 
-STATUS wssConnectSignalingChannel( webrtcServiceParameter_t * pServiceParameter,
-                        webrtcChannelInfo_t * pChannelInfo)
+STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
+    WSS_API_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
     CHAR *p = NULL;
     BOOL bUseIotCert = FALSE;
-
+    PChannelInfo pChannelInfo = pSignalingClient->pChannelInfo;
     /* Variables for network connection */
     NetworkContext_t *pNetworkContext = NULL;
     SIZE_T uConnectionRetryCnt = 0;
@@ -119,39 +105,40 @@ STATUS wssConnectSignalingChannel( webrtcServiceParameter_t * pServiceParameter,
 
     /* Variables for HTTP request */
     CHAR *pHttpParameter = "";
-
+    CHAR *pHttpBody = "";
     UINT32 uHttpBodyLen = 0;
 
     UINT32 uHttpStatusCode = 0;
-    CHAR *method = "GET";
     CHAR *uri = "/";
     CHAR pParameter[512];
     CHAR pParameterUriEncode[512];
     CHAR clientKey[WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1];
 
     int n;
-    CHAR *pHttpBody = "";
-    http_response_context_t* httpRspCtx = NULL;
+    
+    http_response_context_t* pHttpRspCtx = NULL;
+
+    // temp interface.
+    PCHAR pAccessKey = getenv(ACCESS_KEY_ENV_VAR);  // It's AWS access key if not using IoT certification.
+    PCHAR pSecretKey = getenv(SECRET_KEY_ENV_VAR);  // It's secret of AWS access key if not using IoT certification.
+    PCHAR pToken = NULL;
+    PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
+    PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
+    PCHAR pHost = NULL;
+    PCHAR pUserAgent = "userAgent";//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
+
+    CHK(NULL != (pHost = (CHAR *)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
+    SNPRINTF(pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s.%s%s", 
+                                                    KINESIS_VIDEO_SERVICE_NAME,
+                                                    pSignalingClient->pChannelInfo->pRegion,
+                                                    CONTROL_PLANE_URI_POSTFIX);
+
 
     DLOGD("%s(%d) connect\n", __func__, __LINE__);
 
     do
     {
-        if( checkServiceParameter( pServiceParameter ) != STATUS_SUCCESS )
-        {
-            retStatus = STATUS_INVALID_ARG;
-            break;
-        }
-        else if( pChannelInfo == NULL  || pChannelInfo->channelName[0] == '\0')
-        {
-            retStatus = STATUS_INVALID_ARG;
-            break;
-        }
-
-        if( pServiceParameter->pToken != NULL )
-        {
-            bUseIotCert = TRUE;
-        }
+        CHK((pChannelInfo != NULL && pChannelInfo->pChannelName[0] != '\0'), STATUS_INVALID_ARG);
 
         /* generate HTTP request body */
         
@@ -166,18 +153,18 @@ STATUS wssConnectSignalingChannel( webrtcServiceParameter_t * pServiceParameter,
         }
         //strcpy(pXAmzDate, "20210311T024335Z");
         p = pParameter;
-        p += sprintf(p, "?X-Amz-ChannelARN=%s", pChannelInfo->channelArn);
+        p += SPRINTF(p, "?X-Amz-ChannelARN=%s", pSignalingClient->channelDescription.channelArn);
         uriEncode(pParameter, pParameterUriEncode);
 
 
         /* Create canonical request and sign the request. */
         retStatus = AwsSignerV4_initContext( &signerContext, AWS_SIGNER_V4_BUFFER_SIZE );
-        AwsSignerV4_initCanonicalRequest( &signerContext, method, STRLEN(method), uri, STRLEN(uri), pParameterUriEncode, STRLEN(pParameterUriEncode) );
-        AwsSignerV4_addCanonicalHeader( &signerContext, "host", STRLEN("host"), pServiceParameter->pHost, STRLEN( pServiceParameter->pHost ) );
-        AwsSignerV4_addCanonicalHeader( &signerContext, "user-agent", STRLEN("user-agent"), pServiceParameter->pUserAgent, STRLEN( pServiceParameter->pUserAgent ) );
-        AwsSignerV4_addCanonicalHeader( &signerContext, "x-amz-date", STRLEN("x-amz-date"), pXAmzDate, STRLEN( pXAmzDate ) );
+        AwsSignerV4_initCanonicalRequest( &signerContext, HTTP_METHOD_GET, STRLEN(HTTP_METHOD_GET), uri, STRLEN(uri), pParameterUriEncode, STRLEN(pParameterUriEncode) );
+        AwsSignerV4_addCanonicalHeader( &signerContext, HDR_HOST, STRLEN(HDR_HOST), pHost, STRLEN( pHost ) );
+        AwsSignerV4_addCanonicalHeader( &signerContext, HDR_USER_AGENT, STRLEN(HDR_USER_AGENT), pUserAgent, STRLEN( pUserAgent ) );
+        AwsSignerV4_addCanonicalHeader( &signerContext, HDR_X_AMZ_DATE, STRLEN(HDR_X_AMZ_DATE), pXAmzDate, STRLEN( pXAmzDate ) );
         AwsSignerV4_addCanonicalBody( &signerContext, pHttpBody, STRLEN( pHttpBody ) );
-        AwsSignerV4_sign( &signerContext, pServiceParameter->pSecretKey, STRLEN(pServiceParameter->pSecretKey), pServiceParameter->pRegion, STRLEN(pServiceParameter->pRegion), pServiceParameter->pService, STRLEN(pServiceParameter->pService), pXAmzDate, STRLEN(pXAmzDate) );
+        AwsSignerV4_sign( &signerContext, pSecretKey, STRLEN(pSecretKey), pRegion, STRLEN(pRegion), pService, STRLEN(pService), pXAmzDate, STRLEN(pXAmzDate) );
 
         /* Initialize and generate HTTP request, then send it. */
         pNetworkContext = ( NetworkContext_t * ) MEMALLOC( sizeof( NetworkContext_t ) );
@@ -196,7 +183,7 @@ STATUS wssConnectSignalingChannel( webrtcServiceParameter_t * pServiceParameter,
 
         for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
         {
-            if( ( retStatus = connectToServer( pNetworkContext, pServiceParameter->pHost, KVS_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
+            if( ( retStatus = connectToServer( pNetworkContext, pHost, KVS_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
             {
                 DLOGD("%s(%d) connect successfully\n", __func__, __LINE__);
                 break;
@@ -225,31 +212,31 @@ STATUS wssConnectSignalingChannel( webrtcServiceParameter_t * pServiceParameter,
         wss_client_generate_client_key(clientKey, WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1);
 
         p = (CHAR *)(pNetworkContext->pHttpSendBuffer);
-        p += sprintf(p, "%s %s%s HTTP/1.1\r\n", method, uri, pParameterUriEncode);
-        p += sprintf(p, "Host: %s\r\n", pServiceParameter->pHost);
-        p += sprintf(p, "Accept: */*\r\n");
-        p += sprintf(p, "Authorization: %s Credential=%s/%s, SignedHeaders=%s, Signature=%s\r\n",
+        p += SPRINTF(p, "%s %s%s HTTP/1.1\r\n", HTTP_METHOD_GET, uri, pParameterUriEncode);
+        p += SPRINTF(p, "Host: %s\r\n", pHost);
+        p += SPRINTF(p, "Accept: */*\r\n");
+        p += SPRINTF(p, "Authorization: %s Credential=%s/%s, SignedHeaders=%s, Signature=%s\r\n",
                         AWS_SIG_V4_ALGORITHM,
-                        pServiceParameter->pAccessKey,
+                        pAccessKey,
                         AwsSignerV4_getScope( &signerContext ),
                         AwsSignerV4_getSignedHeader( &signerContext ),
                         AwsSignerV4_getHmacEncoded( &signerContext )
         );
 
-        p += sprintf(p, "Pragma: no-cache\r\n");
-        p += sprintf(p, "Cache-Control: no-cache\r\n");
-        p += sprintf(p, "user-agent: %s\r\n", pServiceParameter->pUserAgent);
-        p += sprintf(p, "X-Amz-Date: %s\r\n", pXAmzDate);
+        p += SPRINTF(p, "Pragma: no-cache\r\n");
+        p += SPRINTF(p, "Cache-Control: no-cache\r\n");
+        p += SPRINTF(p, "user-agent: %s\r\n", pUserAgent);
+        p += SPRINTF(p, "X-Amz-Date: %s\r\n", pXAmzDate);
 
         /* Web socket upgrade */
-        p += sprintf(p, "upgrade: WebSocket\r\n");
-        p += sprintf(p, "connection: Upgrade\r\n");
+        p += SPRINTF(p, "upgrade: WebSocket\r\n");
+        p += SPRINTF(p, "connection: Upgrade\r\n");
         
-        p += sprintf(p, "Sec-WebSocket-Key: %s\r\n", clientKey);
-        p += sprintf(p, "Sec-WebSocket-Protocol: wss\r\n");
-        p += sprintf(p, "Sec-WebSocket-Version: 13\r\n");
+        p += SPRINTF(p, "Sec-WebSocket-Key: %s\r\n", clientKey);
+        p += SPRINTF(p, "Sec-WebSocket-Protocol: wss\r\n");
+        p += SPRINTF(p, "Sec-WebSocket-Version: 13\r\n");
 
-        p += sprintf(p, "\r\n");
+        p += SPRINTF(p, "\r\n");
 
         DLOGD("--\nsending http request:\n%s\n--\n", pNetworkContext->pHttpSendBuffer);
 
@@ -280,7 +267,7 @@ STATUS wssConnectSignalingChannel( webrtcServiceParameter_t * pServiceParameter,
         http_add_required_header(requiredHeader, HTTP_HEADER_FIELD_CONNECTION, STRLEN(HTTP_HEADER_FIELD_CONNECTION), NULL, 0);
         http_add_required_header(requiredHeader, HTTP_HEADER_FIELD_UPGRADE, STRLEN(HTTP_HEADER_FIELD_UPGRADE), NULL, 0);
         http_add_required_header(requiredHeader, HTTP_HEADER_FIELD_SEC_WS_ACCEPT, STRLEN(HTTP_HEADER_FIELD_SEC_WS_ACCEPT), NULL, 0);
-        retStatus =  http_parse_start( &httpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )retStatus, requiredHeader);
+        retStatus =  http_parse_start( &pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )retStatus, requiredHeader);
         
         http_field_t* node;
         node = http_get_value_by_field(requiredHeader, HTTP_HEADER_FIELD_CONNECTION, STRLEN(HTTP_HEADER_FIELD_CONNECTION));
@@ -311,7 +298,9 @@ STATUS wssConnectSignalingChannel( webrtcServiceParameter_t * pServiceParameter,
         }
 
 
-        uHttpStatusCode = http_get_http_status_code(httpRspCtx);
+        PCHAR pResponseStr = http_get_http_body_location(pHttpRspCtx);
+        UINT32 resultLen = http_get_http_body_length(pHttpRspCtx);
+        uHttpStatusCode = http_get_http_status_code(pHttpRspCtx);
 
         /* Check HTTP results */
         if( uHttpStatusCode == 101 )
@@ -333,7 +322,7 @@ STATUS wssConnectSignalingChannel( webrtcServiceParameter_t * pServiceParameter,
         }
         else
         {
-            DLOGE("Unable to get endpoint:\r\n%.*s\r\n", (int)http_get_http_body_length(httpRspCtx), http_get_http_body_location(httpRspCtx));
+            DLOGE("Unable to get endpoint:\r\n%.*s\r\n", (int)http_get_http_body_length(pHttpRspCtx), http_get_http_body_location(pHttpRspCtx));
             if( uHttpStatusCode == 400 )
             {
                 retStatus = STATUS_HTTP_REST_EXCEPTION_ERROR;
@@ -353,8 +342,8 @@ STATUS wssConnectSignalingChannel( webrtcServiceParameter_t * pServiceParameter,
         
     } while ( 0 );
 
-    if(httpRspCtx != NULL){
-        retStatus =  http_parse_detroy(httpRspCtx);
+    if(pHttpRspCtx != NULL){
+        retStatus =  http_parse_detroy(pHttpRspCtx);
         if( retStatus != STATUS_SUCCESS )
         {
             DLOGD("destroying http parset failed. \n");
@@ -368,7 +357,8 @@ STATUS wssConnectSignalingChannel( webrtcServiceParameter_t * pServiceParameter,
         //MEMFREE( pNetworkContext );
         AwsSignerV4_terminateContext(&signerContext);
     }
-
+CleanUp:
+    WSS_API_EXIT();
     return retStatus;
 }
 
@@ -378,16 +368,22 @@ STATUS wssConnectSignalingChannel( webrtcServiceParameter_t * pServiceParameter,
 
 //STATUS wssSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCHAR peerClientId, PCHAR pMessage, UINT32 messageLen,
 //                      PCHAR pCorrelationId, UINT32 correlationIdLen)
-STATUS wssSendMessage(PVOID pSignalingClient, PCHAR pMessageType, PCHAR peerClientId, PCHAR pMessage, UINT32 messageLen,
+STATUS wssSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCHAR peerClientId, PCHAR pMessage, UINT32 messageLen,
                       PCHAR pCorrelationId, UINT32 correlationIdLen)
 {
+    WSS_API_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
+CleanUp:
+    WSS_API_EXIT();
     return retStatus;
 }
 
 //STATUS wssTerminateThread(PSignalingClient pSignalingClient)
-STATUS wssTerminateThread(PVOID pSignalingClient)
+STATUS wssTerminateThread(PSignalingClient pSignalingClient)
 {
+    WSS_API_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
+CleanUp:
+    WSS_API_EXIT();
     return retStatus;
 }
