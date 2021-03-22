@@ -45,11 +45,11 @@ typedef struct wss_client_context{
     pthread_mutex_t client_lock;
 }wss_client_context_t;
 
-INT32 wss_client_generate_random_number(CHAR* num, UINT32 len);
-INT32 wss_client_generate_client_key(CHAR* buf, UINT32 bufLen);
-INT32 wss_client_validate_accept_key(CHAR* clientKey, UINT32 clientKeyLen, CHAR* acceptKey, UINT32 acceptKeyLen);
-VOID wss_client_create(wss_client_context_t** ppWssClientCtx, NetworkContext_t * pNetworkContext);
-INT32 wss_client_start(wss_client_context_t* pWssClientCtx);
+STATUS wssClientGenerateRandomNumber(PCHAR num, UINT32 len);
+STATUS wssClientGenerateClientKey(PCHAR buf, UINT32 bufLen);
+STATUS wssClientValidateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR acceptKey, UINT32 acceptKeyLen);
+VOID wssClientCreate(wss_client_context_t** ppWssClientCtx, NetworkContext_t * pNetworkContext);
+INT32 wssClientStart(wss_client_context_t* pWssClientCtx);
 INT32 wss_client_send_text(wss_client_context_t* pCtx, UINT8* buf, UINT32 len);
 INT32 wss_client_send_binary(wss_client_context_t* pCtx, UINT8* buf, UINT32 len);
 INT32 wss_client_send_ping(wss_client_context_t* pCtx);

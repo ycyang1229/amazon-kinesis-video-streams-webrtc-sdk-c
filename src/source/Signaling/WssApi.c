@@ -208,8 +208,8 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
             Sec-WebSocket-Protocol: wss
             Sec-WebSocket-Version: 13
         */
-        memset(clientKey, 0, WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1);
-        wss_client_generate_client_key(clientKey, WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1);
+        MEMSET(clientKey, 0, WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1);
+        wssClientGenerateClientKey(clientKey, WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1);
 
         p = (CHAR *)(pNetworkContext->pHttpSendBuffer);
         p += SPRINTF(p, "%s %s%s HTTP/1.1\r\n", HTTP_METHOD_GET, uri, pParameterUriEncode);
@@ -290,7 +290,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         //DLOGD("val:%d, -%s-\n\n", val, node->value, );
         if( node != NULL ){
             
-            if(wss_client_validate_accept_key(clientKey, WSS_CLIENT_BASED64_RANDOM_SEED_LEN, node->value, node->valueLen)!=0){
+            if(wssClientValidateAcceptKey(clientKey, WSS_CLIENT_BASED64_RANDOM_SEED_LEN, node->value, node->valueLen)!=0){
                 DLOGD("validate accept key failed\n");
             }else{
                 DLOGD("validate accept key failed success\n");
@@ -312,8 +312,8 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
             mbedtls_ssl_conf_read_timeout(&pNetworkContext->conf, 50);
             //mbedtls_ssl_set_timer_cb( &ssl, &timer, mbedtls_timing_set_delay,
             //                                    mbedtls_timing_get_delay );
-            wss_client_create(&wss_client_ctx, pNetworkContext);
-            wss_client_start(wss_client_ctx);
+            wssClientCreate(&wss_client_ctx, pNetworkContext);
+            wssClientStart(wss_client_ctx);
         }
         else if( uHttpStatusCode == 404 )
         {
