@@ -76,37 +76,6 @@ CleanUp:
 }
 
 
-WEBRTC_CHANNEL_STATUS webrtc_getChannelStatusFromString(CHAR* pStatus, UINT32 length)
-{
-    // Assume the channel Deleting status first
-    WEBRTC_CHANNEL_STATUS channelStatus = WEBRTC_CHANNEL_STATUS_DELETING;
-
-    if (0 == strncmp((CHAR*) "ACTIVE", pStatus, length)) {
-        channelStatus = WEBRTC_CHANNEL_STATUS_ACTIVE;
-    } else if (0 == strncmp((CHAR*) "CREATING", pStatus, length)) {
-        channelStatus = WEBRTC_CHANNEL_STATUS_CREATING;
-    } else if (0 == strncmp((CHAR*) "UPDATING", pStatus, length)) {
-        channelStatus = WEBRTC_CHANNEL_STATUS_UPDATING;
-    } else if (0 == strncmp((CHAR*) "DELETING", pStatus, length)) {
-        channelStatus = WEBRTC_CHANNEL_STATUS_DELETING;
-    }
-
-    return channelStatus;
-}
-
-WEBRTC_CHANNEL_TYPE webrtc_getChannelTypeFromString(CHAR* type, UINT32 length)
-{
-    // Assume the channel Deleting status first
-    WEBRTC_CHANNEL_TYPE channelType = WEBRTC_CHANNEL_TYPE_UNKNOWN;
-
-    if (0 == strncmp(WEBRTC_CHANNEL_TYPE_SINGLE_MASTER_STR, type, length)) {
-        channelType = WEBRTC_CHANNEL_TYPE_SINGLE_MASTER;
-    }
-
-    return channelType;
-}
-
-
 STATUS httpApiRspDescribeChannel( const CHAR * pResponseStr,
                                   UINT32 resultLen,
                                   PSignalingClient pSignalingClient)
@@ -193,55 +162,6 @@ CleanUp:
     HTTP_RSP_EXIT();
     return retStatus;
 
-}
-
-
-WEBRTC_CHANNEL_ROLE_TYPE webrtc_getChannelRoleTypeFromString(CHAR* type, UINT32 length)
-{
-    // Assume the channel Deleting status first
-    WEBRTC_CHANNEL_ROLE_TYPE channelRoleType = WEBRTC_CHANNEL_ROLE_TYPE_UNKNOWN;
-
-    if (0 == strncmp(WEBRTC_CHANNEL_ROLE_MASTER_STR, type, length)) {
-        channelRoleType = WEBRTC_CHANNEL_ROLE_TYPE_MASTER;
-    } else if (0 == strncmp(WEBRTC_CHANNEL_ROLE_VIEWER_STR, type, length)) {
-        channelRoleType = WEBRTC_CHANNEL_ROLE_TYPE_VIEWER;
-    }
-
-    return channelRoleType;
-}
-
-CHAR* webrtc_getStringFromChannelRoleType(WEBRTC_CHANNEL_ROLE_TYPE type)
-{
-    CHAR* typeStr;
-
-    switch (type) {
-        case WEBRTC_CHANNEL_ROLE_TYPE_MASTER:
-            typeStr = WEBRTC_CHANNEL_ROLE_MASTER_STR;
-            break;
-        case WEBRTC_CHANNEL_ROLE_TYPE_VIEWER:
-            typeStr = WEBRTC_CHANNEL_ROLE_VIEWER_STR;
-            break;
-        default:
-            typeStr = WEBRTC_CHANNEL_ROLE_UNKNOWN_STR;
-            break;
-    }
-
-    return typeStr;
-}
-
-
-WEBRTC_ENDPOINT_TYPE getEndPointTypeFromString(CHAR* type, UINT32 length)
-{
-    // Assume the channel Deleting status first
-    WEBRTC_ENDPOINT_TYPE channelRoleType = WEBRTC_ENDPOINT_TYPE_UNKNOWN;
-
-    if (0 == strncmp(WEBRTC_ENDPOINT_TYPE_HTTPS_STR, type, length)) {
-        channelRoleType = WEBRTC_ENDPOINT_TYPE_HTTPS;
-    } else if (0 == strncmp( WEBRTC_ENDPOINT_TYPE_WSS_STR, type, length)) {
-        channelRoleType = WEBRTC_ENDPOINT_TYPE_WSS;
-    }
-
-    return channelRoleType;
 }
 
 STATUS httpApiRspGetChannelEndpoint( const CHAR * pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient)

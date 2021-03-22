@@ -52,8 +52,6 @@ extern "C" {
 #define WEBRTC_CHANNEL_ROLE_VIEWER_STR  (CHAR*) "VIEWER"
 
 
-
-
 //#define WEBRTC_CHANNEL_PROTOCOL "\"WSS\""
 #define WEBRTC_CHANNEL_PROTOCOL "\"WSS\", \"HTTPS\""
 
@@ -158,8 +156,6 @@ typedef struct {
     CHAR channelEndpoint[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
 } webrtcChannelInfo_t;
 
-WEBRTC_CHANNEL_ROLE_TYPE webrtc_getChannelRoleTypeFromString(CHAR* type, UINT32 length);
-CHAR* webrtc_getStringFromChannelRoleType(WEBRTC_CHANNEL_ROLE_TYPE type);
 
 
 /**
@@ -174,7 +170,6 @@ CHAR* webrtc_getStringFromChannelRoleType(WEBRTC_CHANNEL_ROLE_TYPE type);
  * @return KVS error code
  */
 STATUS httpApiCreateSignalingChannl(PSignalingClient pSignalingClient, UINT64 time);
-
 /**
  * @brief Describe a Stream
  *
@@ -187,8 +182,6 @@ STATUS httpApiCreateSignalingChannl(PSignalingClient pSignalingClient, UINT64 ti
  * @return KVS error code
  */
 STATUS httpApiDescribeSignalingChannel(PSignalingClient pSignalingClient, UINT64 time);
-
-
 STATUS httpApiGetChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time);
 STATUS httpApiGetIceConfig(PSignalingClient pSignalingClient, UINT64 time);
 // rsp
