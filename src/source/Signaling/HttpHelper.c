@@ -42,7 +42,7 @@ http_field_t* http_get_value_by_field(struct list_head* head, char* field, UINT3
     list_for_each(listptr, head) {
         node = list_entry(listptr, http_field_t, list);
         if(STRNCMP(node->field, field, node->fieldLen) == 0 && node->fieldLen == fieldLen ){
-            //DLOGD("%s found\n", node->field);
+            //DLOGD("%s found", node->field);
             found = 1;
             break;
         }
@@ -62,7 +62,7 @@ int32_t http_add_required_header(struct list_head* head, char* field, UINT32 fie
     node->fieldLen = fieldLen;
     node->value = value;
     node->valueLen = valueLen;
-    //DLOGD("required: field = %s | len = %d | value = %s | len = %d\n",
+    //DLOGD("required: field = %s | len = %d | value = %s | len = %d",
     //    node->field,
     //    node->fieldLen,
     //    node->value,
@@ -79,7 +79,7 @@ void http_del_all_header(struct list_head* head)
     list_for_each(listptr, head) {
         node = list_entry(listptr, http_field_t, list);
 
-        //DLOGD("\nFree: field = %s | len = %d | value = %s | len = %d\n",
+        //DLOGD("\nFree: field = %s | len = %d | value = %s | len = %d",
         //        node->field,
         //        node->fieldLen,
         //        node->value,
@@ -104,29 +104,29 @@ static INT32 handleHttpOnBodyComplete( llhttp_t *httpParser, const char *at, siz
 
 static INT32 _on_message_begin( llhttp_t *httpParser )
 {
-    //DLOGD("on_message_begin\n");
+    //DLOGD("on_message_begin");
     return 0;
 }
 
 
 static INT32 _on_url( llhttp_t *httpParser, const char *at, size_t length )
 {
-    //DLOGD("on_url\n");
+    //DLOGD("on_url");
     //char* buf = MEMALLOC(length+1);
     //memcpy(buf, at, length);
     //buf[length] = '\0';
-    //DLOGD("%s\n", buf);
+    //DLOGD("%s", buf);
     return 0;
 }
 
 
 static INT32 _on_status( llhttp_t *httpParser, const char *at, size_t length )
 {
-    //DLOGD("on_status\n");
+    //DLOGD("on_status");
     //char* buf = MEMALLOC(length+1);
     //memcpy(buf, at, length);
     //buf[length] = '\0';
-    //DLOGD("%s\n", buf);
+    //DLOGD("%s", buf);
     return 0;
 }
 
@@ -134,11 +134,11 @@ static INT32 _on_status( llhttp_t *httpParser, const char *at, size_t length )
 static INT32 _on_header_field( llhttp_t *httpParser, const char *at, size_t length )
 {
     http_response_context_t* pCtx = (http_response_context_t*)GET_USER_DATA(httpParser);
-    //DLOGD("on_header_field\n");
+    //DLOGD("on_header_field");
     //char* buf = MEMALLOC(length+1);
     //memcpy(buf, at, length);
     //buf[length] = '\0';
-    //DLOGD("%s\n", buf);
+    //DLOGD("%s", buf);
 
     pCtx->curField.field = ( char * )at;
     pCtx->curField.fieldLen = length;
@@ -148,11 +148,11 @@ static INT32 _on_header_field( llhttp_t *httpParser, const char *at, size_t leng
 static INT32 _on_header_value( llhttp_t *httpParser, const char *at, size_t length )
 {
     http_response_context_t* pCtx = (http_response_context_t*)GET_USER_DATA(httpParser);
-    //DLOGD("on_header_value\n");
+    //DLOGD("on_header_value");
     //char* buf = MEMALLOC(length+1);
     //memcpy(buf, at, length);
     //buf[length] = '\0';
-    //DLOGD("%s\n", buf);
+    //DLOGD("%s", buf);
     pCtx->curField.value = ( char * )at;
     pCtx->curField.valueLen = length;
     return 0;
@@ -161,7 +161,7 @@ static INT32 _on_header_value( llhttp_t *httpParser, const char *at, size_t leng
 
 static INT32 _on_headers_complete( llhttp_t *httpParser )
 {
-    //DLOGD("on_headers_complete\n");
+    //DLOGD("on_headers_complete");
     return 0;
 }
 
@@ -169,11 +169,11 @@ static INT32 _on_headers_complete( llhttp_t *httpParser )
 static INT32 _on_body( llhttp_t *httpParser, const char *at, size_t length )
 {
     http_response_context_t* pCtx = (http_response_context_t*)GET_USER_DATA(httpParser);
-    //DLOGD("on_body\n");
+    //DLOGD("on_body");
     //char* buf = MEMALLOC(length+1);
     //memcpy(buf, at, length);
     //buf[length] = '\0';
-    //DLOGD("%s\n", buf);
+    //DLOGD("%s", buf);
     pCtx->phttpBodyLoc = ( char * )at;
     pCtx->uhttpBodyLen = length;
     return 0;
@@ -182,7 +182,7 @@ static INT32 _on_body( llhttp_t *httpParser, const char *at, size_t length )
 
 static INT32 _on_message_complete( llhttp_t *httpParser )
 {
-    //DLOGD("on_message_complete\n");
+    //DLOGD("on_message_complete");
     //http_response_context_t* pCtx = (http_response_context_t*)GET_USER_DATA(httpParser);
 
     return -1;
@@ -191,41 +191,41 @@ static INT32 _on_message_complete( llhttp_t *httpParser )
 
 static INT32 _on_chunk_header( llhttp_t *httpParser )
 {
-    //DLOGD("on_chunk_header\n");
+    //DLOGD("on_chunk_header");
     return 0;
 }
 
 
 static INT32 _on_chunk_complete( llhttp_t *httpParser )
 {
-    //DLOGD("on_chunk_complete\n");
+    //DLOGD("on_chunk_complete");
     return 0;
 }
 
 
 static INT32 _on_url_complete( llhttp_t *httpParser )
 {
-    //DLOGD("on_url_complete\n");
+    //DLOGD("on_url_complete");
     return 0;
 }
 
 
 static INT32 _on_status_complete( llhttp_t *httpParser )
 {
-    //DLOGD("on_status_complete\n");
+    //DLOGD("on_status_complete");
     return 0;
 }
 
 static INT32 _on_header_field_complete( llhttp_t *httpParser )
 {
-    //DLOGD("on_header_field_complete\n");
+    //DLOGD("on_header_field_complete");
     return 0;
 }
 
 
 static INT32 _on_header_value_complete( llhttp_t *httpParser )
 {
-    //DLOGD("on_header_value_complete\n");
+    //DLOGD("on_header_value_complete");
     http_response_context_t* pCtx = (http_response_context_t*)GET_USER_DATA(httpParser);
     if(pCtx->requiredHeader == NULL){
         return 0;
@@ -234,7 +234,7 @@ static INT32 _on_header_value_complete( llhttp_t *httpParser )
     if(node != NULL){
         node->value = pCtx->curField.value;
         node->valueLen = pCtx->curField.valueLen;
-        //DLOGD("complete: %s hit\n", node->field);
+        //DLOGD("complete: %s hit", node->field);
     }else{
         return -1;
     }
@@ -352,13 +352,13 @@ Exit:
 STATUS http_parse_detroy(http_response_context_t* pHttpRspCtx)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    DLOGD("detroying required headers... \n");
+    DLOGD("detroying required headers...");
     if(pHttpRspCtx != NULL && pHttpRspCtx->requiredHeader != NULL){
         http_del_all_header(pHttpRspCtx->requiredHeader);
-        DLOGD("all required headers is removed... \n");
+        DLOGD("all required headers is removed...");
         MEMFREE(pHttpRspCtx->requiredHeader);
     }
-    DLOGD("detroying context... \n");
+    DLOGD("detroying context...");
     MEMFREE(pHttpRspCtx);
     return retStatus;
 }

@@ -52,13 +52,13 @@ STATUS wssClientGenerateRandomNumber(PCHAR num, UINT32 len)
     retStatus = mbedtls_ctr_drbg_seed( &ctr_drbg , mbedtls_entropy_func, &entropy, NULL, 0);
     if( retStatus != 0 )
     {
-        DLOGD("setup ctr_drbg failed(%d)\n", retStatus);
+        DLOGD("setup ctr_drbg failed(%d)", retStatus);
         return -1;
     }
     retStatus = mbedtls_ctr_drbg_random( &ctr_drbg, num, len);
     if( retStatus != 0 )
     {
-        DLOGD("access ctr_drbg failed(%d)\n", retStatus);
+        DLOGD("access ctr_drbg failed(%d)", retStatus);
         return -1;
     }
 
@@ -79,18 +79,18 @@ STATUS wssClientGenerateClientKey(PCHAR buf, UINT32 bufLen)
     retStatus = wssClientGenerateRandomNumber(randomNum, WSS_CLIENT_RANDOM_SEED_LEN);
     if( retStatus != 0 )
     {
-        DLOGD("generate the random value failed(%d)\n", retStatus);
+        DLOGD("generate the random value failed(%d)", retStatus);
         return -1;
     }
     // base64 the random value.
     retStatus = mbedtls_base64_encode(buf, bufLen, (VOID*)&olen, randomNum, WSS_CLIENT_RANDOM_SEED_LEN );
     if( retStatus != 0 )
     {
-        DLOGD("base64-encode the random value failed(%d)\n", retStatus);
+        DLOGD("base64-encode the random value failed(%d)", retStatus);
         return -1;
     }
     if(olen != WSS_CLIENT_BASED64_RANDOM_SEED_LEN){
-        DLOGD("the invalid length of the base64-encoded random value%d)\n", retStatus);
+        DLOGD("the invalid length of the base64-encoded random value%d)", retStatus);
         return -1;
     }
     WSS_CLIENT_EXIT();
@@ -116,15 +116,15 @@ STATUS wssClientGenerateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR ac
 
     MEMCPY(buf, clientKey, STRLEN(clientKey));
     MEMCPY(buf+STRLEN(clientKey), WSS_CLIENT_RFC6455_UUID, STRLEN(WSS_CLIENT_RFC6455_UUID));
-    DLOGD("combined string(%ld):%s\n", STRLEN(buf), buf);
+    DLOGD("combined string(%ld):%s", STRLEN(buf), buf);
 
     mbedtls_sha1( buf, STRLEN(buf), obuf );
     retStatus = mbedtls_base64_encode(acceptKey, acceptKeyLen, (VOID*)&olen, obuf, 20);
 
     if( retStatus!=0 || olen != WSS_CLIENT_ACCEPT_KEY_LEN){
-        DLOGD("base64-encode accept key failed\\n");
+        DLOGD("base64-encode accept key failed");
     }
-    DLOGD("output(%ld):%s\n", STRLEN(acceptKey), acceptKey);
+    DLOGD("output(%ld):%s", STRLEN(acceptKey), acceptKey);
     WSS_CLIENT_EXIT();
     return retStatus;
 }
@@ -135,14 +135,14 @@ STATUS wssClientValidateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR ac
     STATUS retStatus = STATUS_SUCCESS;
     UINT8 tmpKey[WSS_CLIENT_ACCEPT_KEY_LEN+1];
     MEMSET(tmpKey, 0, WSS_CLIENT_ACCEPT_KEY_LEN+1);
-    DLOGD("clientKey:%s\n", clientKey);
+    DLOGD("clientKey:%s", clientKey);
     retStatus = wssClientGenerateAcceptKey(clientKey, clientKeyLen, tmpKey, WSS_CLIENT_ACCEPT_KEY_LEN+1);
     if( retStatus!=0 ){
-        DLOGD("generating accept key failed\\n");
+        DLOGD("generating accept key failed");
     }
     //wssClientGenerateAcceptKey(clientKey, clientKeyLen, buf, WSS_CLIENT_ACCEPT_KEY_LEN);
     if(MEMCMP(tmpKey, acceptKey, WSS_CLIENT_ACCEPT_KEY_LEN)!=0){
-        DLOGD("validate accept key failed\n");
+        DLOGD("validate accept key failed");
         return -1;
     }
     WSS_CLIENT_EXIT();
@@ -173,7 +173,7 @@ INT32 wss_client_socket_read(wss_client_context_t* pCtx, uint8_t* data, SIZE_T l
 
 ssize_t wss_client_feed_body(wss_client_context_t* pCtx, uint8_t *data, SIZE_T len) 
 {
-  DLOGD("feed body callback****\n");
+  DLOGD("feed body callback****");
   return 0;
 }
 /**
@@ -238,17 +238,17 @@ VOID wslay_msg_recv_callback(wslay_event_context_ptr ctx,
   if (!wslay_is_ctrl_frame(arg->opcode)) {
     //struct wslay_event_msg msgarg = {arg->opcode, arg->msg, arg->msg_length};
     //wslay_event_queue_msg(ctx, &msgarg);
-    DLOGD("received(%d): %s\n", arg->opcode, arg->msg);
+    DLOGD("received(%d): %s", arg->opcode, arg->msg);
   }else{
     DLOGD("<===   ");
     if(arg->opcode==WSLAY_PONG){
-      DLOGD("received pong, len: %ld\n", arg->msg_length);
+      DLOGD("received pong, len: %ld", arg->msg_length);
     }else if(arg->opcode==WSLAY_PING){
-      DLOGD("received ping, len: %ld\n", arg->msg_length);
+      DLOGD("received ping, len: %ld", arg->msg_length);
     }else if(arg->opcode==WSLAY_CONNECTION_CLOSE){
-      DLOGD("received connection close, len: %ld\n", arg->msg_length);
+      DLOGD("received connection close, len: %ld", arg->msg_length);
     }else{
-      DLOGD("received ctrl msg(%d), len: %ld\n", arg->opcode, arg->msg_length);
+      DLOGD("received ctrl msg(%d), len: %ld", arg->opcode, arg->msg_length);
     }
   }
 }
@@ -306,7 +306,7 @@ UINT32 wss_client_on_write_event(wss_client_context_t* pCtx)
 static INT32 wss_client_send(wss_client_context_t* pCtx, struct wslay_event_msg* arg)
 {
   INT32 retStatus = 0;
-  DLOGD("===>   (%d)\n", arg->opcode);
+  DLOGD("===>   (%d)", arg->opcode);
   CLIENT_LOCK(pCtx);
   retStatus = wslay_event_queue_msg(pCtx->event_ctx, arg);
   CLIENT_UNLOCK(pCtx);
@@ -357,9 +357,9 @@ VOID* testThread(VOID* arg)
                         "\t\"recipientClientId\": \"string\","
                         "\t\"messagePayload\": \"string%d\","
                         "\t\"correlationId\": \"string\"\n}", index);
-    DLOGD("send\n");
+    DLOGD("send");
     wss_client_send_text(context, indexBuf, STRLEN(indexBuf));
-    DLOGD("send done\n");
+    DLOGD("send done");
     #else
     wss_client_send_ping(context);
     #endif
@@ -406,7 +406,7 @@ VOID wssClientCreate(wss_client_context_t** ppWssClientCtx, NetworkContext_t * p
     if (0 != pthread_mutexattr_init(&mutexAttributes) ||
         0 != pthread_mutexattr_settype(&mutexAttributes, PTHREAD_MUTEX_NORMAL) ||
         0 != pthread_mutex_init(&pCtx->client_lock, &mutexAttributes)) {
-        DLOGD("create the mutex failed\n");
+        DLOGD("create the mutex failed");
         return;
     }
 
@@ -429,7 +429,7 @@ VOID ctl_epollev(int epollfd, int op, wss_client_context_t* pWssClientCtx)
       ev.events |= EPOLLOUT;
   }
   if (epoll_ctl(epollfd, op, pWssClientCtx->pNetworkContext->server_fd.fd, &ev) == -1) {
-      DLOGD("epoll_ctl failed\n ");
+      DLOGD("epoll_ctl failed ");
       exit(EXIT_FAILURE);
   }
 }
@@ -453,13 +453,13 @@ INT32 wssClientStart(wss_client_context_t* pWssClientCtx)
     DLOGD("epoll_create ");
     int epollfd = epoll_create(1);
     if (epollfd == -1) {
-        DLOGD("failed\n");
+        DLOGD("failed");
         return -1;
     }
-    DLOGD("success\n");
+    DLOGD("success");
 
     ctl_epollev(epollfd, EPOLL_CTL_ADD, pWssClientCtx);
-    DLOGD("polling start\n");
+    DLOGD("polling start");
 
     #if (WSS_SEND_TEST == 1)
 
@@ -474,16 +474,16 @@ INT32 wssClientStart(wss_client_context_t* pWssClientCtx)
     // check the wss client want to read or write or not.
     while (wss_client_want_read(pWssClientCtx) || wss_client_want_write(pWssClientCtx)) {
         // need to setup the timeout of epoll in order to let the wss cleint thread to write the buffer out.
-        //DLOGD("epoll waiting \n");
+        //DLOGD("epoll waiting ");
         int nfds = epoll_wait(epollfd, events, MAX_EVENTS, 1000);
         //std::cerr << "wait" << std::endl;
-        //DLOGD("epoll timeout, nfds:%x\n", nfds);
+        //DLOGD("epoll timeout, nfds:%x", nfds);
 
         if (nfds == -1) {
-            DLOGD("epoll_wait failed\n");
+            DLOGD("epoll_wait failed");
             return -1;
         }
-        //DLOGD("processing event \n");
+        //DLOGD("processing event ");
         for (int n = 0; n < nfds; ++n) {
             if (((events[n].events & EPOLLIN) && wss_client_on_read_event(pWssClientCtx) != 0) ||
                 ((events[n].events & EPOLLOUT) && wss_client_on_write_event(pWssClientCtx) != 0)) {
@@ -495,11 +495,11 @@ INT32 wssClientStart(wss_client_context_t* pWssClientCtx)
         if (!ok) {
             break;
         }
-        //DLOGD("processing event done\n");
+        //DLOGD("processing event done");
         ctl_epollev(epollfd, EPOLL_CTL_MOD, pWssClientCtx);
     }
 
-    DLOGD("polling end\n");
+    DLOGD("polling end");
     #if (WSS_SEND_TEST == 1)
     // waiting for the child thread.
     pthread_join(threadId, NULL);
@@ -515,7 +515,7 @@ VOID wss_client_close(wss_client_context_t* pWssClientCtx)
   {
     retStatus = pthread_mutex_destroy(&pWssClientCtx->client_lock);
     if(retStatus != 0){
-      DLOGD("destroy the client mutex failed\n");
+      DLOGD("destroy the client mutex failed");
     }
     
   }

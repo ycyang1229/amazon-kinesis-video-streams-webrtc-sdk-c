@@ -64,12 +64,12 @@ STATUS initNetworkContext( NetworkContext_t * pNetworkContext )
         }
         else if( ( pNetworkContext->pHttpSendBuffer = ( UINT8 * ) MEMALLOC ( MAX_HTTP_SEND_BUFFER_LEN ) ) == NULL )
         {
-            DLOGE("OOM: pHttpSendBuffer\r\n");
+            DLOGE("OOM: pHttpSendBuffer");
             retStatus = STATUS_NOT_ENOUGH_MEMORY;
         }
         else if( ( pNetworkContext->pHttpRecvBuffer = ( UINT8 * ) MEMALLOC ( MAX_HTTP_RECV_BUFFER_LEN ) ) == NULL )
         {
-            DLOGE("OOM: pHttpRecvBuffer\r\n");
+            DLOGE("OOM: pHttpRecvBuffer");
             retStatus = STATUS_NOT_ENOUGH_MEMORY;
         }
         else
@@ -96,7 +96,7 @@ VOID terminateNetworkContext( NetworkContext_t * pNetworkContext )
 {
     if( pNetworkContext != NULL )
     {
-        DLOGD("Terminate network context\r\n");
+        DLOGD("Terminate network context");
 
         mbedtls_net_free( &( pNetworkContext->server_fd ) );
         mbedtls_ssl_free( &( pNetworkContext->ssl ) );
@@ -148,7 +148,7 @@ static STATUS _connectToServer( NetworkContext_t * pNetworkContext,
 
     if( pNetworkContext == NULL )
     {
-        DLOGE("Invalid Arg: network context\r\n");
+        DLOGE("Invalid Arg: network context");
         retStatus = STATUS_INVALID_ARG;
     }
     else if( pRootCA != NULL && pCertificate != NULL && pPrivateKey != NULL )
@@ -156,17 +156,17 @@ static STATUS _connectToServer( NetworkContext_t * pNetworkContext,
         bHasX509Certificate = TRUE;
         if( ( pNetworkContext->pRootCA = ( mbedtls_x509_crt * )MEMALLOC( sizeof( mbedtls_x509_crt ) ) ) == NULL )
         {
-            DLOGE("OOM: pRootCA\r\n");
+            DLOGE("OOM: pRootCA");
             retStatus = STATUS_NOT_ENOUGH_MEMORY;
         }
         else if( ( pNetworkContext->pClientCert = ( mbedtls_x509_crt * )MEMALLOC( sizeof( mbedtls_x509_crt ) ) ) == NULL )
         {
-            DLOGE("OOM: pClientCert\r\n");
+            DLOGE("OOM: pClientCert");
             retStatus = STATUS_NOT_ENOUGH_MEMORY;
         }
         else if( ( pNetworkContext->pPrivateKey = ( mbedtls_pk_context * )MEMALLOC( sizeof( mbedtls_pk_context ) ) ) == NULL )
         {
-            DLOGE("OOM: pPrivateKey\r\n");
+            DLOGE("OOM: pPrivateKey");
             retStatus = STATUS_NOT_ENOUGH_MEMORY;
         }
         else
@@ -181,7 +181,7 @@ static STATUS _connectToServer( NetworkContext_t * pNetworkContext,
     {
         if( ( ret = mbedtls_net_connect( &( pNetworkContext->server_fd ), pServerHost, pServerPort, MBEDTLS_NET_PROTO_TCP ) ) != 0 )
         {
-            DLOGE("net connect err (%d)\r\n", ret);
+            DLOGE("net connect err (%d)", ret);
             retStatus = STATUS_SOCKET_CONNECT_FAILED;
         }
     }
@@ -192,7 +192,7 @@ static STATUS _connectToServer( NetworkContext_t * pNetworkContext,
 
         if( ( ret = mbedtls_ssl_config_defaults( &( pNetworkContext->conf ), MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_STREAM, MBEDTLS_SSL_PRESET_DEFAULT ) ) != 0 )
         {
-            DLOGE("ssl config err (%d)\r\n", ret);
+            DLOGE("ssl config err (%d)", ret);
             retStatus = STATUS_NOT_ENOUGH_MEMORY;
         }
         else
@@ -203,17 +203,17 @@ static STATUS _connectToServer( NetworkContext_t * pNetworkContext,
             {
                 if( ( ret = mbedtls_x509_crt_parse( pNetworkContext->pRootCA, ( VOID * )pRootCA, strlen( pRootCA ) + 1 ) ) != 0 )
                 {
-                    DLOGE("x509 Root CA parse err (%d)\r\n", ret);
+                    DLOGE("x509 Root CA parse err (%d)", ret);
                     retStatus = STATUS_NETWORK_SETUP_ERROR;
                 }
                 else if( ( ret = mbedtls_x509_crt_parse( pNetworkContext->pClientCert, ( VOID * )pCertificate, strlen( pCertificate ) + 1 ) ) != 0 )
                 {
-                    DLOGE("x509 client cert parse err (%d)\r\n", ret);
+                    DLOGE("x509 client cert parse err (%d)", ret);
                     retStatus = STATUS_NETWORK_SETUP_ERROR;
                 }
                 else if( ( ret = mbedtls_pk_parse_key( pNetworkContext->pPrivateKey, ( VOID * )pPrivateKey, strlen( pPrivateKey ) + 1, NULL, 0 ) ) != 0 )
                 {
-                    DLOGE("x509 priv key parse err (%d)\r\n", ret);
+                    DLOGE("x509 priv key parse err (%d)", ret);
                     retStatus = STATUS_NETWORK_SETUP_ERROR;
                 }
                 else
@@ -224,7 +224,7 @@ static STATUS _connectToServer( NetworkContext_t * pNetworkContext,
 
                     if( ( ret = mbedtls_ssl_conf_own_cert( &( pNetworkContext->conf ), pNetworkContext->pClientCert, pNetworkContext->pPrivateKey ) ) != 0 )
                     {
-                        DLOGE("ssl conf cert err (%d)\r\n", ret);
+                        DLOGE("ssl conf cert err (%d)", ret);
                         retStatus = STATUS_NETWORK_SETUP_ERROR;
                     }
                 }
@@ -240,12 +240,12 @@ static STATUS _connectToServer( NetworkContext_t * pNetworkContext,
     {
         if( ( ret = mbedtls_ssl_setup( &( pNetworkContext->ssl ), &( pNetworkContext->conf ) ) ) != 0 )
         {
-            DLOGE("ssl setup err (%d)\r\n", ret);
+            DLOGE("ssl setup err (%d)", ret);
             retStatus = STATUS_NETWORK_SETUP_ERROR;
         }
         else if( ( ret = mbedtls_ssl_handshake( &( pNetworkContext->ssl ) ) ) != 0 )
         {
-            DLOGE("ssl handshake err (%d)\r\n", ret);
+            DLOGE("ssl handshake err (%d)", ret);
             retStatus = STATUS_NETWORK_SSL_HANDSHAKE_ERROR;
         }
     }
@@ -302,18 +302,18 @@ STATUS networkSend( NetworkContext_t * pNetworkContext,
     {
         while( uBytesRemaining > 0UL )
         {
-            DLOGD("try to send %d bytes\r\n", uBytesRemaining);
+            DLOGD("try to send %d bytes", uBytesRemaining);
             n = mbedtls_ssl_write( &( pNetworkContext->ssl ), pIndex, uBytesRemaining );
 
             if( n < 0 || n > uBytesRemaining )
             {
-                DLOGW("ssl send err (%d)\r\n", n);
+                DLOGW("ssl send err (%d)", n);
                 retStatus = STATUS_SEND_DATA_FAILED;
                 break;
             }
             else
             {
-                DLOGD("sent %d bytes\r\n", n);
+                DLOGD("sent %d bytes", n);
                 uBytesRemaining -= n;
                 pIndex += n;
             }
@@ -390,7 +390,7 @@ STATUS networkRecv( NetworkContext_t * pNetworkContext,
 
     if( pNetworkContext == NULL || pBuffer == NULL )
     {
-        DLOGE("Invalid Arg in networkRecv\r\n");
+        DLOGE("Invalid Arg in networkRecv");
         retStatus = STATUS_INVALID_ARG;
     }
     else
@@ -401,12 +401,12 @@ STATUS networkRecv( NetworkContext_t * pNetworkContext,
 
         if( n < 0 || n > uBytesToRecv )
         {
-            DLOGW("ssl read err (%d)\r\n", n);
+            DLOGW("ssl read err (%d)", n);
             retStatus = STATUS_RECV_DATA_FAILED;
         }
         else
         {
-            DLOGD("ssl read %d bytes\r\n", n);
+            DLOGD("ssl read %d bytes", n);
         }
     }
 
