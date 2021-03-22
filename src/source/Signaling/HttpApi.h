@@ -173,7 +173,7 @@ CHAR* webrtc_getStringFromChannelRoleType(WEBRTC_CHANNEL_ROLE_TYPE type);
  *
  * @return KVS error code
  */
-STATUS httpApiCreateSignalingChannl( webrtcServiceParameter_t * pServiceParameter, webrtcChannelInfo_t * pchannelInfo);
+STATUS httpApiCreateSignalingChannl(PSignalingClient pSignalingClient, UINT64 time);
 
 /**
  * @brief Describe a Stream
@@ -189,24 +189,13 @@ STATUS httpApiCreateSignalingChannl( webrtcServiceParameter_t * pServiceParamete
 STATUS httpApiDescribeSignalingChannel(PSignalingClient pSignalingClient, UINT64 time);
 
 
-STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time);
-STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time);
+STATUS httpApiGetChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time);
+STATUS httpApiGetIceConfig(PSignalingClient pSignalingClient, UINT64 time);
 // rsp
-STATUS parseCreateChannel( const CHAR * pJsonSrc,
-                                  UINT32 uJsonSrcLen,
-                                  CHAR * pBuf,
-                                  UINT32 uBufsize );
-
-STATUS httpApiRspDescribeChannel( const CHAR * pResponseStr,
-                                  UINT32 resultLen,
-                                  PSignalingClient pSignalingClient);
-
-STATUS httpApiRspGetChannelEndpoint( const CHAR * pResponseStr,
-                                  UINT32 resultLen,
-                                  PSignalingClient pSignalingClient);
-STATUS httpApiRspGetIceConfig( const CHAR * pResponseStr,
-                                  UINT32 resultLen,
-                                  PSignalingClient pSignalingClient);
+STATUS httpApiRspCreateChannel( const CHAR * pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient);
+STATUS httpApiRspDescribeChannel( const CHAR * pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient);
+STATUS httpApiRspGetChannelEndpoint( const CHAR * pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient);
+STATUS httpApiRspGetIceConfig( const CHAR * pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient);
 #ifdef __cplusplus
 }
 #endif

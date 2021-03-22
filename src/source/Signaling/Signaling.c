@@ -1017,7 +1017,7 @@ STATUS signalingCreateChannel(PSignalingClient pSignalingClient, UINT64 time)
     if (STATUS_SUCCEEDED(retStatus)) {
         //retStatus = lwsCreateChannel(pSignalingClient, time);
         // #YC_TBD. #HTTP
-        retStatus = httpApiCreateSignalingChannl(NULL, NULL);
+        retStatus = httpApiCreateSignalingChannl(pSignalingClient, time);
 
         // Store the time of the call on success
         if (STATUS_SUCCEEDED(retStatus)) {

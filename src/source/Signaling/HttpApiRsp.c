@@ -39,67 +39,39 @@
     }
  * 
 */
-STATUS parseCreateChannel( const CHAR * pJsonSrc,
-                                  UINT32 uJsonSrcLen,
-                                  CHAR * pBuf,
-                                  UINT32 uBufsize )
+STATUS httpApiRspCreateChannel( const CHAR * pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient)
 {
+    HTTP_RSP_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
-    JSON_Value * rootValue = NULL;
-    JSON_Object * rootObject = NULL;
-    CHAR * pChannelArn = NULL;
-    UINT32 uChannelArnLen = 0;
-    //DLOGD("parse the response of creating channel: \n%s\n", pJsonSrc);
+    jsmn_parser parser;
+    jsmntok_t* pTokens = NULL;
+    UINT32 tokenCount, i,strLen;
+    UINT64 ttl;
 
-    do
-    {
-        if(pJsonSrc == NULL || pBuf == NULL )
-        {
-            retStatus = STATUS_INVALID_ARG;
-            break;
+    CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT * SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
+
+    // Parse out the ARN
+    jsmn_init(&parser);
+    tokenCount = jsmn_parse(&parser, pResponseStr, resultLen, pTokens, MAX_JSON_TOKEN_COUNT);
+    CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
+    CHK(pTokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
+
+    // Loop through the pTokens and extract the stream description
+    for (i = 1; i < tokenCount; i++) {
+        if (compareJsonString(pResponseStr, &pTokens[i], JSMN_STRING, (PCHAR) "ChannelARN")) {
+            strLen = (UINT32)(pTokens[i + 1].end - pTokens[i + 1].start);
+            CHK(strLen <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+            STRNCPY(pSignalingClient->channelDescription.channelArn, pResponseStr + pTokens[i + 1].start, strLen);
+            pSignalingClient->channelDescription.channelArn[MAX_ARN_LEN] = '\0';
+            i++;
         }
-
-        json_set_escape_slashes( 0 );
-
-        rootValue = json_parse_string( pJsonSrc );
-        if( rootValue == NULL )
-        {
-            retStatus = STATUS_JSON_PARSE_ERROR;
-            break;
-        }
-
-        rootObject = json_value_get_object( rootValue );
-        if ( rootObject == NULL )
-        {
-            retStatus = STATUS_JSON_PARSE_ERROR;
-            break;
-        }
-
-        pChannelArn = json_object_dotget_serialize_to_string( rootObject, "ChannelARN", TRUE );
-        if( pChannelArn == NULL )
-        {
-            retStatus = STATUS_JSON_PARSE_ERROR;
-            break;
-        }
-        else
-        {
-            //DLOGD("pChannelArn:%s\n", pChannelArn);
-            uChannelArnLen = STRLEN( pChannelArn );
-            if( uBufsize >= uChannelArnLen )
-            {
-                sprintf( pBuf, "%.*s", uChannelArnLen, pChannelArn);
-                retStatus = STATUS_SUCCESS;
-            }
-            //DLOGD("pBuf:%s\n", pBuf);
-            MEMFREE( pChannelArn );
-        }
-    } while ( 0 );
-
-    if( rootValue != NULL )
-    {
-        json_value_free( rootValue );
     }
 
+    // Perform some validation on the channel description
+    CHK(pSignalingClient->channelDescription.channelArn[0] != '\0', STATUS_SIGNALING_NO_ARN_RETURNED_ON_CREATE);
+CleanUp:
+    MEMFREE(pTokens);
+    HTTP_RSP_EXIT();
     return retStatus;
 }
 
@@ -369,7 +341,7 @@ STATUS httpApiRspGetIceConfig( const CHAR * pResponseStr, UINT32 resultLen, PSig
     jsmn_parser parser;
     jsmntok_t* pTokens = NULL;
     jsmntok_t* pToken;
-    UINT32 tokenCount, i, configCount = 0;
+    UINT32 tokenCount, i, j, configCount = 0, strLen;
     UINT64 ttl;
     BOOL jsonInIceServerList = FALSE;
 
@@ -383,7 +355,7 @@ STATUS httpApiRspGetIceConfig( const CHAR * pResponseStr, UINT32 resultLen, PSig
 
     MEMSET(&pSignalingClient->iceConfigs, 0x00, MAX_ICE_CONFIG_COUNT * SIZEOF(IceConfigInfo));
     pSignalingClient->iceConfigCount = 0;
-
+    DLOGD("pResponseStr:%s", pResponseStr);
     // Loop through the tokens and extract the ice configuration
     for (i = 0; i < tokenCount; i++) {
         if (!jsonInIceServerList) {
@@ -425,6 +397,7 @@ STATUS httpApiRspGetIceConfig( const CHAR * pResponseStr, UINT32 resultLen, PSig
                     STRNCPY(pSignalingClient->iceConfigs[configCount - 1].uris[j], pResponseStr + pToken[j + 2].start, strLen);
                     pSignalingClient->iceConfigs[configCount - 1].uris[j][MAX_ICE_CONFIG_URI_LEN] = '\0';
                     pSignalingClient->iceConfigs[configCount - 1].uriCount++;
+                    DLOGD("uri:%s", pSignalingClient->iceConfigs[configCount - 1].uris[j]);
                 }
 
                 i += pToken[1].size + 1;
