@@ -404,7 +404,7 @@ STATUS httpApiCreateSignalingChannl(PSignalingClient pSignalingClient, UINT64 ti
         /* Check HTTP results */
         CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
         DLOGD("receive 200 response.");
-        retStatus = httpApiRspCreateChannel( ( const CHAR * )pResponseStr, resultLen, pChannelInfo );
+        retStatus = httpApiRspCreateChannel( ( const CHAR * )pResponseStr, resultLen, pSignalingClient );
         /* We got a success response here. */
     } while ( 0 );
 
@@ -848,7 +848,7 @@ STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time
         /* Check HTTP results */
         CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
         DLOGD("receive 200 response.");
-        retStatus = httpApiRspGetChannelEndpoint( ( const CHAR * )pResponseStr, resultLen, pChannelInfo );
+        retStatus = httpApiRspGetChannelEndpoint( ( const CHAR * )pResponseStr, resultLen, pSignalingClient );
         /* We got a success response here. */
         
     } while ( 0 );

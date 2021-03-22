@@ -53,8 +53,8 @@
 #define HTTP_HEADER_VALUE_UPGRADE "upgrade"
 #define HTTP_HEADER_VALUE_WS "websocket"
 
-
-#define AWS_SIGNER_V4_BUFFER_SIZE           ( 4096 )
+// #YC_TBD, need to be fixed.
+#define AWS_SIGNER_V4_BUFFER_SIZE           ( 4096+1024 )
 #define MAX_CONNECTION_RETRY                ( 3 )
 #define CONNECTION_RETRY_INTERVAL_IN_MS     ( 1000 )
 /*-----------------------------------------------------------*/
@@ -110,8 +110,8 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
 
     UINT32 uHttpStatusCode = 0;
     CHAR *uri = "/";
-    CHAR pParameter[512];
-    CHAR pParameterUriEncode[512];
+    CHAR pParameter[1024];
+    CHAR pParameterUriEncode[1024];
     CHAR clientKey[WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1];
 
     int n;
@@ -125,14 +125,14 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
     PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
     PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
     PCHAR pHost = NULL;
+    
     PCHAR pUserAgent = "userAgent";//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
 
-    CHK(NULL != (pHost = (CHAR *)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
-    SNPRINTF(pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s.%s%s", 
-                                                    KINESIS_VIDEO_SERVICE_NAME,
-                                                    pSignalingClient->pChannelInfo->pRegion,
-                                                    CONTROL_PLANE_URI_POSTFIX);
-
+    CHK(NULL != (pHost = (CHAR *)MEMALLOC(STRLEN(pSignalingClient->channelEndpointWss)+1)), STATUS_NOT_ENOUGH_MEMORY);
+    MEMSET(pHost, 0, STRLEN(pSignalingClient->channelEndpointWss+1));
+    STRCPY(pHost, pSignalingClient->channelEndpointWss+6);
+    DLOGD("pSignalingClient->channelEndpointWss:%s", pSignalingClient->channelEndpointWss);
+    DLOGD("pHost:%s", pHost);
 
     DLOGD("%s(%d) connect\n", __func__, __LINE__);
 
@@ -154,6 +154,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         //strcpy(pXAmzDate, "20210311T024335Z");
         p = pParameter;
         p += SPRINTF(p, "?X-Amz-ChannelARN=%s", pSignalingClient->channelDescription.channelArn);
+        DLOGD("pParameter:%d", strlen(pParameter));
         uriEncode(pParameter, pParameterUriEncode);
 
 
@@ -220,8 +221,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
                         pAccessKey,
                         AwsSignerV4_getScope( &signerContext ),
                         AwsSignerV4_getSignedHeader( &signerContext ),
-                        AwsSignerV4_getHmacEncoded( &signerContext )
-        );
+                        AwsSignerV4_getHmacEncoded( &signerContext ));
 
         p += SPRINTF(p, "Pragma: no-cache\r\n");
         p += SPRINTF(p, "Cache-Control: no-cache\r\n");

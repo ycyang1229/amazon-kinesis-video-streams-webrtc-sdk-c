@@ -732,7 +732,6 @@ STATUS signalingFsmConnect(UINT64 customData, UINT64 time)
         CHK_STATUS(pSignalingClient->signalingClientCallbacks.stateChangeFn(pSignalingClient->signalingClientCallbacks.customData,
                                                                             SIGNALING_CLIENT_STATE_CONNECTING));
     }
-
     retStatus = signalingConnectChannel(pSignalingClient, time);
 
     CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
