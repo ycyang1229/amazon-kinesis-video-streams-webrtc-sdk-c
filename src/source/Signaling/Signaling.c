@@ -1164,7 +1164,7 @@ STATUS signalingGetIceConfig(PSignalingClient pSignalingClient, UINT64 time)
 
     if (STATUS_SUCCEEDED(retStatus)) {
         //retStatus = lwsGetIceConfig(pSignalingClient, time);
-        retStatus = httpApiGetIceConfig(NULL, NULL);
+        retStatus = httpApiGetIceConfig(pSignalingClient, time);
 
         if (STATUS_SUCCEEDED(retStatus)) {
             pSignalingClient->getIceConfigTime = time;

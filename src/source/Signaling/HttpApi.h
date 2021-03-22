@@ -190,7 +190,7 @@ STATUS httpApiDescribeSignalingChannel(PSignalingClient pSignalingClient, UINT64
 
 
 STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time);
-STATUS httpApiGetIceConfig( webrtcServiceParameter_t * pServiceParameter, webrtcChannelInfo_t * pChannelInfo);
+STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time);
 // rsp
 STATUS parseCreateChannel( const CHAR * pJsonSrc,
                                   UINT32 uJsonSrcLen,
@@ -202,6 +202,9 @@ STATUS httpApiRspDescribeChannel( const CHAR * pResponseStr,
                                   PSignalingClient pSignalingClient);
 
 STATUS httpApiRspGetChannelEndpoint( const CHAR * pResponseStr,
+                                  UINT32 resultLen,
+                                  PSignalingClient pSignalingClient);
+STATUS httpApiRspGetIceConfig( const CHAR * pResponseStr,
                                   UINT32 resultLen,
                                   PSignalingClient pSignalingClient);
 #ifdef __cplusplus

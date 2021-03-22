@@ -362,17 +362,24 @@ CleanUp:
 }
 
 
-STATUS parseIceConf(const CHAR* rspStr){
-
-
+STATUS httpApiRspGetIceConfig( const CHAR * pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient)
+{
+    HTTP_RSP_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
+    jsmn_parser parser;
+    jsmntok_t* pTokens = NULL;
+    jsmntok_t* pToken;
+    UINT32 tokenCount, i, configCount = 0;
+    UINT64 ttl;
+    BOOL jsonInIceServerList = FALSE;
 
-    #if 0
-    // Parse the response
+    CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT * SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
+
+    // Parse and extract the endpoints
     jsmn_init(&parser);
-    tokenCount = jsmn_parse(&parser, pResponseStr, resultLen, tokens, SIZEOF(tokens) / SIZEOF(jsmntok_t));
+    tokenCount = jsmn_parse(&parser, pResponseStr, resultLen, pTokens, MAX_JSON_TOKEN_COUNT);
     CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
-    CHK(tokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
+    CHK(pTokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
 
     MEMSET(&pSignalingClient->iceConfigs, 0x00, MAX_ICE_CONFIG_COUNT * SIZEOF(IceConfigInfo));
     pSignalingClient->iceConfigCount = 0;
@@ -380,14 +387,14 @@ STATUS parseIceConf(const CHAR* rspStr){
     // Loop through the tokens and extract the ice configuration
     for (i = 0; i < tokenCount; i++) {
         if (!jsonInIceServerList) {
-            if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "IceServerList")) {
+            if (compareJsonString(pResponseStr, &pTokens[i], JSMN_STRING, (PCHAR) "IceServerList")) {
                 jsonInIceServerList = TRUE;
 
-                CHK(tokens[i + 1].type == JSMN_ARRAY, STATUS_INVALID_API_CALL_RETURN_JSON);
-                CHK(tokens[i + 1].size <= MAX_ICE_CONFIG_COUNT, STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT);
+                CHK(pTokens[i + 1].type == JSMN_ARRAY, STATUS_INVALID_API_CALL_RETURN_JSON);
+                CHK(pTokens[i + 1].size <= MAX_ICE_CONFIG_COUNT, STATUS_SIGNALING_MAX_ICE_CONFIG_COUNT);
             }
         } else {
-            pToken = &tokens[i];
+            pToken = &pTokens[i];
             if (pToken->type == JSMN_OBJECT) {
                 configCount++;
             } else if (compareJsonString(pResponseStr, pToken, JSMN_STRING, (PCHAR) "Username")) {
@@ -424,6 +431,13 @@ STATUS parseIceConf(const CHAR* rspStr){
             }
         }
     }
-    #endif
+
+    // Perform some validation on the ice configuration
+    pSignalingClient->iceConfigCount = configCount;
+    CHK_STATUS(signalingValidateIceConfiguration(pSignalingClient));
+
+CleanUp:
+    MEMFREE(pTokens);
+    HTTP_RSP_EXIT();
     return retStatus;
 }
