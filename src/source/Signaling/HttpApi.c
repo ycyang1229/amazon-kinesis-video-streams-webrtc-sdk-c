@@ -675,10 +675,12 @@ CleanUp:
 
 /*-----------------------------------------------------------*/
 
-STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, webrtcChannelInfo_t * pChannelInfo)
+STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time)
 {
+    HTTP_API_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
-    CHAR *p = NULL;
+    PChannelInfo pChannelInfo = pSignalingClient->pChannelInfo;
+    PCHAR p = NULL;
     BOOL bUseIotCert = FALSE;
 
     /* Variables for network connection */
@@ -697,28 +699,29 @@ STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, 
     http_response_context_t* pHttpRspCtx = NULL;
     UINT32 uHttpStatusCode = 0;
 
+    // temp interface.
+    PCHAR pAccessKey = getenv(ACCESS_KEY_ENV_VAR);  // It's AWS access key if not using IoT certification.
+    PCHAR pSecretKey = getenv(SECRET_KEY_ENV_VAR);  // It's secret of AWS access key if not using IoT certification.
+    PCHAR pToken = NULL;
+    PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
+    PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
+    PCHAR pHost = NULL;
+    PCHAR pUserAgent = "userAgent";//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
+
+    CHK(NULL != (pHost = (CHAR *)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
+    SNPRINTF(pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s.%s%s", 
+                                                    KINESIS_VIDEO_SERVICE_NAME,
+                                                    pSignalingClient->pChannelInfo->pRegion,
+                                                    CONTROL_PLANE_URI_POSTFIX);
+    DLOGD("preparing the call");
     do
     {
-        if( checkServiceParameter( pServiceParameter ) != STATUS_SUCCESS )
-        {
-            retStatus = STATUS_INVALID_ARG;
-            break;
-        }
-        else if( pChannelInfo == NULL  || pChannelInfo->channelName[0] == '\0')
-        {
-            retStatus = STATUS_INVALID_ARG;
-            break;
-        }
-
-        if( pServiceParameter->pToken != NULL )
-        {
-            bUseIotCert = TRUE;
-        }
+        CHK((pChannelInfo != NULL && pChannelInfo->pChannelName[0] != '\0'), STATUS_INVALID_ARG);
 
         pHttpBody = (CHAR *) MEMALLOC( sizeof( GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE ) + 
-                                        STRLEN( pChannelInfo->channelArn ) + 
+                                        STRLEN( pSignalingClient->channelDescription.channelArn ) + 
                                         STRLEN( WEBRTC_CHANNEL_PROTOCOL ) +
-                                        STRLEN( webrtc_getStringFromChannelRoleType( pChannelInfo->channelRole )) + 
+                                        STRLEN( getStringFromChannelRoleType( pChannelInfo->channelRoleType )) + 
                                         1 );
         if( pHttpBody == NULL )
         {
@@ -727,7 +730,7 @@ STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, 
         }
 
         /* generate HTTP request body */
-        uHttpBodyLen = SPRINTF( pHttpBody, GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE, pChannelInfo->channelArn, WEBRTC_CHANNEL_PROTOCOL, webrtc_getStringFromChannelRoleType( pChannelInfo->channelRole ) );
+        uHttpBodyLen = SPRINTF( pHttpBody, GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE, pSignalingClient->channelDescription.channelArn, WEBRTC_CHANNEL_PROTOCOL, getStringFromChannelRoleType( pChannelInfo->channelRoleType ) );
 
         /* generate UTC time in x-amz-date formate */
         retStatus = getTimeInIso8601( pXAmzDate, sizeof( pXAmzDate ) );
@@ -752,14 +755,14 @@ STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, 
         }
 
         retStatus = AwsSignerV4_addCanonicalHeader( &signerContext, HDR_HOST, sizeof( HDR_HOST ) - 1,
-                                                    pServiceParameter->pHost, STRLEN( pServiceParameter->pHost ) );
+                                                    pHost, STRLEN( pHost ) );
         if( retStatus != STATUS_SUCCESS )
         {
             break;
         }
 
         retStatus = AwsSignerV4_addCanonicalHeader( &signerContext, HDR_USER_AGENT, sizeof( HDR_USER_AGENT ) - 1,
-                                                    pServiceParameter->pUserAgent, STRLEN( pServiceParameter->pUserAgent ) );
+                                                    pUserAgent, STRLEN( pUserAgent ) );
         if( retStatus != STATUS_SUCCESS )
         {
             break;
@@ -775,7 +778,7 @@ STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, 
         if( bUseIotCert )
         {
             retStatus = AwsSignerV4_addCanonicalHeader( &signerContext, HDR_X_AMZ_SECURITY_TOKEN, sizeof( HDR_X_AMZ_SECURITY_TOKEN ) - 1,
-                                                        pServiceParameter->pToken, STRLEN( pServiceParameter->pToken ) );
+                                                        pToken, STRLEN( pToken ) );
             if( retStatus != STATUS_SUCCESS )
             {
                 break;
@@ -788,9 +791,9 @@ STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, 
             break;
         }
 
-        retStatus = AwsSignerV4_sign( &signerContext, pServiceParameter->pSecretKey, STRLEN( pServiceParameter->pSecretKey ),
-                                      pServiceParameter->pRegion, STRLEN( pServiceParameter->pRegion ),
-                                      pServiceParameter->pService, STRLEN( pServiceParameter->pService ),
+        retStatus = AwsSignerV4_sign( &signerContext, pSecretKey, STRLEN( pSecretKey ),
+                                      pRegion, STRLEN( pRegion ),
+                                      pService, STRLEN( pService ),
                                       pXAmzDate, STRLEN( pXAmzDate ) );
         if( retStatus != STATUS_SUCCESS )
         {
@@ -812,7 +815,7 @@ STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, 
 
         for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
         {
-            if( ( retStatus = connectToServer( pNetworkContext, pServiceParameter->pHost, KVS_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
+            if( ( retStatus = connectToServer( pNetworkContext, pHost, KVS_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
             {
                 break;
             }
@@ -821,18 +824,18 @@ STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, 
 
         p = (CHAR *)(pNetworkContext->pHttpSendBuffer);
         p += SPRINTF(p, "%s %s HTTP/1.1\r\n", HTTP_METHOD_POST, WEBRTC_API_GET_SIGNALING_CHANNEL_ENDPOINT);
-        p += SPRINTF(p, "Host: %s\r\n", pServiceParameter->pHost);
+        p += SPRINTF(p, "Host: %s\r\n", pHost);
         p += SPRINTF(p, "Accept: */*\r\n");
         p += SPRINTF(p, "Authorization: %s Credential=%s/%s, SignedHeaders=%s, Signature=%s\r\n",
-                     AWS_SIG_V4_ALGORITHM, pServiceParameter->pAccessKey, AwsSignerV4_getScope( &signerContext ),
+                     AWS_SIG_V4_ALGORITHM, pAccessKey, AwsSignerV4_getScope( &signerContext ),
                      AwsSignerV4_getSignedHeader( &signerContext ), AwsSignerV4_getHmacEncoded( &signerContext ) );
         p += SPRINTF(p, "content-length: %u\r\n", (UINT32) uHttpBodyLen );
         p += SPRINTF(p, "content-type: application/json\r\n" );
-        p += SPRINTF(p, HDR_USER_AGENT ": %s\r\n", pServiceParameter->pUserAgent );
+        p += SPRINTF(p, HDR_USER_AGENT ": %s\r\n", pUserAgent );
         p += SPRINTF(p, HDR_X_AMZ_DATE ": %s\r\n", pXAmzDate );
         if( bUseIotCert )
         {
-            p += SPRINTF(p, HDR_X_AMZ_SECURITY_TOKEN ": %s\r\n", pServiceParameter->pToken );
+            p += SPRINTF(p, HDR_X_AMZ_SECURITY_TOKEN ": %s\r\n", pToken );
         }
         p += SPRINTF(p, "\r\n" );
         p += SPRINTF(p, "%s", pHttpBody );
@@ -859,40 +862,17 @@ STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, 
             break;
         }
 
+        PCHAR pResponseStr = http_get_http_body_location(pHttpRspCtx);
+        UINT32 resultLen = http_get_http_body_length(pHttpRspCtx);
         uHttpStatusCode = http_get_http_status_code(pHttpRspCtx);
 
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
         /* Check HTTP results */
-        if( uHttpStatusCode == 200 )
-        {
-            
-            retStatus = parseGetEndPoint( ( const CHAR * )http_get_http_body_location(pHttpRspCtx), http_get_http_body_length(pHttpRspCtx), pChannelInfo );
-
-            /* We got a success response here. */
-        }
-        else if( uHttpStatusCode == 404 )
-        {
-            retStatus = STATUS_HTTP_RES_NOT_FOUND_ERROR;
-            break;
-        }
-        else
-        {
-            DLOGE("Unable to get endpoint:\r\n%.*s\r\n", (INT32)http_get_http_body_length(pHttpRspCtx), http_get_http_body_location(pHttpRspCtx));
-            if( uHttpStatusCode == 400 )
-            {
-                retStatus = STATUS_HTTP_REST_EXCEPTION_ERROR;
-                break;
-            }
-            else if( uHttpStatusCode == 401 )
-            {
-                retStatus = STATUS_HTTP_REST_NOT_AUTHORIZED_ERROR;
-                break;
-            }
-            else
-            {
-                retStatus = STATUS_HTTP_REST_UNKNOWN_ERROR;
-                break;
-            }
-        }
+        CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
+        DLOGD("receive 200 response.");
+        retStatus = httpApiRspGetChannelEndpoint( ( const CHAR * )pResponseStr, resultLen, pChannelInfo );
+        /* We got a success response here. */
+        
     } while ( 0 );
 
     if( pNetworkContext != NULL )
@@ -915,6 +895,10 @@ STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, 
             printf("destroying http parset failed. \n");
         }
     }
+
+CleanUp:
+
+    HTTP_API_EXIT();
     return retStatus;
 }
 

@@ -1082,7 +1082,7 @@ STATUS signalingGetChannelEndpoint(PSignalingClient pSignalingClient, UINT64 tim
             if (STATUS_SUCCEEDED(retStatus)) {
                 //retStatus = lwsGetChannelEndpoint(pSignalingClient, time);
                 // #YC_TBD, #HTTP.
-                retStatus = httpApiGetChannelEndpoint(NULL, NULL);
+                retStatus = httpApiGetChannelEndpoint(pSignalingClient, time);
 
                 if (STATUS_SUCCEEDED(retStatus)) {
                     pSignalingClient->getEndpointTime = time;

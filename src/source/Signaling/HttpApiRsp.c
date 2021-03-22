@@ -170,6 +170,7 @@ STATUS httpApiRspDescribeChannel( const CHAR * pResponseStr,
                 CHK(strLen <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
                 STRNCPY(pSignalingClient->channelDescription.channelArn, pResponseStr + pTokens[i + 1].start, strLen);
                 pSignalingClient->channelDescription.channelArn[MAX_ARN_LEN] = '\0';
+                DLOGD("channel arn: %s", pSignalingClient->channelDescription.channelArn);
                 i++;
             } else if (compareJsonString(pResponseStr, &pTokens[i], JSMN_STRING, (PCHAR) "ChannelName")) {
                 strLen = (UINT32)(pTokens[i + 1].end - pTokens[i + 1].start);
@@ -271,135 +272,92 @@ WEBRTC_ENDPOINT_TYPE getEndPointTypeFromString(CHAR* type, UINT32 length)
     return channelRoleType;
 }
 
-STATUS parseGetEndPoint( const CHAR * pJsonSrc,
-                                  UINT32 uJsonSrcLen,
-                                  webrtcChannelInfo_t * pChannelInfo)
+STATUS httpApiRspGetChannelEndpoint( const CHAR * pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient)
 {
+    HTTP_RSP_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
-    CHAR *pJson = NULL;
-    JSON_Value * rootValue = NULL;
-    JSON_Object * rootObject = NULL;
-    CHAR* tempString = NULL;
-    UINT32 tempStringLen = 0;
+    jsmn_parser parser;
+    jsmntok_t* pTokens = NULL;
+    UINT32 tokenCount, i, protocolLen = 0, endpointLen = 0, strLen;
+    PCHAR pProtocol = NULL, pEndpoint = NULL;
+    BOOL jsonInResourceEndpointList = FALSE, protocol = FALSE, endpoint = FALSE, inEndpointArray = FALSE;
 
-    do
-    {
-        if( pJsonSrc == NULL )
-        {
-            retStatus = STATUS_INVALID_ARG;
-            break;
-        }
+    CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT * SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
 
-        pJson = ( CHAR * )MEMALLOC( uJsonSrcLen + 1 );
-        if( pJson == NULL )
-        {
-            retStatus = STATUS_NOT_ENOUGH_MEMORY;
-            break;
-        }
+    // Parse and extract the endpoints
+    jsmn_init(&parser);
+    tokenCount = jsmn_parse(&parser, pResponseStr, resultLen, pTokens, MAX_JSON_TOKEN_COUNT);
+    CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
+    CHK(pTokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
 
-        memcpy( pJson, pJsonSrc, uJsonSrcLen );
-        pJson[ uJsonSrcLen ] = '\0';
+    pSignalingClient->channelEndpointWss[0] = '\0';
+    pSignalingClient->channelEndpointHttps[0] = '\0';
 
-        json_set_escape_slashes( 0 );
+    // Loop through the pTokens and extract the stream description
+    for (i = 1; i < tokenCount; i++) {
+        if (!jsonInResourceEndpointList) {
+            if (compareJsonString(pResponseStr, &pTokens[i], JSMN_STRING, (PCHAR) "ResourceEndpointList")) {
+                jsonInResourceEndpointList = TRUE;
+                i++;
+            }
+        } else {
+            if (!inEndpointArray && pTokens[i].type == JSMN_ARRAY) {
+                inEndpointArray = TRUE;
+            } else {
+                if (pTokens[i].type == JSMN_OBJECT) {
+                    // Process if both are set
+                    if (protocol && endpoint) {
+                        if (0 == STRNCMPI(pProtocol, WSS_SCHEME_NAME, protocolLen)) {
+                            STRNCPY(pSignalingClient->channelEndpointWss, pEndpoint, MIN(endpointLen, MAX_SIGNALING_ENDPOINT_URI_LEN));
+                            pSignalingClient->channelEndpointWss[MAX_SIGNALING_ENDPOINT_URI_LEN] = '\0';
+                        } else if (0 == STRNCMPI(pProtocol, HTTPS_SCHEME_NAME, protocolLen)) {
+                            STRNCPY(pSignalingClient->channelEndpointHttps, pEndpoint, MIN(endpointLen, MAX_SIGNALING_ENDPOINT_URI_LEN));
+                            pSignalingClient->channelEndpointHttps[MAX_SIGNALING_ENDPOINT_URI_LEN] = '\0';
+                        }
+                    }
 
-        rootValue = json_parse_string( pJson );
-        if( rootValue == NULL )
-        {
-            retStatus = STATUS_JSON_PARSE_ERROR;
-            break;
-        }
-        /*
-         {"ResourceEndpointList":
-            [
-                {
-                    "Protocol":"WSS",
-                    "ResourceEndpoint":"wss://m-b94e17e0.kinesisvideo.us-east-1.amazonaws.com"
+                    protocol = FALSE;
+                    endpoint = FALSE;
+                    protocolLen = 0;
+                    endpointLen = 0;
+                    pProtocol = NULL;
+                    pEndpoint = NULL;
+                } else if (compareJsonString(pResponseStr, &pTokens[i], JSMN_STRING, (PCHAR) "Protocol")) {
+                    strLen = (UINT32)(pTokens[i + 1].end - pTokens[i + 1].start);
+                    pProtocol = pResponseStr + pTokens[i + 1].start;
+                    protocolLen = strLen;
+                    protocol = TRUE;
+                    i++;
+                } else if (compareJsonString(pResponseStr, &pTokens[i], JSMN_STRING, (PCHAR) "ResourceEndpoint")) {
+                    strLen = (UINT32)(pTokens[i + 1].end - pTokens[i + 1].start);
+                    CHK(strLen <= MAX_CHANNEL_NAME_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+                    pEndpoint = pResponseStr + pTokens[i + 1].start;
+                    endpointLen = strLen;
+                    endpoint = TRUE;
+                    i++;
                 }
-            ]
+            }
         }
-        */
-        
-
-        
-        rootObject = json_value_get_object( rootValue );
-        if ( rootObject == NULL )
-        {
-            retStatus = STATUS_JSON_PARSE_ERROR;
-            break;
-        }
-
-        JSON_Array * rootArray = json_object_get_array( rootObject, "ResourceEndpointList");
-
-        if ( rootArray == NULL ){
-            retStatus = STATUS_JSON_PARSE_ERROR;
-            break;
-        }
-
-        UINT32 arrayNumber = json_array_get_count(rootArray);
-        DLOGD("arrayNumber:%d\n", arrayNumber);
-        UINT32 i = 0;
-        CHAR* protocolString = NULL;
-        CHAR* endPointString = NULL;
-
-        for(i = 0; i< arrayNumber; i++){
-
-            JSON_Object * tempObj = json_array_get_object(rootArray, i);
-            UINT32       tempObjNumber = json_object_get_count(tempObj);
-            
-            protocolString = json_object_dotget_serialize_to_string( tempObj, "Protocol", TRUE );
-            endPointString = json_object_dotget_serialize_to_string( tempObj, "ResourceEndpoint", TRUE );
-            //DLOGD("protocolString:%s, endPointString:%s\n", protocolString, endPointString);
-
-        }
-
-        if( protocolString == NULL )
-        {
-            retStatus = STATUS_JSON_PARSE_ERROR;
-            break;
-        }
-        else
-        {
-            //DLOGD("channelType:%s\n", protocolString);
-            tempStringLen = STRLEN( protocolString );
-            
-            pChannelInfo->endPointType = getEndPointTypeFromString(protocolString, tempStringLen);
-            retStatus = STATUS_SUCCESS;
-            
-            //DLOGD("pChannelInfo->endPointType:%d\n", pChannelInfo->endPointType);
-            MEMFREE( protocolString );
-        }
-        tempString = json_object_dotget_serialize_to_string( rootObject, "ResourceEndpointList.ResourceEndpoint", TRUE );
-
-        if( endPointString == NULL )
-        {
-            retStatus = STATUS_JSON_PARSE_ERROR;
-            break;
-        }
-        else
-        {
-            //DLOGD("channelEndpoint:%s\n", endPointString);
-            tempStringLen = STRLEN( endPointString );
-            
-            sprintf( pChannelInfo->channelEndpoint, "%.*s", tempStringLen, endPointString);
-            retStatus = STATUS_SUCCESS;
-            
-            //DLOGD("pChannelInfo->channelEndpoint:%s\n", pChannelInfo->channelEndpoint);
-            MEMFREE( endPointString );
-        }
-
-
-    } while ( 0 );
-
-    if( rootValue != NULL )
-    {
-        json_value_free( rootValue );
     }
 
-    if( pJson != NULL )
-    {
-        MEMFREE( pJson );
+    // Check if we have unprocessed protocol
+    if (protocol && endpoint) {
+        if (0 == STRNCMPI(pProtocol, WSS_SCHEME_NAME, protocolLen)) {
+            STRNCPY(pSignalingClient->channelEndpointWss, pEndpoint, MIN(endpointLen, MAX_SIGNALING_ENDPOINT_URI_LEN));
+            pSignalingClient->channelEndpointWss[MAX_SIGNALING_ENDPOINT_URI_LEN] = '\0';
+        } else if (0 == STRNCMPI(pProtocol, HTTPS_SCHEME_NAME, protocolLen)) {
+            STRNCPY(pSignalingClient->channelEndpointHttps, pEndpoint, MIN(endpointLen, MAX_SIGNALING_ENDPOINT_URI_LEN));
+            pSignalingClient->channelEndpointHttps[MAX_SIGNALING_ENDPOINT_URI_LEN] = '\0';
+        }
     }
 
+    // Perform some validation on the channel description
+    CHK(pSignalingClient->channelEndpointHttps[0] != '\0' && pSignalingClient->channelEndpointWss[0] != '\0',
+        STATUS_SIGNALING_MISSING_ENDPOINTS_IN_GET_ENDPOINT);
+
+CleanUp:
+    MEMFREE(pTokens);
+    HTTP_RSP_EXIT();
     return retStatus;
 }
 
