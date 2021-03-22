@@ -13,8 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#define LOG_CLASS "rest_rsp"
+#define LOG_CLASS "HttpApiRsp"
 #include "../Include_i.h"
+
+#define HTTP_RSP_ENTER() DLOGD("enter")
+#define HTTP_RSP_EXIT() DLOGD("exit")
+
 
 /*-----------------------------------------------------------*/
 
@@ -131,161 +135,89 @@ WEBRTC_CHANNEL_TYPE webrtc_getChannelTypeFromString(CHAR* type, UINT32 length)
 }
 
 
-STATUS parseDescribeChannel( const CHAR * pJsonSrc,
-                                  UINT32 uJsonSrcLen,
-                                  webrtcChannelInfo_t * pChannelInfo)
+STATUS httpApiRspDescribeChannel( const CHAR * pResponseStr,
+                                  UINT32 resultLen,
+                                  PSignalingClient pSignalingClient)
 {
+    HTTP_RSP_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
-    CHAR *pJson = NULL;
-    JSON_Value * rootValue = NULL;
-    JSON_Object * rootObject = NULL;
-    CHAR* tempString = NULL;
-    UINT32 tempStringLen = 0;
-    
-    do
-    {
-        if( pJsonSrc == NULL )
-        {
-            retStatus = STATUS_INVALID_ARG;
-            break;
-        }
+    jsmn_parser parser;
+    jsmntok_t* pTokens = NULL;
+    BOOL jsonInChannelDescription = FALSE, jsonInMvConfiguration = FALSE;
+    UINT32 tokenCount, strLen, i;
+    UINT64 messageTtl;
 
-        pJson = ( CHAR * )MEMALLOC( uJsonSrcLen + 1 );
-        if( pJson == NULL )
-        {
-            retStatus = STATUS_NOT_ENOUGH_MEMORY;
-            break;
-        }
+    CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT * SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
+    jsmn_init(&parser);
+    tokenCount = jsmn_parse(&parser, pResponseStr, resultLen, pTokens, MAX_JSON_TOKEN_COUNT);
 
-        memcpy( pJson, pJsonSrc, uJsonSrcLen );
-        pJson[ uJsonSrcLen ] = '\0';
+    CHK(tokenCount > 1, STATUS_INVALID_API_CALL_RETURN_JSON);
+    CHK(pTokens[0].type == JSMN_OBJECT, STATUS_INVALID_API_CALL_RETURN_JSON);
+    MEMSET(&pSignalingClient->channelDescription, 0x00, SIZEOF(SignalingChannelDescription));
 
-        json_set_escape_slashes( 0 );
+    // Loop through the pTokens and extract the stream description
+    for (i = 1; i < tokenCount; i++) {
 
-        rootValue = json_parse_string( pJson );
-        if( rootValue == NULL )
-        {
-            retStatus = STATUS_JSON_PARSE_ERROR;
-            break;
-        }
-
-        rootObject = json_value_get_object( rootValue );
-        if ( rootObject == NULL )
-        {
-            retStatus = STATUS_JSON_PARSE_ERROR;
-            break;
-        }
-        
-        tempString = json_object_dotget_serialize_to_string( rootObject, "ChannelInfo.ChannelARN", TRUE );
-
-        if( tempString == NULL )
-        {
-            retStatus = STATUS_JSON_PARSE_ERROR;
-            break;
-        }
-        else
-        {
-            //DLOGD("channelArn:%s\n", tempString);
-            tempStringLen = STRLEN( tempString );
-            if( WEBRTC_CHANNEL_ARN_LEN_MAX >= tempStringLen )
-            {
-                sprintf( pChannelInfo->channelArn, "%.*s", tempStringLen, tempString);
-                retStatus = STATUS_SUCCESS;
+        if (!jsonInChannelDescription) {
+            if (compareJsonString(pResponseStr, &pTokens[i], JSMN_STRING, (PCHAR) "ChannelInfo")) {
+                pSignalingClient->channelDescription.version = SIGNALING_CHANNEL_DESCRIPTION_CURRENT_VERSION;
+                jsonInChannelDescription = TRUE;
+                i++;
             }
-            //DLOGD("pChannelInfo->channelArn:%s\n", pChannelInfo->channelArn);
-            MEMFREE( tempString );
-        }
-        tempString = json_object_dotget_serialize_to_string( rootObject, "ChannelInfo.ChannelName", TRUE );
+        } else {
+            if (compareJsonString(pResponseStr, &pTokens[i], JSMN_STRING, (PCHAR) "ChannelARN")) {
+                strLen = (UINT32)(pTokens[i + 1].end - pTokens[i + 1].start);
+                CHK(strLen <= MAX_ARN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+                STRNCPY(pSignalingClient->channelDescription.channelArn, pResponseStr + pTokens[i + 1].start, strLen);
+                pSignalingClient->channelDescription.channelArn[MAX_ARN_LEN] = '\0';
+                i++;
+            } else if (compareJsonString(pResponseStr, &pTokens[i], JSMN_STRING, (PCHAR) "ChannelName")) {
+                strLen = (UINT32)(pTokens[i + 1].end - pTokens[i + 1].start);
+                CHK(strLen <= MAX_CHANNEL_NAME_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+                STRNCPY(pSignalingClient->channelDescription.channelName, pResponseStr + pTokens[i + 1].start, strLen);
+                pSignalingClient->channelDescription.channelName[MAX_CHANNEL_NAME_LEN] = '\0';
+                i++;
+            } else if (compareJsonString(pResponseStr, &pTokens[i], JSMN_STRING, (PCHAR) "Version")) {
+                strLen = (UINT32)(pTokens[i + 1].end - pTokens[i + 1].start);
+                CHK(strLen <= MAX_UPDATE_VERSION_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+                STRNCPY(pSignalingClient->channelDescription.updateVersion, pResponseStr + pTokens[i + 1].start, strLen);
+                pSignalingClient->channelDescription.updateVersion[MAX_UPDATE_VERSION_LEN] = '\0';
+                i++;
+            } else if (compareJsonString(pResponseStr, &pTokens[i], JSMN_STRING, (PCHAR) "ChannelStatus")) {
+                strLen = (UINT32)(pTokens[i + 1].end - pTokens[i + 1].start);
+                CHK(strLen <= MAX_DESCRIBE_CHANNEL_STATUS_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+                pSignalingClient->channelDescription.channelStatus = getChannelStatusFromString(pResponseStr + pTokens[i + 1].start, strLen);
+                i++;
+            } else if (compareJsonString(pResponseStr, &pTokens[i], JSMN_STRING, (PCHAR) "ChannelType")) {
+                strLen = (UINT32)(pTokens[i + 1].end - pTokens[i + 1].start);
+                CHK(strLen <= MAX_DESCRIBE_CHANNEL_TYPE_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
+                pSignalingClient->channelDescription.channelType = getChannelTypeFromString(pResponseStr + pTokens[i + 1].start, strLen);
+                i++;
+            } else if (compareJsonString(pResponseStr, &pTokens[i], JSMN_STRING, (PCHAR) "CreationTime")) {
+                // TODO: In the future parse out the creation time but currently we don't need it
+                i++;
+            } else {
+                if (!jsonInMvConfiguration) {
+                    if (compareJsonString(pResponseStr, &pTokens[i], JSMN_STRING, (PCHAR) "SingleMasterConfiguration")) {
+                        jsonInMvConfiguration = TRUE;
+                        i++;
+                    }
+                } else {
+                    if (compareJsonString(pResponseStr, &pTokens[i], JSMN_STRING, (PCHAR) "MessageTtlSeconds")) {
+                        CHK_STATUS(STRTOUI64(pResponseStr + pTokens[i + 1].start, pResponseStr + pTokens[i + 1].end, 10, &messageTtl));
 
-        if( tempString == NULL )
-        {
-            retStatus = STATUS_JSON_PARSE_ERROR;
-            break;
-        }
-        else
-        {
-            //DLOGD("channelName:%s\n", tempString);
-            tempStringLen = STRLEN( tempString );
-            if( WEBRTC_CHANNEL_NAME_LEN_MAX >= tempStringLen )
-            {
-                sprintf( pChannelInfo->channelName, "%.*s", tempStringLen, tempString);
-                retStatus = STATUS_SUCCESS;
+                        // NOTE: Ttl value is in seconds
+                        pSignalingClient->channelDescription.messageTtl = messageTtl * HUNDREDS_OF_NANOS_IN_A_SECOND;
+                        i++;
+                    }
+                }
             }
-            //DLOGD("pChannelInfo->channelName:%s\n", pChannelInfo->channelName);
-            MEMFREE( tempString );
         }
-
-        tempString = json_object_dotget_serialize_to_string( rootObject, "ChannelInfo.Version", TRUE );
-        if( tempString == NULL )
-        {
-            retStatus = STATUS_JSON_PARSE_ERROR;
-            break;
-        }
-        else
-        {
-            //DLOGD("version:%s\n", tempString);
-            tempStringLen = STRLEN( tempString );
-            if( WEBRTC_CHANNEL_VERSION_LEN_MAX >= tempStringLen )
-            {
-                sprintf( pChannelInfo->version, "%.*s", tempStringLen, tempString);
-                retStatus = STATUS_SUCCESS;
-            }
-            //DLOGD("pChannelInfo->version:%s\n", pChannelInfo->version);
-            MEMFREE( tempString );
-        }
-
-        tempString = json_object_dotget_serialize_to_string( rootObject, "ChannelInfo.ChannelStatus", TRUE );
-        if( tempString == NULL )
-        {
-            retStatus = STATUS_JSON_PARSE_ERROR;
-            break;
-        }
-        else
-        {
-            DLOGD("channelStatus:%s\n", tempString);
-            tempStringLen = STRLEN( tempString );
-            retStatus = STATUS_SUCCESS;
-            
-            pChannelInfo->channelStatus = webrtc_getChannelStatusFromString(tempString, tempStringLen);
-            //DLOGD("pChannelInfo->channelStatus:%d\n", pChannelInfo->channelStatus);
-            MEMFREE( tempString );
-
-        }
-
-        tempString = json_object_dotget_serialize_to_string( rootObject, "ChannelInfo.ChannelType", 10 );
-        if( tempString == NULL )
-        {
-            retStatus = STATUS_JSON_PARSE_ERROR;
-            break;
-        }
-        else
-        {
-            //DLOGD("channelType:%s\n", tempString);
-            tempStringLen = STRLEN( tempString );
-            retStatus = STATUS_SUCCESS;            
-            pChannelInfo->channelType = webrtc_getChannelTypeFromString(tempString, tempStringLen);
-            //DLOGD("pChannelInfo->channelType:%d\n", pChannelInfo->channelType);
-            MEMFREE( tempString );
-        }
-
-        
-        pChannelInfo->creationTime = json_object_dotget_uint64( rootObject, "ChannelInfo.CreationTime", 10 );
-        //DLOGD("pChannelInfo->creationTime:%lu\n", pChannelInfo->creationTime);
-        pChannelInfo->singleMasterConf.messageTtlSeconds = json_object_dotget_uint64( rootObject, "ChannelInfo.SingleMasterConfiguration.MessageTtlSeconds", TRUE );
-        //DLOGD("pChannelInfo->messageTtlSeconds:%lu\n", pChannelInfo->singleMasterConf.messageTtlSeconds);
-
-    } while ( 0 );
-
-    if( rootValue != NULL )
-    {
-        json_value_free( rootValue );
     }
 
-    if( pJson != NULL )
-    {
-        MEMFREE( pJson );
-    }
-
+CleanUp:
+    MEMFREE(pTokens);
+    HTTP_RSP_EXIT();
     return retStatus;
 
 }

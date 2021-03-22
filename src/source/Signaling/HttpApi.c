@@ -17,6 +17,10 @@
 #include "../Include_i.h"
 
 
+#define HTTP_API_ENTER() DLOGD("enter")
+#define HTTP_API_EXIT() DLOGD("exit")
+
+
 /*-----------------------------------------------------------*/
 
 #define KVS_ENDPOINT_TCP_PORT   "443"
@@ -262,6 +266,9 @@ STATUS httpApiCreateSignalingChannl( webrtcServiceParameter_t * pServiceParamete
 
     UINT32 uHttpStatusCode = 0;
     http_response_context_t* pHttpRspCtx = NULL;
+
+
+
     do
     {
         if( checkServiceParameter( pServiceParameter ) != STATUS_SUCCESS )
@@ -287,7 +294,7 @@ STATUS httpApiCreateSignalingChannl( webrtcServiceParameter_t * pServiceParamete
         }
 
         /* generate HTTP request body */
-        uHttpBodyLen = sprintf( pHttpBody, CREATE_CHANNEL_JSON_TEMPLATE, pChannelInfo->channelName);
+        uHttpBodyLen = SPRINTF( pHttpBody, CREATE_CHANNEL_JSON_TEMPLATE, pChannelInfo->channelName);
 
         /* generate UTC time in x-amz-date formate */
         retStatus = getTimeInIso8601( pXAmzDate, sizeof( pXAmzDate ) );
@@ -370,18 +377,18 @@ STATUS httpApiCreateSignalingChannl( webrtcServiceParameter_t * pServiceParamete
         }
 
         p = ( CHAR * )( pNetworkContext->pHttpSendBuffer );
-        p += sprintf( p, "%s %s HTTP/1.1\r\n", HTTP_METHOD_POST, WEBRTC_API_CREATE_SIGNALING_CHANNEL );
-        p += sprintf( p, "Host: %s\r\n", pServiceParameter->pHost );
-        p += sprintf( p, "Accept: */*\r\n" );
-        p += sprintf( p, "Authorization: %s Credential=%s/%s, SignedHeaders=%s, Signature=%s\r\n",
+        p += SPRINTF( p, "%s %s HTTP/1.1\r\n", HTTP_METHOD_POST, WEBRTC_API_CREATE_SIGNALING_CHANNEL );
+        p += SPRINTF( p, "Host: %s\r\n", pServiceParameter->pHost );
+        p += SPRINTF( p, "Accept: */*\r\n" );
+        p += SPRINTF( p, "Authorization: %s Credential=%s/%s, SignedHeaders=%s, Signature=%s\r\n",
                       AWS_SIG_V4_ALGORITHM, pServiceParameter->pAccessKey, AwsSignerV4_getScope( &signerContext ),
                       AwsSignerV4_getSignedHeader( &signerContext ), AwsSignerV4_getHmacEncoded( &signerContext ) );
-        p += sprintf( p, "content-length: %u\r\n", (unsigned int) uHttpBodyLen );
-        p += sprintf( p, "content-type: application/json\r\n" );
-        p += sprintf( p, HDR_USER_AGENT ": %s\r\n", pServiceParameter->pUserAgent );
-        p += sprintf( p, HDR_X_AMZ_DATE ": %s\r\n", pXAmzDate );
-        p += sprintf( p, "\r\n" );
-        p += sprintf( p, "%s", pHttpBody );
+        p += SPRINTF( p, "content-length: %u\r\n", (UINT32) uHttpBodyLen );
+        p += SPRINTF( p, "content-type: application/json\r\n" );
+        p += SPRINTF( p, HDR_USER_AGENT ": %s\r\n", pServiceParameter->pUserAgent );
+        p += SPRINTF( p, HDR_X_AMZ_DATE ": %s\r\n", pXAmzDate );
+        p += SPRINTF( p, "\r\n" );
+        p += SPRINTF( p, "%s", pHttpBody );
 
         AwsSignerV4_terminateContext(&signerContext);
 
@@ -449,12 +456,21 @@ STATUS httpApiCreateSignalingChannl( webrtcServiceParameter_t * pServiceParamete
 }
 
 /*-----------------------------------------------------------*/
-
-STATUS httpApiDescribeSignalingChannel( webrtcServiceParameter_t * pServiceParameter,
-                        webrtcChannelInfo_t * pChannelInfo)
+/**
+ * @brief   
+ *          
+ *
+ * 
+ * @param[]
+ * @
+*/
+STATUS httpApiDescribeSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
+    HTTP_API_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
-    CHAR *p = NULL;
+    PChannelInfo pChannelInfo = pSignalingClient->pChannelInfo;
+
+    PCHAR p = NULL;
     BOOL bUseIotCert = FALSE;
 
     /* Variables for network connection */
@@ -467,40 +483,34 @@ STATUS httpApiDescribeSignalingChannel( webrtcServiceParameter_t * pServiceParam
     CHAR pXAmzDate[SIGNATURE_DATE_TIME_STRING_LEN];
 
     /* Variables for HTTP request */
-    CHAR *pHttpParameter = "";
-    CHAR *pHttpBody = NULL;
+    PCHAR pHttpParameter = "";
+    PCHAR pHttpBody = NULL;
     UINT32 uHttpBodyLen = 0;
 
     UINT32 uHttpStatusCode = 0;
     http_response_context_t* pHttpRspCtx = NULL;
+    // temp interface.
+    PCHAR pAccessKey = getenv(ACCESS_KEY_ENV_VAR);  // It's AWS access key if not using IoT certification.
+    PCHAR pSecretKey = getenv(SECRET_KEY_ENV_VAR);  // It's secret of AWS access key if not using IoT certification.
+    PCHAR pToken = NULL;
+    PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
+    PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
+    PCHAR pHost = NULL;
+    PCHAR pUserAgent = "userAgent";//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
+
+    CHK(NULL != (pHost = (CHAR *)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
+    SNPRINTF(pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s.%s%s", 
+                                                    KINESIS_VIDEO_SERVICE_NAME,
+                                                    pSignalingClient->pChannelInfo->pRegion,
+                                                    CONTROL_PLANE_URI_POSTFIX);
 
     do
     {
-        if( checkServiceParameter( pServiceParameter ) != STATUS_SUCCESS )
-        {
-            retStatus = STATUS_INVALID_ARG;
-            break;
-        }
-        else if( pChannelInfo == NULL  || pChannelInfo->channelName[0] == '\0')
-        {
-            retStatus = STATUS_INVALID_ARG;
-            break;
-        }
-
-        if( pServiceParameter->pToken != NULL )
-        {
-            bUseIotCert = TRUE;
-        }
-
-        pHttpBody = (CHAR *) MEMALLOC( sizeof( DESCRIBE_CHANNEL_JSON_TEMPLATE ) + STRLEN( pChannelInfo->channelName ) + 1 );
-        if( pHttpBody == NULL )
-        {
-            retStatus = STATUS_NOT_ENOUGH_MEMORY;
-            break;
-        }
+        CHK((pChannelInfo != NULL && pChannelInfo->pChannelName[0] != '\0'), STATUS_INVALID_ARG);
+        CHK(NULL != (pHttpBody = (CHAR *) MEMALLOC( sizeof( DESCRIBE_CHANNEL_JSON_TEMPLATE ) + STRLEN( pChannelInfo->pChannelName ) + 1 )), STATUS_NOT_ENOUGH_MEMORY);
 
         /* generate HTTP request body */
-        uHttpBodyLen = sprintf( pHttpBody, DESCRIBE_CHANNEL_JSON_TEMPLATE, pChannelInfo->channelName );
+        uHttpBodyLen = SPRINTF( pHttpBody, DESCRIBE_CHANNEL_JSON_TEMPLATE, pChannelInfo->pChannelName );
 
         /* generate UTC time in x-amz-date formate */
         retStatus = getTimeInIso8601( pXAmzDate, sizeof( pXAmzDate ) );
@@ -517,7 +527,8 @@ STATUS httpApiDescribeSignalingChannel( webrtcServiceParameter_t * pServiceParam
         }
 
         retStatus = AwsSignerV4_initCanonicalRequest( &signerContext, HTTP_METHOD_POST, sizeof( HTTP_METHOD_POST ) - 1,
-                                                      WEBRTC_API_DESCRIBE_SIGNALING_CHANNEL, sizeof( WEBRTC_API_DESCRIBE_SIGNALING_CHANNEL ) - 1,
+                                                      WEBRTC_API_DESCRIBE_SIGNALING_CHANNEL,
+                                                      sizeof( WEBRTC_API_DESCRIBE_SIGNALING_CHANNEL ) - 1,
                                                       pHttpParameter, STRLEN( pHttpParameter ) );
         if( retStatus != STATUS_SUCCESS )
         {
@@ -525,14 +536,14 @@ STATUS httpApiDescribeSignalingChannel( webrtcServiceParameter_t * pServiceParam
         }
 
         retStatus = AwsSignerV4_addCanonicalHeader( &signerContext, HDR_HOST, sizeof( HDR_HOST ) - 1,
-                                                    pServiceParameter->pHost, STRLEN( pServiceParameter->pHost ) );
+                                                    pHost, STRLEN( pHost ) );
         if( retStatus != STATUS_SUCCESS )
         {
             break;
         }
 
         retStatus = AwsSignerV4_addCanonicalHeader( &signerContext, HDR_USER_AGENT, sizeof( HDR_USER_AGENT ) - 1,
-                                                    pServiceParameter->pUserAgent, STRLEN( pServiceParameter->pUserAgent ) );
+                                                    pUserAgent, STRLEN( pUserAgent ) );
         if( retStatus != STATUS_SUCCESS )
         {
             break;
@@ -548,7 +559,7 @@ STATUS httpApiDescribeSignalingChannel( webrtcServiceParameter_t * pServiceParam
         if( bUseIotCert )
         {
             retStatus = AwsSignerV4_addCanonicalHeader( &signerContext, HDR_X_AMZ_SECURITY_TOKEN, sizeof( HDR_X_AMZ_SECURITY_TOKEN ) - 1,
-                                                        pServiceParameter->pToken, STRLEN( pServiceParameter->pToken ) );
+                                                        pToken, STRLEN( pToken ) );
             if( retStatus != STATUS_SUCCESS )
             {
                 break;
@@ -561,9 +572,9 @@ STATUS httpApiDescribeSignalingChannel( webrtcServiceParameter_t * pServiceParam
             break;
         }
 
-        retStatus = AwsSignerV4_sign( &signerContext, pServiceParameter->pSecretKey, STRLEN( pServiceParameter->pSecretKey ),
-                                      pServiceParameter->pRegion, STRLEN( pServiceParameter->pRegion ),
-                                      pServiceParameter->pService, STRLEN( pServiceParameter->pService ),
+        retStatus = AwsSignerV4_sign( &signerContext, pSecretKey, STRLEN( pSecretKey ),
+                                      pRegion, STRLEN( pRegion ),
+                                      pService, STRLEN( pService ),
                                       pXAmzDate, STRLEN( pXAmzDate ) );
         if( retStatus != STATUS_SUCCESS )
         {
@@ -571,12 +582,8 @@ STATUS httpApiDescribeSignalingChannel( webrtcServiceParameter_t * pServiceParam
         }
 
         /* Initialize and generate HTTP request, then send it. */
-        pNetworkContext = ( NetworkContext_t * ) MEMALLOC( sizeof( NetworkContext_t ) );
-        if( pNetworkContext == NULL )
-        {
-            retStatus = STATUS_NOT_ENOUGH_MEMORY;
-            break;
-        }
+
+        CHK(NULL != (pNetworkContext = (NetworkContext_t *) MEMALLOC( sizeof( NetworkContext_t ))), STATUS_NOT_ENOUGH_MEMORY);
 
         if( ( retStatus = initNetworkContext( pNetworkContext ) ) != STATUS_SUCCESS )
         {
@@ -585,7 +592,7 @@ STATUS httpApiDescribeSignalingChannel( webrtcServiceParameter_t * pServiceParam
 
         for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
         {
-            if( ( retStatus = connectToServer( pNetworkContext, pServiceParameter->pHost, KVS_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
+            if( ( retStatus = connectToServer( pNetworkContext, pHost, KVS_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
             {
                 break;
             }
@@ -593,22 +600,22 @@ STATUS httpApiDescribeSignalingChannel( webrtcServiceParameter_t * pServiceParam
         }
 
         p = (CHAR *)(pNetworkContext->pHttpSendBuffer);
-        p += sprintf(p, "%s %s HTTP/1.1\r\n", HTTP_METHOD_POST, WEBRTC_API_DESCRIBE_SIGNALING_CHANNEL);
-        p += sprintf(p, "Host: %s\r\n", pServiceParameter->pHost);
-        p += sprintf(p, "Accept: */*\r\n");
-        p += sprintf(p, "Authorization: %s Credential=%s/%s, SignedHeaders=%s, Signature=%s\r\n",
-                     AWS_SIG_V4_ALGORITHM, pServiceParameter->pAccessKey, AwsSignerV4_getScope( &signerContext ),
+        p += SPRINTF(p, "%s %s HTTP/1.1\r\n", HTTP_METHOD_POST, WEBRTC_API_DESCRIBE_SIGNALING_CHANNEL);
+        p += SPRINTF(p, "Host: %s\r\n", pHost);
+        p += SPRINTF(p, "Accept: */*\r\n");
+        p += SPRINTF(p, "Authorization: %s Credential=%s/%s, SignedHeaders=%s, Signature=%s\r\n",
+                     AWS_SIG_V4_ALGORITHM, pAccessKey, AwsSignerV4_getScope( &signerContext ),
                      AwsSignerV4_getSignedHeader( &signerContext ), AwsSignerV4_getHmacEncoded( &signerContext ) );
-        p += sprintf(p, "content-length: %u\r\n", (unsigned int) uHttpBodyLen );
-        p += sprintf(p, "content-type: application/json\r\n" );
-        p += sprintf(p, HDR_USER_AGENT ": %s\r\n", pServiceParameter->pUserAgent );
-        p += sprintf(p, HDR_X_AMZ_DATE ": %s\r\n", pXAmzDate );
+        p += SPRINTF(p, "content-length: %u\r\n", (UINT32) uHttpBodyLen );
+        p += SPRINTF(p, "content-type: application/json\r\n" );
+        p += SPRINTF(p, HDR_USER_AGENT ": %s\r\n", pUserAgent );
+        p += SPRINTF(p, HDR_X_AMZ_DATE ": %s\r\n", pXAmzDate );
         if( bUseIotCert )
         {
-            p += sprintf(p, HDR_X_AMZ_SECURITY_TOKEN ": %s\r\n", pServiceParameter->pToken );
+            p += SPRINTF(p, HDR_X_AMZ_SECURITY_TOKEN ": %s\r\n", pToken );
         }
-        p += sprintf(p, "\r\n" );
-        p += sprintf(p, "%s", pHttpBody );
+        p += SPRINTF(p, "\r\n" );
+        p += SPRINTF(p, "%s", pHttpBody );
 
         AwsSignerV4_terminateContext(&signerContext);
 
@@ -619,53 +626,29 @@ STATUS httpApiDescribeSignalingChannel( webrtcServiceParameter_t * pServiceParam
             retStatus = STATUS_SEND_DATA_FAILED;
             break;
         }
-
+    
         retStatus = networkRecv( pNetworkContext, pNetworkContext->pHttpRecvBuffer, pNetworkContext->uHttpRecvBufferLen );
         if( retStatus < STATUS_SUCCESS )
         {
             break;
         }
-        retStatus = http_parse_start(&pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )retStatus, NULL);
+        
+        CHK_STATUS(http_parse_start(&pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )retStatus, NULL));
 
-        if( retStatus != STATUS_SUCCESS )
-        {
-            break;
-        }
 
+        PCHAR pResponseStr = http_get_http_body_location(pHttpRspCtx);
+        UINT32 resultLen = http_get_http_body_length(pHttpRspCtx);
         uHttpStatusCode = http_get_http_status_code(pHttpRspCtx);
 
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
         /* Check HTTP results */
-        if( uHttpStatusCode == 200 )
-        {
-            retStatus = parseDescribeChannel( ( const CHAR * )http_get_http_body_location(pHttpRspCtx), http_get_http_body_length(pHttpRspCtx), pChannelInfo );
+        CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
+        DLOGD("receive 200 response.");
+        retStatus = httpApiRspDescribeChannel( ( const CHAR * )pResponseStr, resultLen, pSignalingClient );
 
-            /* We got a success response here. */
-        }
-        else if( uHttpStatusCode == 404 )
-        {
-            retStatus = STATUS_HTTP_RES_NOT_FOUND_ERROR;
-            break;
-        }
-        else
-        {
-            DLOGE("Unable to describe stream:\r\n%.*s\r\n", (int)http_get_http_body_length(pHttpRspCtx), http_get_http_body_location(pHttpRspCtx));
-            if( uHttpStatusCode == 400 )
-            {
-                retStatus = STATUS_HTTP_REST_EXCEPTION_ERROR;
-                break;
-            }
-            else if( uHttpStatusCode == 401 )
-            {
-                retStatus = STATUS_HTTP_REST_NOT_AUTHORIZED_ERROR;
-                break;
-            }
-            else
-            {
-                retStatus = STATUS_HTTP_REST_UNKNOWN_ERROR;
-                break;
-            }
-        }
     } while ( 0 );
+
+CleanUp:
 
     if( pNetworkContext != NULL )
     {
@@ -682,11 +665,11 @@ STATUS httpApiDescribeSignalingChannel( webrtcServiceParameter_t * pServiceParam
             printf("destroying http parset failed. \n");
         }
     }
-    if( pHttpBody != NULL )
-    {
-        MEMFREE( pHttpBody );
-    }
 
+    SAFE_MEMFREE(pHttpBody);
+    SAFE_MEMFREE(pHost);
+
+    HTTP_API_EXIT();
     return retStatus;
 }
 
@@ -744,7 +727,7 @@ STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, 
         }
 
         /* generate HTTP request body */
-        uHttpBodyLen = sprintf( pHttpBody, GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE, pChannelInfo->channelArn, WEBRTC_CHANNEL_PROTOCOL, webrtc_getStringFromChannelRoleType( pChannelInfo->channelRole ) );
+        uHttpBodyLen = SPRINTF( pHttpBody, GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE, pChannelInfo->channelArn, WEBRTC_CHANNEL_PROTOCOL, webrtc_getStringFromChannelRoleType( pChannelInfo->channelRole ) );
 
         /* generate UTC time in x-amz-date formate */
         retStatus = getTimeInIso8601( pXAmzDate, sizeof( pXAmzDate ) );
@@ -837,22 +820,22 @@ STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, 
         }
 
         p = (CHAR *)(pNetworkContext->pHttpSendBuffer);
-        p += sprintf(p, "%s %s HTTP/1.1\r\n", HTTP_METHOD_POST, WEBRTC_API_GET_SIGNALING_CHANNEL_ENDPOINT);
-        p += sprintf(p, "Host: %s\r\n", pServiceParameter->pHost);
-        p += sprintf(p, "Accept: */*\r\n");
-        p += sprintf(p, "Authorization: %s Credential=%s/%s, SignedHeaders=%s, Signature=%s\r\n",
+        p += SPRINTF(p, "%s %s HTTP/1.1\r\n", HTTP_METHOD_POST, WEBRTC_API_GET_SIGNALING_CHANNEL_ENDPOINT);
+        p += SPRINTF(p, "Host: %s\r\n", pServiceParameter->pHost);
+        p += SPRINTF(p, "Accept: */*\r\n");
+        p += SPRINTF(p, "Authorization: %s Credential=%s/%s, SignedHeaders=%s, Signature=%s\r\n",
                      AWS_SIG_V4_ALGORITHM, pServiceParameter->pAccessKey, AwsSignerV4_getScope( &signerContext ),
                      AwsSignerV4_getSignedHeader( &signerContext ), AwsSignerV4_getHmacEncoded( &signerContext ) );
-        p += sprintf(p, "content-length: %u\r\n", (unsigned int) uHttpBodyLen );
-        p += sprintf(p, "content-type: application/json\r\n" );
-        p += sprintf(p, HDR_USER_AGENT ": %s\r\n", pServiceParameter->pUserAgent );
-        p += sprintf(p, HDR_X_AMZ_DATE ": %s\r\n", pXAmzDate );
+        p += SPRINTF(p, "content-length: %u\r\n", (UINT32) uHttpBodyLen );
+        p += SPRINTF(p, "content-type: application/json\r\n" );
+        p += SPRINTF(p, HDR_USER_AGENT ": %s\r\n", pServiceParameter->pUserAgent );
+        p += SPRINTF(p, HDR_X_AMZ_DATE ": %s\r\n", pXAmzDate );
         if( bUseIotCert )
         {
-            p += sprintf(p, HDR_X_AMZ_SECURITY_TOKEN ": %s\r\n", pServiceParameter->pToken );
+            p += SPRINTF(p, HDR_X_AMZ_SECURITY_TOKEN ": %s\r\n", pServiceParameter->pToken );
         }
-        p += sprintf(p, "\r\n" );
-        p += sprintf(p, "%s", pHttpBody );
+        p += SPRINTF(p, "\r\n" );
+        p += SPRINTF(p, "%s", pHttpBody );
 
         AwsSignerV4_terminateContext(&signerContext);
 
@@ -881,6 +864,7 @@ STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, 
         /* Check HTTP results */
         if( uHttpStatusCode == 200 )
         {
+            
             retStatus = parseGetEndPoint( ( const CHAR * )http_get_http_body_location(pHttpRspCtx), http_get_http_body_length(pHttpRspCtx), pChannelInfo );
 
             /* We got a success response here. */
@@ -892,7 +876,7 @@ STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, 
         }
         else
         {
-            DLOGE("Unable to get endpoint:\r\n%.*s\r\n", (int)http_get_http_body_length(pHttpRspCtx), http_get_http_body_location(pHttpRspCtx));
+            DLOGE("Unable to get endpoint:\r\n%.*s\r\n", (INT32)http_get_http_body_length(pHttpRspCtx), http_get_http_body_location(pHttpRspCtx));
             if( uHttpStatusCode == 400 )
             {
                 retStatus = STATUS_HTTP_REST_EXCEPTION_ERROR;
@@ -945,7 +929,7 @@ STATUS httpApiGetIceConfig( webrtcServiceParameter_t * pServiceParameter, webrtc
     char *parameter = "";
 
     char *p;
-    int n;
+    INT32 n;
     char pHttpBody[ MAX_HTTP_BODY_LEN ];
 
     /* Variables for AWS signer V4 */
@@ -975,22 +959,22 @@ STATUS httpApiGetIceConfig( webrtcServiceParameter_t * pServiceParameter, webrtc
     connectToServer( &networkContext, pHost, "443" );
 
     p = networkContext.pHttpSendBuffer;
-    p += sprintf(p, "%s %s HTTP/1.1\r\n", method, uri);
-    p += sprintf(p, "Host: %s\r\n", pHost);
-    p += sprintf(p, "Accept: */*\r\n");
-    p += sprintf(p, "Authorization: %s Credential=%s/%s, SignedHeaders=%s, Signature=%s\r\n",
+    p += SPRINTF(p, "%s %s HTTP/1.1\r\n", method, uri);
+    p += SPRINTF(p, "Host: %s\r\n", pHost);
+    p += SPRINTF(p, "Accept: */*\r\n");
+    p += SPRINTF(p, "Authorization: %s Credential=%s/%s, SignedHeaders=%s, Signature=%s\r\n",
                  AWS_SIG_V4_ALGORITHM,
                  pAccessKey,
                  AwsSignerV4_getScope( &signerContext ),
                  "host;user-agent;x-amz-date",
                  AwsSignerV4_getHmacEncoded( &signerContext )
     );
-    p += sprintf(p, "content-length: %lu\r\n", strlen(pHttpBody));
-    p += sprintf(p, "content-type: application/json\r\n");
-    p += sprintf(p, "user-agent: %s\r\n", pUserAgent);
-    p += sprintf(p, "X-Amz-Date: %s\r\n", pXAmzDate);
-    p += sprintf(p, "\r\n");
-    p += sprintf(p, "%s", pHttpBody);
+    p += SPRINTF(p, "content-length: %lu\r\n", strlen(pHttpBody));
+    p += SPRINTF(p, "content-type: application/json\r\n");
+    p += SPRINTF(p, "user-agent: %s\r\n", pUserAgent);
+    p += SPRINTF(p, "X-Amz-Date: %s\r\n", pXAmzDate);
+    p += SPRINTF(p, "\r\n");
+    p += SPRINTF(p, "%s", pHttpBody);
 
     AwsSignerV4_terminateContext( &signerContext );
 

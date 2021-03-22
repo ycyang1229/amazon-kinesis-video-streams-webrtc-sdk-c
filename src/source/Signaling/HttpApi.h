@@ -186,7 +186,7 @@ STATUS httpApiCreateSignalingChannl( webrtcServiceParameter_t * pServiceParamete
  *
  * @return KVS error code
  */
-STATUS httpApiDescribeSignalingChannel( webrtcServiceParameter_t * pServiceParameter, webrtcChannelInfo_t * pChannelInfo);
+STATUS httpApiDescribeSignalingChannel(PSignalingClient pSignalingClient, UINT64 time);
 
 
 STATUS httpApiGetChannelEndpoint( webrtcServiceParameter_t * pServiceParameter, webrtcChannelInfo_t * pChannelInfo);
@@ -196,9 +196,11 @@ STATUS parseCreateChannel( const CHAR * pJsonSrc,
                                   UINT32 uJsonSrcLen,
                                   CHAR * pBuf,
                                   UINT32 uBufsize );
-STATUS parseDescribeChannel( const CHAR * pJsonSrc,
-                                  UINT32 uJsonSrcLen,
-                                  webrtcChannelInfo_t * pChannelInfo);
+
+STATUS httpApiRspDescribeChannel( const CHAR * pResponseStr,
+                                  UINT32 resultLen,
+                                  PSignalingClient pSignalingClient)
+                                  ;
 STATUS parseGetEndPoint( const CHAR * pJsonSrc,
                                   UINT32 uJsonSrcLen,
                                   webrtcChannelInfo_t * pChannelInfo);

@@ -184,13 +184,14 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Signaling/NetworkApi.h"
 #include "Signaling/HttpHelper.h"
 #include "Signaling/JsonHelper.h"
-#include "Signaling/HttpApi.h"
+
 #include "Signaling/FileCache.h"
 #include "Signaling/WssClient.h"
-#include "Signaling/WssApi.h"
+
 #include "Signaling/ChannelInfo.h"
 #include "Signaling/Signaling.h"
-
+#include "Signaling/HttpApi.h"
+#include "Signaling/WssApi.h"
 #include "Signaling/StateMachine.h"
 #include "Metrics/Metrics.h"
 
