@@ -285,18 +285,18 @@ STATUS disconnectFromServer( NetworkContext_t * pNetworkContext )
 
 /*-----------------------------------------------------------*/
 
-STATUS networkSend( NetworkContext_t * pNetworkContext,
+INT32 networkSend( NetworkContext_t * pNetworkContext,
                      const PVOID pBuffer,
                      SIZE_T uBytesToSend )
 {
-    STATUS retStatus = STATUS_SUCCESS;
+    INT32 retStatus = 0;
     PUINT8 pIndex = ( PUINT8 )pBuffer;
     INT32 uBytesRemaining = ( INT32 )uBytesToSend; // It should be safe because we won't send data larger than 2^31-1 bytes
     INT32 n = 0;
 
     if( pNetworkContext == NULL || pBuffer == NULL  )
     {
-        retStatus = STATUS_INVALID_ARG;
+        retStatus = -1;
     }
     else
     {
@@ -308,7 +308,7 @@ STATUS networkSend( NetworkContext_t * pNetworkContext,
             if( n < 0 || n > uBytesRemaining )
             {
                 DLOGW("ssl send err (%d)", n);
-                retStatus = STATUS_SEND_DATA_FAILED;
+                retStatus = -1;
                 break;
             }
             else
@@ -381,28 +381,29 @@ INT32 isRecvDataAvailable( NetworkContext_t * pNetworkContext )
 
 /*-----------------------------------------------------------*/
 
-STATUS networkRecv( NetworkContext_t * pNetworkContext,
+INT32 networkRecv( NetworkContext_t * pNetworkContext,
                      PVOID pBuffer,
                      SIZE_T uBytesToRecv )
 {
-    STATUS retStatus = STATUS_SUCCESS;
+    INT32 retStatus = 0;
     INT32 n = 0;
 
     if( pNetworkContext == NULL || pBuffer == NULL )
     {
         DLOGE("Invalid Arg in networkRecv");
-        retStatus = STATUS_INVALID_ARG;
+        retStatus = -1;
     }
     else
     {
         //printf("ssl read st\n");
         n = mbedtls_ssl_read( &( pNetworkContext->ssl ), pBuffer, uBytesToRecv );
+        //return mbedtls_ssl_read( &( pNetworkContext->ssl ), pBuffer, uBytesToRecv );
         //printf("ssl read end\n");
 
         if( n < 0 || n > uBytesToRecv )
         {
             DLOGW("ssl read err (%d)", n);
-            retStatus = STATUS_RECV_DATA_FAILED;
+            retStatus = n;
         }
         else
         {

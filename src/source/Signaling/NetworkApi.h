@@ -141,7 +141,7 @@ STATUS disconnectFromServer( NetworkContext_t * pNetworkContext );
  *
  * @return The number of bytes sent or a negative KVS error code.
  */
-STATUS networkSend( NetworkContext_t * pNetworkContext, const PVOID pBuffer, SIZE_T uBytesToSend );
+INT32 networkSend( NetworkContext_t * pNetworkContext, const PVOID pBuffer, SIZE_T uBytesToSend );
 
 /**
  * @brief Non-blocking API to check if any incoming data avaiable.
@@ -163,7 +163,7 @@ int32_t isRecvDataAvailable( NetworkContext_t * pNetworkContext );
  *
  * @return The number of bytes received or a negative KVS error code.
  */
-STATUS networkRecv( NetworkContext_t * pNetworkContext, PVOID pBuffer, SIZE_T uBytesToRecv );
+INT32 networkRecv( NetworkContext_t * pNetworkContext, PVOID pBuffer, SIZE_T uBytesToRecv );
 
 STATUS setNonBlocking(NetworkContext_t* pNetworkContext);
 #ifdef __cplusplus
