@@ -117,7 +117,7 @@ typedef struct {
  * Thread execution tracker
  */
 typedef struct {
-    volatile ATOMIC_BOOL terminated;
+    volatile ATOMIC_BOOL terminated;//!< indicate the thread is terminated or not. true means terminated.
     TID threadId;
     MUTEX lock;
     CVAR await;
@@ -227,6 +227,9 @@ typedef struct {
     MUTEX stateLock;
 
     // Sync mutex for connected condition variable
+    /**
+     * used for the synchronization between the thread of calling connectSignalingChannel and the thread of lwsListenerHandler.
+    */
     MUTEX connectedLock;
 
     // Conditional variable for Connected state
@@ -249,7 +252,7 @@ typedef struct {
     UINT64 stepUntil;
 
     // Ongoing listener call info
-    PLwsCallInfo pOngoingCallInfo;//!< setup by the lws aip of connecting signaling channel.
+    PLwsCallInfo pOngoingCallInfo;//!< setup by the lws api of connecting signaling channel.
 
     // Listener thread for the socket
     ThreadTracker listenerTracker;

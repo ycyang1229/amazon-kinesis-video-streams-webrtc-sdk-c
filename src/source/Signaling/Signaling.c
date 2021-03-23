@@ -205,6 +205,13 @@ STATUS signalingFree(PSignalingClient* ppSignalingClient)
     signalingTerminateOngoingOperations(pSignalingClient, TRUE);
 
     // original design un-initilizes the lws context here. #YC_TBD.
+    if (pSignalingClient->pWssContext != NULL) {
+        MUTEX_LOCK(pSignalingClient->lwsSerializerLock);
+        // #YC_TBD, MUST!!!!
+        wss_client_close((PVOID)pSignalingClient->pWssContext);
+        pSignalingClient->pWssContext = NULL;
+        MUTEX_UNLOCK(pSignalingClient->lwsSerializerLock);
+    }
 
     freeStateMachine(pSignalingClient->pStateMachine);
 
@@ -290,7 +297,7 @@ STATUS signalingTerminateOngoingOperations(PSignalingClient pSignalingClient, BO
     // Terminate the listener thread if alive
     //lwsTerminateListenerLoop(pSignalingClient);
     // #YC_TBD, #WSS
-    wssTerminateThread(pSignalingClient);
+    wssTerminateListenerLoop(pSignalingClient);
     
 
     // Await for the reconnect thread to exit

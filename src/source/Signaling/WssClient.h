@@ -33,7 +33,7 @@ extern "C" {
 #define WSS_CLIENT_SHA1_RANDOM_SEED_W_UUID_LEN 20
 #define WSS_CLIENT_ACCEPT_KEY_LEN 28
 
-typedef struct wss_client_context{
+typedef struct {
     wslay_event_context_ptr event_ctx;
     struct wslay_event_callbacks event_callbacks;
     PCHAR client_key;
@@ -43,17 +43,19 @@ typedef struct wss_client_context{
     // os related stuff.
     pthread_t thread_id;    
     pthread_mutex_t client_lock;
-}wss_client_context_t;
+    PVOID pUserData;
+
+}WssClientContext, *PWssClientContext;
 
 STATUS wssClientGenerateRandomNumber(PCHAR num, UINT32 len);
 STATUS wssClientGenerateClientKey(PCHAR buf, UINT32 bufLen);
 STATUS wssClientValidateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR acceptKey, UINT32 acceptKeyLen);
-VOID wssClientCreate(wss_client_context_t** ppWssClientCtx, NetworkContext_t * pNetworkContext);
-INT32 wssClientStart(wss_client_context_t* pWssClientCtx);
-INT32 wss_client_send_text(wss_client_context_t* pCtx, UINT8* buf, UINT32 len);
-INT32 wss_client_send_binary(wss_client_context_t* pCtx, UINT8* buf, UINT32 len);
-INT32 wss_client_send_ping(wss_client_context_t* pCtx);
-VOID wss_client_close(wss_client_context_t* pWssClientCtx);
+VOID wssClientCreate(WssClientContext** ppWssClientCtx, NetworkContext_t * pNetworkContext);
+INT32 wssClientStart(WssClientContext* pWssClientCtx);
+INT32 wss_client_send_text(WssClientContext* pCtx, UINT8* buf, UINT32 len);
+INT32 wss_client_send_binary(WssClientContext* pCtx, UINT8* buf, UINT32 len);
+INT32 wss_client_send_ping(WssClientContext* pCtx);
+VOID wss_client_close(WssClientContext* pWssClientCtx);
 
 #ifdef __cplusplus
 }

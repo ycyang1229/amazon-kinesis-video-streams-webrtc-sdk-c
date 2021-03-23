@@ -283,6 +283,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
         retStatus);
 
     pSignalingClient = pLwsCallInfo->pSignalingClient;
+    // get the context of wss
     pLwsCallInfo = pSignalingClient->pOngoingCallInfo;
     pRequestInfo = pLwsCallInfo->callInfo.pRequestInfo;
 
@@ -319,7 +320,8 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
             }
 
             break;
-
+        /**< after your client connection completed the websocket upgrade
+	     * handshake with the remote server */
         case LWS_CALLBACK_CLIENT_ESTABLISHED:
             DLOGD("Connection established");
 
@@ -1220,7 +1222,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief   
+*/
 STATUS lwsFreeCallInfo(PLwsCallInfo* ppLwsCallInfo)
 {
     ENTERS();
@@ -1367,6 +1371,7 @@ PVOID lwsListenerHandler(PVOID args)
     locked = TRUE;
 
     // Interlock to wait for the start sequence
+    // check the calling thread release the mutex or not.
     MUTEX_LOCK(pSignalingClient->connectedLock);
     MUTEX_UNLOCK(pSignalingClient->connectedLock);
 
@@ -1850,7 +1855,14 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-
+/**
+ * @brief   terminate the websocket connection.
+ * 
+ * @param[in]
+ * @param[in]
+ * 
+ * @return
+*/
 STATUS lwsTerminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_CALL_RESULT callResult)
 {
     ENTERS();

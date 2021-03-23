@@ -17,8 +17,8 @@
 #include "../Include_i.h"
 
 
-#define WSS_CLIENT_ENTER() DLOGD("enter")
-#define WSS_CLIENT_EXIT() DLOGD("exit")
+#define WSS_CLIENT_ENTER() //DLOGD("enter")
+#define WSS_CLIENT_EXIT() //DLOGD("exit")
 
 //#include "json_helper.h"
 //#include "http_helper.h"
@@ -156,7 +156,7 @@ STATUS wssClientValidateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR ac
  * 
  * @return
 */
-INT32 wss_client_socket_send(wss_client_context_t* pCtx, const UINT8* data, SIZE_T len, INT32 flags)
+INT32 wss_client_socket_send(WssClientContext* pCtx, const UINT8* data, SIZE_T len, INT32 flags)
 {
   return networkSend( pCtx->pNetworkContext, data, len );
 }
@@ -166,12 +166,12 @@ INT32 wss_client_socket_send(wss_client_context_t* pCtx, const UINT8* data, SIZE
  * @param[in]
  * @return
 */
-INT32 wss_client_socket_read(wss_client_context_t* pCtx, UINT8* data, SIZE_T len, INT32 flags)
+INT32 wss_client_socket_read(WssClientContext* pCtx, UINT8* data, SIZE_T len, INT32 flags)
 {
   return networkRecv( pCtx->pNetworkContext, data, len );
 }
 
-SSIZE_T wss_client_feed_body(wss_client_context_t* pCtx, UINT8 *data, SIZE_T len) 
+SSIZE_T wss_client_feed_body(WssClientContext* pCtx, UINT8 *data, SIZE_T len) 
 {
   DLOGD("feed body callback****");
   return 0;
@@ -189,7 +189,7 @@ SSIZE_T wslay_send_callback(wslay_event_context_ptr ctx,
                       INT32 flags,
                       VOID *user_data) 
 {
-  wss_client_context_t *pCtx = (wss_client_context_t *)user_data;
+  WssClientContext *pCtx = (WssClientContext *)user_data;
   SSIZE_T r = wss_client_socket_send(pCtx, data, len, flags);
   if (r == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -207,7 +207,7 @@ SSIZE_T wslay_recv_callback(wslay_event_context_ptr ctx,
                       INT32 flags,
                       VOID *user_data) 
 {
-  wss_client_context_t *pCtx = (wss_client_context_t *)user_data;
+  WssClientContext *pCtx = (WssClientContext *)user_data;
   SSIZE_T r = wss_client_socket_read(pCtx, data, len, flags);
   if (r == -1) {
     if (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -225,7 +225,7 @@ SSIZE_T wslay_recv_callback(wslay_event_context_ptr ctx,
 
 INT32 wslay_genmask_callback(wslay_event_context_ptr ctx, UINT8 *buf, SIZE_T len,
                      VOID *user_data) {
-  wss_client_context_t *ws = (wss_client_context_t *)user_data;
+  WssClientContext *ws = (WssClientContext *)user_data;
   wssClientGenerateRandomNumber(buf, len);
   return 0;
 }
@@ -234,11 +234,12 @@ VOID wslay_msg_recv_callback(wslay_event_context_ptr ctx,
                           const struct wslay_event_on_msg_recv_arg *arg,
                           VOID *user_data) 
 {
-  wss_client_context_t *ws = (wss_client_context_t *)user_data;
+  WssClientContext *ws = (WssClientContext *)user_data;
   if (!wslay_is_ctrl_frame(arg->opcode)) {
     //struct wslay_event_msg msgarg = {arg->opcode, arg->msg, arg->msg_length};
     //wslay_event_queue_msg(ctx, &msgarg);
     DLOGD("received(%d): %s", arg->opcode, arg->msg);
+    // #YC_TBD, 
   }else{
     DLOGD("<===   ");
     if(arg->opcode==WSLAY_PONG){
@@ -255,7 +256,7 @@ VOID wslay_msg_recv_callback(wslay_event_context_ptr ctx,
 
 SSIZE_T feed_body_callback(wslay_event_context_ptr ctx, UINT8 *data,
                            SIZE_T len, INT32 flags, VOID *user_data) {
-  wss_client_context_t *pCtx = (wss_client_context_t *)user_data;
+  WssClientContext *pCtx = (WssClientContext *)user_data;
   return wss_client_feed_body(pCtx, data, len);
 }
 
@@ -267,7 +268,7 @@ SSIZE_T feed_body_callback(wslay_event_context_ptr ctx, UINT8 *data,
 /*-----------------------------------------------------------*/
 
 
-INT32 wss_client_want_read(wss_client_context_t* pCtx)
+INT32 wss_client_want_read(WssClientContext* pCtx)
 {
     WSS_CLIENT_ENTER();
     INT32 retStatus = TRUE;
@@ -278,7 +279,7 @@ INT32 wss_client_want_read(wss_client_context_t* pCtx)
     return retStatus;
 }
 
-INT32 wss_client_want_write(wss_client_context_t* pCtx)
+INT32 wss_client_want_write(WssClientContext* pCtx)
 {
     WSS_CLIENT_ENTER();
     INT32 retStatus = 0;
@@ -289,7 +290,7 @@ INT32 wss_client_want_write(wss_client_context_t* pCtx)
     return retStatus;
 }
 
-INT32 wss_client_on_read_event(wss_client_context_t* pCtx)
+INT32 wss_client_on_read_event(WssClientContext* pCtx)
 {
     WSS_CLIENT_ENTER();
     INT32 retStatus = 0;
@@ -300,7 +301,7 @@ INT32 wss_client_on_read_event(wss_client_context_t* pCtx)
     return retStatus;
 }
 
-INT32 wss_client_on_write_event(wss_client_context_t* pCtx)
+INT32 wss_client_on_write_event(WssClientContext* pCtx)
 {
     WSS_CLIENT_ENTER();
     INT32 retStatus = 0;
@@ -311,7 +312,7 @@ INT32 wss_client_on_write_event(wss_client_context_t* pCtx)
     return retStatus;
 }
 
-static INT32 wss_client_send(wss_client_context_t* pCtx, struct wslay_event_msg* arg)
+static INT32 wss_client_send(WssClientContext* pCtx, struct wslay_event_msg* arg)
 {
     WSS_CLIENT_ENTER();
     INT32 retStatus = 0;
@@ -323,7 +324,7 @@ static INT32 wss_client_send(wss_client_context_t* pCtx, struct wslay_event_msg*
     return retStatus;
 }
 
-INT32 wss_client_send_text(wss_client_context_t* pCtx, UINT8* buf, UINT32 len)
+INT32 wss_client_send_text(WssClientContext* pCtx, UINT8* buf, UINT32 len)
 {
     struct wslay_event_msg arg;
     arg.opcode = WSLAY_TEXT_FRAME;
@@ -332,7 +333,7 @@ INT32 wss_client_send_text(wss_client_context_t* pCtx, UINT8* buf, UINT32 len)
     return  wss_client_send(pCtx, &arg);
 }
 
-INT32 wss_client_send_binary(wss_client_context_t* pCtx, UINT8* buf, UINT32 len)
+INT32 wss_client_send_binary(WssClientContext* pCtx, UINT8* buf, UINT32 len)
 {
     struct wslay_event_msg arg;
     arg.opcode = WSLAY_BINARY_FRAME;
@@ -341,7 +342,7 @@ INT32 wss_client_send_binary(wss_client_context_t* pCtx, UINT8* buf, UINT32 len)
     return  wss_client_send(pCtx, &arg);
 }
 
-INT32 wss_client_send_ping(wss_client_context_t* pCtx)
+INT32 wss_client_send_ping(WssClientContext* pCtx)
 {
     struct wslay_event_msg arg;
     MEMSET(&arg, 0, sizeof(arg));
@@ -355,7 +356,7 @@ INT32 wss_client_send_ping(wss_client_context_t* pCtx)
 #if (WSS_SEND_TEST == 1)
 VOID* testThread(VOID* arg)
 {
-    wss_client_context_t* context = (wss_client_context_t*)arg;
+    WssClientContext* context = (WssClientContext*)arg;
     UINT32 index = 0;
     CHAR indexBuf[256];
 
@@ -387,12 +388,12 @@ VOID* testThread(VOID* arg)
  * 
  * @return
 */
-VOID wssClientCreate(wss_client_context_t** ppWssClientCtx, NetworkContext_t * pNetworkContext)
+VOID wssClientCreate(WssClientContext** ppWssClientCtx, NetworkContext_t * pNetworkContext)
 {
     WSS_CLIENT_ENTER();
     INT32 retStatus = 0;
-    wss_client_context_t* pCtx = malloc(sizeof(wss_client_context_t));
-    MEMSET(pCtx, 0, sizeof(wss_client_context_t));
+    WssClientContext* pCtx = malloc(sizeof(WssClientContext));
+    MEMSET(pCtx, 0, sizeof(WssClientContext));
 
     struct wslay_event_callbacks callbacks = {
                                     wslay_recv_callback, /* wslay_event_recv_callback */
@@ -425,7 +426,7 @@ VOID wssClientCreate(wss_client_context_t** ppWssClientCtx, NetworkContext_t * p
     return;
 }
 
-VOID ctl_epollev(INT32 epollfd, INT32 op, wss_client_context_t* pWssClientCtx)
+VOID ctl_epollev(INT32 epollfd, INT32 op, WssClientContext* pWssClientCtx)
 {
   struct epoll_event ev;
   MEMSET(&ev, 0, sizeof(ev));
@@ -449,7 +450,7 @@ VOID ctl_epollev(INT32 epollfd, INT32 op, wss_client_context_t* pWssClientCtx)
  * 
  * @return
 */
-INT32 wssClientStart(wss_client_context_t* pWssClientCtx)
+INT32 wssClientStart(WssClientContext* pWssClientCtx)
 {
     WSS_CLIENT_ENTER();
     static const SIZE_T MAX_EVENTS = 1;
@@ -512,7 +513,7 @@ INT32 wssClientStart(wss_client_context_t* pWssClientCtx)
 }
 
 
-VOID wss_client_close(wss_client_context_t* pWssClientCtx)
+VOID wss_client_close(WssClientContext* pWssClientCtx)
 {
   INT32 retStatus = 0;
   {
