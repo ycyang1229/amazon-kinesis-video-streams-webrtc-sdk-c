@@ -58,7 +58,7 @@
 #define MAX_CONNECTION_RETRY                ( 3 )
 #define CONNECTION_RETRY_INTERVAL_IN_MS     ( 1000 )
 
-#define LWS_MESSAGE_BUFFER_SIZE (SIZEOF(CHAR) * (MAX_SIGNALING_MESSAGE_LEN))
+
 
 // Send message JSON template
 #define SIGNALING_SEND_MESSAGE_TEMPLATE                                                                                                              \
