@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#ifndef _NETWORK_API_H
-#define _NETWORK_API_H
+#ifndef __KINESIS_VIDEO_WEBRTC_NETWORK_API_H__
+#define __KINESIS_VIDEO_WEBRTC_NETWORK_API_H__
 
 
 #pragma once
@@ -169,4 +169,4 @@ STATUS setNonBlocking(NetworkContext_t* pNetworkContext);
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif /* __KINESIS_VIDEO_WEBRTC_NETWORK_API_H__ */

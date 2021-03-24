@@ -15,8 +15,8 @@
 /*******************************************
 Signaling internal include file
 *******************************************/
-#ifndef _AWS_SIGNER_V4_H_
-#define _AWS_SIGNER_V4_H_
+#ifndef __KINESIS_VIDEO_WEBRTC_AWS_SIGNER_V4_H__
+#define __KINESIS_VIDEO_WEBRTC_AWS_SIGNER_V4_H__
 
 #pragma once
 
@@ -269,4 +269,4 @@ PCHAR AwsSignerV4_getHmacEncoded( AwsSignerV4Context_t * pCtx );
 #ifdef __cplusplus
 }
 #endif
-#endif // #ifndef _AWS_SIGNER_V4_H_
+#endif /* __KINESIS_VIDEO_WEBRTC_AWS_SIGNER_V4_H__ */

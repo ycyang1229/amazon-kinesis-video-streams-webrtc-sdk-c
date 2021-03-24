@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#ifndef _WEBRTC_REST_API_H_
-#define _WEBRTC_REST_API_H_
+#ifndef __KINESIS_VIDEO_WEBRTC_HTTP_API_H_
+#define __KINESIS_VIDEO_WEBRTC_HTTP_API_H_
 
 #pragma once
 
@@ -40,4 +40,4 @@ STATUS httpApiRspGetIceConfig( const CHAR * pResponseStr, UINT32 resultLen, PSig
 #ifdef __cplusplus
 }
 #endif
-#endif // #ifndef _WEBRTC_REST_API_H_
+#endif /* __KINESIS_VIDEO_WEBRTC_HTTP_API_H_ */

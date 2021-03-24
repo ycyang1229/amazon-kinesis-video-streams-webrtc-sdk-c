@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#ifndef _WEBRTC_WSS_API_H_
-#define _WEBRTC_WSS_API_H_
+#ifndef __KINESIS_VIDEO_WEBRTC_WSS_API_H__
+#define __KINESIS_VIDEO_WEBRTC_WSS_API_H__
 
 #pragma once
 
@@ -82,4 +82,4 @@ STATUS wssTerminateListenerLoop(PSignalingClient pSignalingClient);
 #ifdef __cplusplus
 }
 #endif
-#endif // #ifndef _WEBRTC_WSS_API_H_
+#endif /* __KINESIS_VIDEO_WEBRTC_WSS_API_H__ */

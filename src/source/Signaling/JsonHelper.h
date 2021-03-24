@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#ifndef _JSON_HELPER_H_
-#define _JSON_HELPER_H_
+#ifndef __KINESIS_VIDEO_WEBRTC_JSON_HELPER_H__
+#define __KINESIS_VIDEO_WEBRTC_JSON_HELPER_H__
 
 #pragma once
 
@@ -30,4 +30,4 @@ UINT64 json_object_dotget_uint64( const JSON_Object *pRootObject, const PCHAR pN
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif /* __KINESIS_VIDEO_WEBRTC_JSON_HELPER_H__ */

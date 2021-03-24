@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#define LOG_CLASS "network_api"
+#define LOG_CLASS "NetworkApi"
 #include "../Include_i.h"
 
 //#include <mbedtls/net.h>

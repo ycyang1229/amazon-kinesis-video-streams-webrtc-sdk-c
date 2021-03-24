@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#ifndef _WEBRTC_WSS_CLIENT_H_
-#define _WEBRTC_WSS_CLIENT_H_
+#ifndef __KINESIS_VIDEO_WEBRTC_WSS_CLIENT_H__
+#define __KINESIS_VIDEO_WEBRTC_WSS_CLIENT_H__
 
 #pragma once
 
@@ -62,4 +62,4 @@ VOID wss_client_close(WssClientContext* pWssClientCtx);
 #ifdef __cplusplus
 }
 #endif
-#endif // #ifndef _WEBRTC_WSS_CLIENT_H_
+#endif /* __KINESIS_VIDEO_WEBRTC_WSS_CLIENT_H__ */

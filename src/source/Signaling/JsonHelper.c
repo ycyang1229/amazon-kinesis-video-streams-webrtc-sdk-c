@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#define LOG_CLASS "http_helper"
+#define LOG_CLASS "JsonHelper"
 #include "../Include_i.h"
 
 PCHAR json_object_dotget_serialize_to_string( const JSON_Object *pRootObject, const PCHAR pName, BOOL bRemoveQuotes )
