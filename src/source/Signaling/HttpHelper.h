@@ -22,39 +22,29 @@
 extern "C" {
 #endif
 
-
-typedef struct http_field
-{
+typedef struct{
     PCHAR field;
     UINT32 fieldLen;
     PCHAR value;
     UINT32 valueLen;
     struct list_head list;
-}http_field_t;
+}HttpField, *PHttpField;
 
-typedef struct http_response_context
-{
-    UINT32 uhttpStatusCode;
-    UINT32 uhttpBodyLen;
+typedef struct{
+    UINT32 httpStatusCode;
+    UINT32 httpBodyLen;
     PCHAR phttpBodyLoc;
-    http_field_t curField;
+    HttpField curField;
     struct list_head* requiredHeader;
-}http_response_context_t;
+}HttpResponseContext, *PHttpResponseContext;
 
-STATUS parseHttpResponse( PCHAR pBuf, UINT32 uLen );
-UINT32 getLastHttpStatusCode( VOID );
-PCHAR getLastHttpBodyLoc( VOID );
-UINT32 getLastHttpBodyLen( VOID );
-
-// new interface
-
-INT32 http_add_required_header(struct list_head* head, PCHAR field, UINT32 fieldLen, PCHAR value, UINT32 valudLen);
-http_field_t* http_get_value_by_field(struct list_head* head, PCHAR field, UINT32 fieldLen);
-UINT32 http_get_http_status_code(http_response_context_t* pHttpRspCtx);
-PCHAR http_get_http_body_location(http_response_context_t* pHttpRspCtx);
-UINT32 http_get_http_body_length(http_response_context_t* pHttpRspCtx);
-STATUS http_parse_start(http_response_context_t** ppHttpRspCtx, PCHAR pBuf, UINT32 uLen, struct list_head* requiredHeader);
-STATUS http_parse_detroy(http_response_context_t* pHttpRspCtx);
+INT32 httpParserAddRequiredHeader(struct list_head* head, PCHAR field, UINT32 fieldLen, PCHAR value, UINT32 valudLen);
+PHttpField httpParserGetValueByField(struct list_head* head, PCHAR field, UINT32 fieldLen);
+UINT32 httpParserGetHttpStatusCode(PHttpResponseContext pHttpRspCtx);
+PCHAR httpParserGetHttpBodyLocation(PHttpResponseContext pHttpRspCtx);
+UINT32 httpParserGetHttpBodyLength(PHttpResponseContext pHttpRspCtx);
+STATUS httpParserStart(PHttpResponseContext* ppHttpRspCtx, PCHAR pBuf, UINT32 uLen, struct list_head* requiredHeader);
+STATUS httpParserDetroy(PHttpResponseContext pHttpRspCtx);
 #ifdef __cplusplus
 }
 #endif

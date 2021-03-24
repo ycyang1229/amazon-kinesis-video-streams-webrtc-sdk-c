@@ -58,7 +58,7 @@
 #define HDR_X_AMZN_PRODUCER_START_T     "x-amzn-producer-start-timestamp"
 #define HDR_X_AMZN_STREAM_NAME          "x-amzn-stream-name"
 
-#define AWS_SIGNER_V4_BUFFER_SIZE           ( 4096 + 2048)
+#define AWS_SIGNER_V4_BUFFER_SIZE           ( 4096 + 4096)
 #define MAX_CONNECTION_RETRY                ( 3 )
 #define CONNECTION_RETRY_INTERVAL_IN_MS     ( 1000 )
 /*-----------------------------------------------------------*/
@@ -226,7 +226,7 @@ typedef struct
 /**
  * 
 */
-STATUS httpApiCreateSignalingChannl(PSignalingClient pSignalingClient, UINT64 time)
+STATUS httpApiCreateChannl(PSignalingClient pSignalingClient, UINT64 time)
 {
     HTTP_API_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
@@ -248,7 +248,7 @@ STATUS httpApiCreateSignalingChannl(PSignalingClient pSignalingClient, UINT64 ti
     SIZE_T uHttpBodyLen = 0;
 
     UINT32 uHttpStatusCode = 0;
-    http_response_context_t* pHttpRspCtx = NULL;
+    HttpResponseContext* pHttpRspCtx = NULL;
 
     // temp interface.
     PCHAR pAccessKey = getenv(ACCESS_KEY_ENV_VAR);  // It's AWS access key if not using IoT certification.
@@ -390,15 +390,15 @@ STATUS httpApiCreateSignalingChannl(PSignalingClient pSignalingClient, UINT64 ti
             break;
         }
 
-        retStatus = http_parse_start(&pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )retStatus, NULL);
+        retStatus = httpParserStart(&pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )retStatus, NULL);
         if( retStatus != STATUS_SUCCESS )
         {
             break;
         }
 
-        PCHAR pResponseStr = http_get_http_body_location(pHttpRspCtx);
-        UINT32 resultLen = http_get_http_body_length(pHttpRspCtx);
-        uHttpStatusCode = http_get_http_status_code(pHttpRspCtx);
+        PCHAR pResponseStr = httpParserGetHttpBodyLocation(pHttpRspCtx);
+        UINT32 resultLen = httpParserGetHttpBodyLength(pHttpRspCtx);
+        uHttpStatusCode = httpParserGetHttpStatusCode(pHttpRspCtx);
 
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
         /* Check HTTP results */
@@ -417,7 +417,7 @@ STATUS httpApiCreateSignalingChannl(PSignalingClient pSignalingClient, UINT64 ti
     }
     if(pHttpRspCtx != NULL)
     {
-        retStatus =  http_parse_detroy(pHttpRspCtx);
+        retStatus =  httpParserDetroy(pHttpRspCtx);
         if( retStatus != STATUS_SUCCESS )
         {
             printf("destroying http parset failed. \n");
@@ -442,7 +442,7 @@ CleanUp:
  * @param[]
  * @
 */
-STATUS httpApiDescribeSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
+STATUS httpApiDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
     HTTP_API_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
@@ -466,7 +466,7 @@ STATUS httpApiDescribeSignalingChannel(PSignalingClient pSignalingClient, UINT64
     UINT32 uHttpBodyLen = 0;
 
     UINT32 uHttpStatusCode = 0;
-    http_response_context_t* pHttpRspCtx = NULL;
+    HttpResponseContext* pHttpRspCtx = NULL;
     // temp interface.
     PCHAR pAccessKey = getenv(ACCESS_KEY_ENV_VAR);  // It's AWS access key if not using IoT certification.
     PCHAR pSecretKey = getenv(SECRET_KEY_ENV_VAR);  // It's secret of AWS access key if not using IoT certification.
@@ -611,12 +611,12 @@ STATUS httpApiDescribeSignalingChannel(PSignalingClient pSignalingClient, UINT64
             break;
         }
         
-        CHK_STATUS(http_parse_start(&pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )retStatus, NULL));
+        CHK_STATUS(httpParserStart(&pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )retStatus, NULL));
 
 
-        PCHAR pResponseStr = http_get_http_body_location(pHttpRspCtx);
-        UINT32 resultLen = http_get_http_body_length(pHttpRspCtx);
-        uHttpStatusCode = http_get_http_status_code(pHttpRspCtx);
+        PCHAR pResponseStr = httpParserGetHttpBodyLocation(pHttpRspCtx);
+        UINT32 resultLen = httpParserGetHttpBodyLength(pHttpRspCtx);
+        uHttpStatusCode = httpParserGetHttpStatusCode(pHttpRspCtx);
 
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
         /* Check HTTP results */
@@ -637,7 +637,7 @@ CleanUp:
     }
     if(pHttpRspCtx != NULL)
     {
-        retStatus =  http_parse_detroy(pHttpRspCtx);
+        retStatus =  httpParserDetroy(pHttpRspCtx);
         if( retStatus != STATUS_SUCCESS )
         {
             printf("destroying http parset failed. \n");
@@ -674,7 +674,7 @@ STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time
     CHAR *pHttpParameter = "";
     CHAR *pHttpBody = NULL;
     UINT32 uHttpBodyLen = 0;
-    http_response_context_t* pHttpRspCtx = NULL;
+    HttpResponseContext* pHttpRspCtx = NULL;
     UINT32 uHttpStatusCode = 0;
 
     // temp interface.
@@ -834,15 +834,15 @@ STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time
             break;
         }
 
-        retStatus = http_parse_start(&pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )retStatus, NULL);
+        retStatus = httpParserStart(&pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )retStatus, NULL);
         if( retStatus != STATUS_SUCCESS )
         {
             break;
         }
 
-        PCHAR pResponseStr = http_get_http_body_location(pHttpRspCtx);
-        UINT32 resultLen = http_get_http_body_length(pHttpRspCtx);
-        uHttpStatusCode = http_get_http_status_code(pHttpRspCtx);
+        PCHAR pResponseStr = httpParserGetHttpBodyLocation(pHttpRspCtx);
+        UINT32 resultLen = httpParserGetHttpBodyLength(pHttpRspCtx);
+        uHttpStatusCode = httpParserGetHttpStatusCode(pHttpRspCtx);
 
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
         /* Check HTTP results */
@@ -867,7 +867,7 @@ STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time
     }
     if(pHttpRspCtx != NULL)
     {
-        retStatus =  http_parse_detroy(pHttpRspCtx);
+        retStatus =  httpParserDetroy(pHttpRspCtx);
         if( retStatus != STATUS_SUCCESS )
         {
             printf("destroying http parset failed. \n");
@@ -903,7 +903,7 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
     CHAR *pHttpParameter = "";
     CHAR *pHttpBody = NULL;
     UINT32 uHttpBodyLen = 0;
-    http_response_context_t* pHttpRspCtx = NULL;
+    HttpResponseContext* pHttpRspCtx = NULL;
     UINT32 uHttpStatusCode = 0;
 
 
@@ -1010,12 +1010,12 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
     retStatus = networkRecv( pNetworkContext, pNetworkContext->pHttpRecvBuffer, pNetworkContext->uHttpRecvBufferLen );
     
 
-    retStatus = http_parse_start(&pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )retStatus, NULL);
+    retStatus = httpParserStart(&pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )retStatus, NULL);
     
 
-    PCHAR pResponseStr = http_get_http_body_location(pHttpRspCtx);
-    UINT32 resultLen = http_get_http_body_length(pHttpRspCtx);
-    uHttpStatusCode = http_get_http_status_code(pHttpRspCtx);
+    PCHAR pResponseStr = httpParserGetHttpBodyLocation(pHttpRspCtx);
+    UINT32 resultLen = httpParserGetHttpBodyLength(pHttpRspCtx);
+    uHttpStatusCode = httpParserGetHttpStatusCode(pHttpRspCtx);
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
     /* Check HTTP results */
@@ -1041,7 +1041,7 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
     }
     if(pHttpRspCtx != NULL)
     {
-        retStatus =  http_parse_detroy(pHttpRspCtx);
+        retStatus =  httpParserDetroy(pHttpRspCtx);
         if( retStatus != STATUS_SUCCESS )
         {
             printf("destroying http parset failed. \n");
@@ -1055,7 +1055,7 @@ CleanUp:
 }
 
 
-STATUS httpApiDeleteSignalingChannl(PSignalingClient pSignalingClient, UINT64 time)
+STATUS httpApiDeleteChannl(PSignalingClient pSignalingClient, UINT64 time)
 {
     STATUS retStatus = STATUS_SUCCESS;
     return retStatus;

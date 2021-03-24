@@ -4,6 +4,8 @@
 #define LOG_CLASS "SignalingState"
 #include "../Include_i.h"
 
+#define SIGNALING_FSM_ENTERS() ENTERS()
+#define SIGNALING_FSM_LEAVES() LEAVES()
 
 #define SIGNALING_STATE_NEW_REQUIRED                (SIGNALING_STATE_NONE | SIGNALING_STATE_NEW)
 #define SIGNALING_STATE_GET_TOKEN_REQUIRED          (SIGNALING_STATE_NEW | SIGNALING_STATE_DESCRIBE | SIGNALING_STATE_CREATE | SIGNALING_STATE_GET_ENDPOINT | SIGNALING_STATE_GET_ICE_CONFIG | \
@@ -47,7 +49,7 @@ UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT = ARRAY_SIZE(SIGNALING_STATE_MACHINE_
 
 STATUS signalingFsmStep(PSignalingClient pSignalingClient, STATUS status)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 i;
     BOOL locked = FALSE;
@@ -96,7 +98,7 @@ CleanUp:
         MUTEX_UNLOCK(pSignalingClient->stateLock);
     }
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
@@ -152,7 +154,7 @@ SIGNALING_CLIENT_STATE signalingFsmGetState(UINT64 state)
 
 STATUS signalingFsmAccept(PSignalingClient pSignalingClient, UINT64 state)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     BOOL locked = FALSE;
 
@@ -170,7 +172,7 @@ CleanUp:
         MUTEX_UNLOCK(pSignalingClient->stateLock);
     }
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
@@ -182,7 +184,7 @@ CleanUp:
 */
 STATUS signalingFsmFromNew(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     UINT64 state;
@@ -195,7 +197,7 @@ STATUS signalingFsmFromNew(UINT64 customData, PUINT64 pState)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 /**
@@ -203,7 +205,7 @@ CleanUp:
 */
 STATUS signalingFsmNew(UINT64 customData, UINT64 time)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
@@ -220,7 +222,7 @@ STATUS signalingFsmNew(UINT64 customData, UINT64 time)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 /**
@@ -230,7 +232,7 @@ CleanUp:
 */
 STATUS signalingFsmFromGetToken(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     UINT64 state = SIGNALING_STATE_GET_TOKEN;
@@ -259,7 +261,7 @@ STATUS signalingFsmFromGetToken(UINT64 customData, PUINT64 pState)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 /**
@@ -268,7 +270,7 @@ CleanUp:
 STATUS signalingFsmGetToken(UINT64 customData, UINT64 time)
 {
     UNUSED_PARAM(time);
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     SERVICE_CALL_RESULT serviceCallResult;
@@ -305,13 +307,13 @@ STATUS signalingFsmGetToken(UINT64 customData, UINT64 time)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
 STATUS signalingFsmFromDescribe(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     UINT64 state = SIGNALING_STATE_DESCRIBE;
@@ -348,7 +350,7 @@ STATUS signalingFsmFromDescribe(UINT64 customData, PUINT64 pState)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 /**
@@ -356,7 +358,7 @@ CleanUp:
 */
 STATUS signalingFsmDescribe(UINT64 customData, UINT64 time)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
 
@@ -380,13 +382,13 @@ STATUS signalingFsmDescribe(UINT64 customData, UINT64 time)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
 STATUS signalingFsmFromCreate(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     UINT64 state = SIGNALING_STATE_CREATE;
@@ -413,13 +415,13 @@ STATUS signalingFsmFromCreate(UINT64 customData, PUINT64 pState)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
 STATUS signalingFsmCreate(UINT64 customData, UINT64 time)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
 
@@ -443,13 +445,13 @@ STATUS signalingFsmCreate(UINT64 customData, UINT64 time)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
 STATUS signalingFsmFromGetEndpoint(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     UINT64 state = SIGNALING_STATE_GET_ENDPOINT;
@@ -476,13 +478,13 @@ STATUS signalingFsmFromGetEndpoint(UINT64 customData, PUINT64 pState)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
 STATUS signalingFsmGetEndpoint(UINT64 customData, UINT64 time)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
 
@@ -506,13 +508,13 @@ STATUS signalingFsmGetEndpoint(UINT64 customData, UINT64 time)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
 STATUS signalingFsmFromGetIceConfig(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     UINT64 state = SIGNALING_STATE_GET_ICE_CONFIG;
@@ -521,6 +523,7 @@ STATUS signalingFsmFromGetIceConfig(UINT64 customData, PUINT64 pState)
     CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
 
     result = ATOMIC_LOAD(&pSignalingClient->result);
+    DLOGD("result:%d", result);
     switch (result) {
         case SERVICE_CALL_RESULT_OK:
             state = SIGNALING_STATE_READY;
@@ -539,13 +542,13 @@ STATUS signalingFsmFromGetIceConfig(UINT64 customData, PUINT64 pState)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
 STATUS signalingFsmGetIceConfig(UINT64 customData, UINT64 time)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
 
@@ -569,13 +572,13 @@ STATUS signalingFsmGetIceConfig(UINT64 customData, UINT64 time)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
 STATUS signalingFsmFromReady(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     UINT64 state = SIGNALING_STATE_CONNECT;
@@ -610,7 +613,7 @@ STATUS signalingFsmFromReady(UINT64 customData, PUINT64 pState)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 /**
@@ -619,7 +622,7 @@ CleanUp:
 STATUS signalingFsmReady(UINT64 customData, UINT64 time)
 {
     UNUSED_PARAM(time);
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
 
@@ -648,13 +651,13 @@ STATUS signalingFsmReady(UINT64 customData, UINT64 time)
     retStatus = STATUS_SUCCESS;
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
 STATUS signalingFsmFromConnect(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     UINT64 state = SIGNALING_STATE_CONNECT;
@@ -716,13 +719,13 @@ STATUS signalingFsmFromConnect(UINT64 customData, PUINT64 pState)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
 STATUS signalingFsmConnect(UINT64 customData, UINT64 time)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
 
@@ -742,13 +745,13 @@ STATUS signalingFsmConnect(UINT64 customData, UINT64 time)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
 STATUS signalingFsmFromConnected(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     UINT64 state = SIGNALING_STATE_CONNECTED;
@@ -802,13 +805,13 @@ STATUS signalingFsmFromConnected(UINT64 customData, PUINT64 pState)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
 STATUS signalingFsmConnected(UINT64 customData, UINT64 time)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
@@ -828,13 +831,13 @@ STATUS signalingFsmConnected(UINT64 customData, UINT64 time)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
 STATUS signalingFsmFromDisconnected(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     UINT64 state = SIGNALING_STATE_READY;
@@ -867,13 +870,13 @@ STATUS signalingFsmFromDisconnected(UINT64 customData, PUINT64 pState)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
 STATUS signalingFsmDisconnected(UINT64 customData, UINT64 time)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
@@ -891,13 +894,13 @@ STATUS signalingFsmDisconnected(UINT64 customData, UINT64 time)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
 STATUS signalingFsmFromDelete(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     UINT64 state = SIGNALING_STATE_DELETE;
@@ -933,13 +936,13 @@ STATUS signalingFsmFromDelete(UINT64 customData, PUINT64 pState)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
 STATUS signalingFsmDelete(UINT64 customData, UINT64 time)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
 
@@ -963,13 +966,13 @@ STATUS signalingFsmDelete(UINT64 customData, UINT64 time)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
 STATUS signalingFsmFromDeleted(UINT64 customData, PUINT64 pState)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
     UINT64 state = SIGNALING_STATE_DELETED;
@@ -981,13 +984,13 @@ STATUS signalingFsmFromDeleted(UINT64 customData, PUINT64 pState)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }
 
 STATUS signalingFsmDeleted(UINT64 customData, UINT64 time)
 {
-    ENTERS();
+    SIGNALING_FSM_ENTERS();
     UNUSED_PARAM(time);
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingClient pSignalingClient = SIGNALING_CLIENT_FROM_CUSTOM_DATA(customData);
@@ -1004,6 +1007,6 @@ STATUS signalingFsmDeleted(UINT64 customData, UINT64 time)
 
 CleanUp:
 
-    LEAVES();
+    SIGNALING_FSM_LEAVES();
     return retStatus;
 }

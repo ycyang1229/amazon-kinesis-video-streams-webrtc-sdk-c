@@ -975,7 +975,7 @@ STATUS signalingDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
             if (STATUS_SUCCEEDED(retStatus)) {
                 //retStatus = lwsDescribeChannel(pSignalingClient, time);
                 // #YC_TBD, #HTTP.
-                retStatus = httpApiDescribeSignalingChannel(pSignalingClient, time);
+                retStatus = httpApiDescribeChannel(pSignalingClient, time);
 
                 // Store the last call time on success
                 if (STATUS_SUCCEEDED(retStatus)) {
@@ -1028,7 +1028,7 @@ STATUS signalingCreateChannel(PSignalingClient pSignalingClient, UINT64 time)
     if (STATUS_SUCCEEDED(retStatus)) {
         //retStatus = lwsCreateChannel(pSignalingClient, time);
         // #YC_TBD. #HTTP
-        retStatus = httpApiCreateSignalingChannl(pSignalingClient, time);
+        retStatus = httpApiCreateChannl(pSignalingClient, time);
 
         // Store the time of the call on success
         if (STATUS_SUCCEEDED(retStatus)) {
@@ -1222,7 +1222,7 @@ STATUS signalingDeleteChannel(PSignalingClient pSignalingClient, UINT64 time)
     if (STATUS_SUCCEEDED(retStatus)) {
         //retStatus = lwsDeleteChannel(pSignalingClient, time);
         // #YC_TBD, #HTTP
-        retStatus = httpApiDeleteSignalingChannl(pSignalingClient, time);
+        retStatus = httpApiDeleteChannl(pSignalingClient, time);
         
 
         // Store the time of the call on success

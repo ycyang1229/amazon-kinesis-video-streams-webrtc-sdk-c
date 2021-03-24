@@ -293,9 +293,6 @@ typedef struct {
     UINT64 deleteTime;
     UINT64 connectTime;//!< 
 
-    // temp inteface #YC_TBD,
-    //webrtcServiceParameter_t pTmpServiceParameter;
-    //webrtcChannelInfo_t pTmpChannelInfo;
 } SignalingClient, *PSignalingClient;
 
 // Public handle to and from object converters

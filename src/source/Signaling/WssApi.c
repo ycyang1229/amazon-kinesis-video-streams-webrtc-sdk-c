@@ -54,7 +54,7 @@
 #define HTTP_HEADER_VALUE_WS "websocket"
 
 // #YC_TBD, need to be fixed.
-#define AWS_SIGNER_V4_BUFFER_SIZE           ( 4096+4096 )
+#define AWS_SIGNER_V4_BUFFER_SIZE           ( 4096+4096+4096 )
 #define MAX_CONNECTION_RETRY                ( 3 )
 #define CONNECTION_RETRY_INTERVAL_IN_MS     ( 1000 )
 
@@ -141,7 +141,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
 
     int n;
     
-    http_response_context_t* pHttpRspCtx = NULL;
+    HttpResponseContext* pHttpRspCtx = NULL;
 
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
@@ -294,13 +294,13 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         // upgrade, websocket
         // sec-websocket-accept, P9UpKZWjaPkoB8NXkHhLgAYqRtc=
         INIT_LIST_HEAD(requiredHeader);
-        http_add_required_header(requiredHeader, HTTP_HEADER_FIELD_CONNECTION, STRLEN(HTTP_HEADER_FIELD_CONNECTION), NULL, 0);
-        http_add_required_header(requiredHeader, HTTP_HEADER_FIELD_UPGRADE, STRLEN(HTTP_HEADER_FIELD_UPGRADE), NULL, 0);
-        http_add_required_header(requiredHeader, HTTP_HEADER_FIELD_SEC_WS_ACCEPT, STRLEN(HTTP_HEADER_FIELD_SEC_WS_ACCEPT), NULL, 0);
-        retStatus =  http_parse_start( &pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )retStatus, requiredHeader);
+        httpParserAddRequiredHeader(requiredHeader, HTTP_HEADER_FIELD_CONNECTION, STRLEN(HTTP_HEADER_FIELD_CONNECTION), NULL, 0);
+        httpParserAddRequiredHeader(requiredHeader, HTTP_HEADER_FIELD_UPGRADE, STRLEN(HTTP_HEADER_FIELD_UPGRADE), NULL, 0);
+        httpParserAddRequiredHeader(requiredHeader, HTTP_HEADER_FIELD_SEC_WS_ACCEPT, STRLEN(HTTP_HEADER_FIELD_SEC_WS_ACCEPT), NULL, 0);
+        retStatus = httpParserStart( &pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )retStatus, requiredHeader);
         
-        http_field_t* node;
-        node = http_get_value_by_field(requiredHeader, HTTP_HEADER_FIELD_CONNECTION, STRLEN(HTTP_HEADER_FIELD_CONNECTION));
+        PHttpField node;
+        node = httpParserGetValueByField(requiredHeader, HTTP_HEADER_FIELD_CONNECTION, STRLEN(HTTP_HEADER_FIELD_CONNECTION));
         //DLOGD("val:%d, -%s-\n\n", val, node->value, );
         if( node != NULL && 
             node->valueLen == STRLEN(HTTP_HEADER_VALUE_UPGRADE) &&
@@ -308,7 +308,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
             //DLOGD("connection upgrade\n");
         }
 
-        node = http_get_value_by_field(requiredHeader, HTTP_HEADER_FIELD_UPGRADE, STRLEN(HTTP_HEADER_FIELD_UPGRADE));
+        node = httpParserGetValueByField(requiredHeader, HTTP_HEADER_FIELD_UPGRADE, STRLEN(HTTP_HEADER_FIELD_UPGRADE));
         //DLOGD("val:%d, -%s-\n\n", val, node->value, );
         if( node != NULL && 
             node->valueLen == STRLEN(HTTP_HEADER_VALUE_WS) &&
@@ -316,7 +316,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
             //DLOGD("upgrade websocket\n");
         }
 
-        node = http_get_value_by_field(requiredHeader, HTTP_HEADER_FIELD_SEC_WS_ACCEPT, STRLEN(HTTP_HEADER_FIELD_SEC_WS_ACCEPT));
+        node = httpParserGetValueByField(requiredHeader, HTTP_HEADER_FIELD_SEC_WS_ACCEPT, STRLEN(HTTP_HEADER_FIELD_SEC_WS_ACCEPT));
         //DLOGD("val:%d, -%s-\n\n", val, node->value, );
         if( node != NULL ){
             
@@ -328,9 +328,9 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         }
 
 
-        PCHAR pResponseStr = http_get_http_body_location(pHttpRspCtx);
-        UINT32 resultLen = http_get_http_body_length(pHttpRspCtx);
-        uHttpStatusCode = http_get_http_status_code(pHttpRspCtx);
+        PCHAR pResponseStr = httpParserGetHttpBodyLocation(pHttpRspCtx);
+        UINT32 resultLen = httpParserGetHttpBodyLength(pHttpRspCtx);
+        uHttpStatusCode = httpParserGetHttpStatusCode(pHttpRspCtx);
 
         /* Check HTTP results */
         if( uHttpStatusCode == 101 )
@@ -363,7 +363,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         }
         else
         {
-            DLOGE("Unable to get endpoint:\r\n%.*s\r\n", (int)http_get_http_body_length(pHttpRspCtx), http_get_http_body_location(pHttpRspCtx));
+            DLOGE("Unable to get endpoint:\r\n%.*s\r\n", (int)httpParserGetHttpBodyLength(pHttpRspCtx), httpParserGetHttpBodyLocation(pHttpRspCtx));
             if( uHttpStatusCode == 400 )
             {
                 retStatus = STATUS_HTTP_REST_EXCEPTION_ERROR;
@@ -386,7 +386,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
 CleanUp:
 
     if(pHttpRspCtx != NULL){
-        retStatus =  http_parse_detroy(pHttpRspCtx);
+        retStatus =  httpParserDetroy(pHttpRspCtx);
         if( retStatus != STATUS_SUCCESS )
         {
             DLOGD("destroying http parset failed. \n");

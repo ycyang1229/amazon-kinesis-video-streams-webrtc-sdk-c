@@ -270,7 +270,7 @@ SSIZE_T wslay_feed_body_callback(wslay_event_context_ptr ctx, UINT8 *data,
 /*-----------------------------------------------------------*/
 
 
-INT32 wss_client_want_read(WssClientContext* pCtx)
+INT32 wssClientWantRead(WssClientContext* pCtx)
 {
     WSS_CLIENT_ENTER();
     INT32 retStatus = TRUE;
@@ -281,7 +281,7 @@ INT32 wss_client_want_read(WssClientContext* pCtx)
     return retStatus;
 }
 
-INT32 wss_client_want_write(WssClientContext* pCtx)
+INT32 wssClientWantWrite(WssClientContext* pCtx)
 {
     WSS_CLIENT_ENTER();
     INT32 retStatus = 0;
@@ -292,7 +292,7 @@ INT32 wss_client_want_write(WssClientContext* pCtx)
     return retStatus;
 }
 
-INT32 wss_client_on_read_event(WssClientContext* pCtx)
+INT32 wssClientOnReadEvent(WssClientContext* pCtx)
 {
     WSS_CLIENT_ENTER();
     INT32 retStatus = 0;
@@ -303,7 +303,7 @@ INT32 wss_client_on_read_event(WssClientContext* pCtx)
     return retStatus;
 }
 
-INT32 wss_client_on_write_event(WssClientContext* pCtx)
+INT32 wssClientOnWriteEvent(WssClientContext* pCtx)
 {
     WSS_CLIENT_ENTER();
     INT32 retStatus = 0;
@@ -436,10 +436,10 @@ VOID ctl_epollev(INT32 epollfd, INT32 op, WssClientContext* pWssClientCtx)
     struct epoll_event ev;
     MEMSET(&ev, 0, sizeof(ev));
 
-    if (wss_client_want_read(pWssClientCtx)) {
+    if (wssClientWantRead(pWssClientCtx)) {
         ev.events |= EPOLLIN;
     }
-    if (wss_client_want_write(pWssClientCtx)) {
+    if (wssClientWantWrite(pWssClientCtx)) {
         ev.events |= EPOLLOUT;
     }
     if (epoll_ctl(epollfd, op, pWssClientCtx->pNetworkContext->server_fd.fd, &ev) == -1) {
@@ -485,7 +485,7 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
     #endif
 
     // check the wss client want to read or write or not.
-    while (wss_client_want_read(pWssClientCtx) || wss_client_want_write(pWssClientCtx)) {
+    while (wssClientWantRead(pWssClientCtx) || wssClientWantWrite(pWssClientCtx)) {
         // need to setup the timeout of epoll in order to let the wss cleint thread to write the buffer out.
         INT32 nfds = epoll_wait(epollfd, events, MAX_EVENTS, 50);
 
@@ -495,8 +495,8 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
         }
 
         for (INT32 n = 0; n < nfds; ++n) {
-            if (((events[n].events & EPOLLIN) && wss_client_on_read_event(pWssClientCtx) != 0) ||
-                ((events[n].events & EPOLLOUT) && wss_client_on_write_event(pWssClientCtx) != 0)) {
+            if (((events[n].events & EPOLLIN) && wssClientOnReadEvent(pWssClientCtx) != 0) ||
+                ((events[n].events & EPOLLOUT) && wssClientOnWriteEvent(pWssClientCtx) != 0)) {
                 ok = FALSE;
                 break;
             }

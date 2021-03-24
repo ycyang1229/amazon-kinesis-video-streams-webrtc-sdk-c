@@ -275,7 +275,7 @@ STATUS httpApiRspGetIceConfig( const CHAR * pResponseStr, UINT32 resultLen, PSig
 
     MEMSET(&pSignalingClient->iceConfigs, 0x00, MAX_ICE_CONFIG_COUNT * SIZEOF(IceConfigInfo));
     pSignalingClient->iceConfigCount = 0;
-    DLOGD("pResponseStr:%s", pResponseStr);
+
     // Loop through the tokens and extract the ice configuration
     for (i = 0; i < tokenCount; i++) {
         if (!jsonInIceServerList) {

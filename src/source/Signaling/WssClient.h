@@ -49,9 +49,6 @@ typedef struct {
     MessageHandlerFunc messageHandler;
 }WssClientContext, *PWssClientContext;
 
-
-
-
 STATUS wssClientGenerateRandomNumber(PCHAR num, UINT32 len);
 STATUS wssClientGenerateClientKey(PCHAR buf, UINT32 bufLen);
 STATUS wssClientValidateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR acceptKey, UINT32 acceptKeyLen);
