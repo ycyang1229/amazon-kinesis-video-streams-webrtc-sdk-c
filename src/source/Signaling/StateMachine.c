@@ -237,7 +237,8 @@ STATUS signalingFsmFromGetToken(UINT64 customData, PUINT64 pState)
 
     CHK(pSignalingClient != NULL && pState != NULL, STATUS_NULL_ARG);
 
-    if ((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK) {
+    //if ((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK) {
+    if (1) {
         // Check if we are trying to delete a channel
         if (ATOMIC_LOAD_BOOL(&pSignalingClient->deleting)) {
             state = SIGNALING_STATE_DELETE;
@@ -285,14 +286,14 @@ STATUS signalingFsmGetToken(UINT64 customData, UINT64 time)
     }
 
     // Use the credential provider to get the token
-    retStatus = pSignalingClient->pCredentialProvider->getCredentialsFn(pSignalingClient->pCredentialProvider, &pSignalingClient->pAwsCredentials);
+    //retStatus = pSignalingClient->pCredentialProvider->getCredentialsFn(pSignalingClient->pCredentialProvider, &pSignalingClient->pAwsCredentials);
 
     // Check the expiration
-    if (NULL == pSignalingClient->pAwsCredentials || GETTIME() >= pSignalingClient->pAwsCredentials->expiration) {
-        serviceCallResult = SERVICE_CALL_NOT_AUTHORIZED;
-    } else {
-        serviceCallResult = SERVICE_CALL_RESULT_OK;
-    }
+    //if (NULL == pSignalingClient->pAwsCredentials || GETTIME() >= pSignalingClient->pAwsCredentials->expiration) {
+    //    serviceCallResult = SERVICE_CALL_NOT_AUTHORIZED;
+    //} else {
+    //    serviceCallResult = SERVICE_CALL_RESULT_OK;
+    //}
 
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) serviceCallResult);
 

@@ -824,8 +824,12 @@ STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
                       pSignalingMessageWrapper->receivedSignalingMessage.description);
 
                 // Store the response
+                //ATOMIC_STORE(&pSignalingClient->messageResult,
+                //             (SIZE_T) getServiceCallResultFromHttpStatus(pSignalingMessageWrapper->receivedSignalingMessage.statusCode));
+                DLOGD("YC_TBD, need to be fixed.");
                 ATOMIC_STORE(&pSignalingClient->messageResult,
-                             (SIZE_T) getServiceCallResultFromHttpStatus(pSignalingMessageWrapper->receivedSignalingMessage.statusCode));
+                             SERVICE_CALL_RESULT_OK);
+                             
             } else {
                 // Success
                 ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_RESULT_OK);

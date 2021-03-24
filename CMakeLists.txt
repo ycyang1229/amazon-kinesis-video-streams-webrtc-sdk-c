@@ -125,7 +125,7 @@ if(BUILD_DEPENDENCIES)
                  -DOPENSSL_DIR=${OPEN_SRC_INSTALL_PREFIX}
                  -DUSE_OPENSSL=${USE_OPENSSL}
                  -DUSE_MBEDTLS=${USE_MBEDTLS})
-  build_dependency(websockets ${BUILD_ARGS})
+  #build_dependency(websockets ${BUILD_ARGS})
   if(ENABLE_STREAMING)
     set(BUILD_ARGS
         -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
@@ -150,7 +150,8 @@ if(BUILD_DEPENDENCIES)
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
       -DUSE_OPENSSL=${USE_OPENSSL}
       -DUSE_MBEDTLS=${USE_MBEDTLS})
-  build_dependency(kvsCommonLws ${BUILD_ARGS})
+  #build_dependency(kvsCommonLws ${BUILD_ARGS})
+  build_dependency(kvspic ${BUILD_ARGS})
 
   message(STATUS "Finished building dependencies.")
 endif()
@@ -202,13 +203,13 @@ if (ENABLE_STREAMING AND NOT KVS_PLAT_ESP_FREERTOS)
   endif()
 endif()
 
-if (WIN32)
-  SET(LIBWEBSOCKETS_LIBRARIES "websockets.lib")
-else()
-  if(NOT KVS_PLAT_ESP_FREERTOS)
-    pkg_check_modules(LIBWEBSOCKETS REQUIRED libwebsockets)
-  endif()
-endif()
+#if (WIN32)
+#  SET(LIBWEBSOCKETS_LIBRARIES "websockets.lib")
+#else()
+#  if(NOT KVS_PLAT_ESP_FREERTOS)
+#    pkg_check_modules(LIBWEBSOCKETS REQUIRED libwebsockets)
+#  endif()
+#endif()
 
 
 if(ENABLE_DATA_CHANNEL)
@@ -219,11 +220,13 @@ if(ENABLE_DATA_CHANNEL)
     PATHS ${OPEN_SRC_INSTALL_PREFIX}/lib)
 endif()
 
+#set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS}
+#                          ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS})
 set(OPEN_SRC_INCLUDE_DIRS ${OPEN_SRC_INCLUDE_DIRS} ${LIBSRTP_INCLUDE_DIRS}
-                          ${CURL_INCLUDE_DIRS} ${LIBWEBSOCKETS_INCLUDE_DIRS})
+                          ${CURL_INCLUDE_DIRS})
 
 link_directories(${LIBSRTP_LIBRARY_DIRS})
-link_directories(${LIBWEBSOCKETS_LIBRARY_DIRS})
+#link_directories(${LIBWEBSOCKETS_LIBRARY_DIRS})
 link_directories(${OPEN_SRC_INSTALL_PREFIX}/lib)
 
 pkg_check_modules(GST gstreamer-1.0)
@@ -365,9 +368,9 @@ target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wno-format-truncation)
 
 target_link_libraries(
   kvsWebrtcSignalingClient
-  PUBLIC
-        ${LIBWEBSOCKETS_LIBRARIES} 
-        kvsCommonLws
+  #PUBLIC
+        #${LIBWEBSOCKETS_LIBRARIES} 
+        #kvsCommonLws
   PRIVATE kvspicUtils
          kvspicState
          ${CMAKE_THREAD_LIBS_INIT}

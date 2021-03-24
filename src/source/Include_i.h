@@ -70,7 +70,7 @@ extern "C" {
 #ifdef ENABLE_DATA_CHANNEL
 #include <usrsctp.h>
 #endif
-#include <libwebsockets.h>
+//#include <libwebsockets.h>
 
 #if !defined __WINDOWS_BUILD__
 #include <signal.h>
@@ -179,6 +179,8 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #endif
 // new
 #include "Signaling/list.h"
+#include "Signaling/Version.h"
+#include "Signaling/Util.h"
 #include "Signaling/WebrtcPort.h"
 #include "Signaling/AwsSignerV4.h"
 #include "Signaling/NetworkApi.h"
