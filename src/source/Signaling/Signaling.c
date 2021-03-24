@@ -607,7 +607,10 @@ STATUS signalingValidateIceConfiguration(PSignalingClient pSignalingClient)
     CHK(minTtl > ICE_CONFIGURATION_REFRESH_GRACE_PERIOD, STATUS_SIGNALING_ICE_TTL_LESS_THAN_GRACE_PERIOD);
 
     // Indicate that we have successfully retrieved ICE configs
+    DLOGD("pSignalingClient->iceConfigCount:%d", pSignalingClient->iceConfigCount);
+
     ATOMIC_STORE_BOOL(&pSignalingClient->iceConfigRetrieved, TRUE);
+    DLOGD("pSignalingClient->iceConfigRetrieved:%d", pSignalingClient->iceConfigRetrieved);
 
     refreshPeriod = (pSignalingClient->clientInfo.iceRefreshPeriod != 0) ? pSignalingClient->clientInfo.iceRefreshPeriod
                                                                          : minTtl - ICE_CONFIGURATION_REFRESH_GRACE_PERIOD;

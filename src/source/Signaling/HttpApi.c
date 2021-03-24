@@ -58,7 +58,7 @@
 #define HDR_X_AMZN_PRODUCER_START_T     "x-amzn-producer-start-timestamp"
 #define HDR_X_AMZN_STREAM_NAME          "x-amzn-stream-name"
 
-#define AWS_SIGNER_V4_BUFFER_SIZE           ( 4096 )
+#define AWS_SIGNER_V4_BUFFER_SIZE           ( 4096 + 2048)
 #define MAX_CONNECTION_RETRY                ( 3 )
 #define CONNECTION_RETRY_INTERVAL_IN_MS     ( 1000 )
 /*-----------------------------------------------------------*/
@@ -917,10 +917,11 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
     PCHAR pUserAgent = "userAgent";//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
 
     CHK(NULL != (pHost = (CHAR *)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
-    SNPRINTF(pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s.%s%s", 
-                                                    KINESIS_VIDEO_SERVICE_NAME,
-                                                    pSignalingClient->pChannelInfo->pRegion,
-                                                    CONTROL_PLANE_URI_POSTFIX);
+    MEMSET(pHost, 0, STRLEN(pSignalingClient->channelEndpointHttps+1));
+    STRCPY(pHost, pSignalingClient->channelEndpointHttps+8);
+    DLOGD("pSignalingClient->channelEndpointHttps:%s", pSignalingClient->channelEndpointHttps);
+    DLOGD("pHost:%s", pHost);
+
     DLOGD("preparing the call");
     pHttpBody = (CHAR *) MEMALLOC( sizeof( GET_ICE_CONFIG_PARAM_JSON_TEMPLATE ) + 
                                     STRLEN( pSignalingClient->channelDescription.channelArn ) + 
@@ -931,8 +932,11 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
         retStatus = STATUS_NOT_ENOUGH_MEMORY;
     }
 
+    
+
     /* generate HTTP request body */
     uHttpBodyLen = SPRINTF( pHttpBody, GET_ICE_CONFIG_PARAM_JSON_TEMPLATE, pSignalingClient->channelDescription.channelArn, pSignalingClient->clientInfo.signalingClientInfo.clientId);
+    DLOGD("pHttpBody:%s", pHttpBody);
 
     /* generate UTC time in x-amz-date formate */
     retStatus = getTimeInIso8601( pXAmzDate, sizeof( pXAmzDate ) );

@@ -54,7 +54,7 @@
 #define HTTP_HEADER_VALUE_WS "websocket"
 
 // #YC_TBD, need to be fixed.
-#define AWS_SIGNER_V4_BUFFER_SIZE           ( 4096+1024 )
+#define AWS_SIGNER_V4_BUFFER_SIZE           ( 4096+4096 )
 #define MAX_CONNECTION_RETRY                ( 3 )
 #define CONNECTION_RETRY_INTERVAL_IN_MS     ( 1000 )
 
@@ -323,7 +323,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
             if(wssClientValidateAcceptKey(clientKey, WSS_CLIENT_BASED64_RANDOM_SEED_LEN, node->value, node->valueLen)!=0){
                 DLOGD("validate accept key failed\n");
             }else{
-                DLOGD("validate accept key failed success\n");
+                DLOGD("validate accept key success\n");
             }
         }
 
@@ -343,15 +343,16 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
 
             DLOGD("connect signaling channel successfully.\n");
             /* We got a success response here. */
-            WssClientContext* wss_client_ctx = NULL;
+            WssClientContext* wssClientCtx = NULL;
             // #YC_TBD.
             mbedtls_ssl_conf_read_timeout(&pNetworkContext->conf, 50);
             //mbedtls_ssl_set_timer_cb( &ssl, &timer, mbedtls_timing_set_delay,
             //                                    mbedtls_timing_get_delay );
-            wssClientCreate(&wss_client_ctx, pNetworkContext);
+            wssClientCreate(&wssClientCtx, pNetworkContext, pSignalingClient, wssReceiveMessage);
             // #YC_TBD !!!!!!!!! MUST
-            pSignalingClient->pOngoingCallInfo = (PLwsCallInfo)wss_client_ctx;
-            CHK_STATUS(THREAD_CREATE(&pSignalingClient->listenerTracker.threadId, wssClientStart, (PVOID) wss_client_ctx));
+            pSignalingClient->pOngoingCallInfo = MEMALLOC(SIZEOF(LwsCallInfo));
+            pSignalingClient->pWssContext = wssClientCtx;
+            CHK_STATUS(THREAD_CREATE(&pSignalingClient->listenerTracker.threadId, wssClientStart, (PVOID) wssClientCtx));
             CHK_STATUS(THREAD_DETACH(pSignalingClient->listenerTracker.threadId));
             ATOMIC_STORE_BOOL(&pSignalingClient->connected, TRUE);
         }
@@ -420,6 +421,121 @@ CleanUp:
 }
 
 /*-----------------------------------------------------------*/
+/**
+ * @brief   #YC_TBD.
+ * 
+ * @param[]
+ * @param[]
+ * 
+ * @return
+*/
+STATUS wssWakeServiceEventLoop(PSignalingClient pSignalingClient)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+
+    // Early exit in case we don't need to do anything
+    CHK(pSignalingClient != NULL && pSignalingClient->pWssContext != NULL, retStatus);
+
+    MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+    //lws_callback_on_writable_all_protocol(pSignalingClient->pWssContext, &pSignalingClient->signalingProtocols[WSS_SIGNALING_PROTOCOL_INDEX]);
+    MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+
+CleanUp:
+
+    LEAVES();
+    return retStatus;
+}
+
+
+/**
+ * @brief   
+ * 
+ * @param[in] pSignalingClient
+ * @param[in] awaitForResponse
+ * 
+ * @return
+*/
+STATUS wssWriteData(PSignalingClient pSignalingClient, BOOL awaitForResponse)
+{
+    ENTERS();
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL sendLocked = FALSE, receiveLocked = FALSE, iterate = TRUE;
+    SIZE_T offset, size;
+    SERVICE_CALL_RESULT result;
+
+    CHK(pSignalingClient != NULL && pSignalingClient->pOngoingCallInfo != NULL, STATUS_NULL_ARG);
+
+    // See if anything needs to be done
+    CHK(pSignalingClient->pOngoingCallInfo->sendBufferSize != pSignalingClient->pOngoingCallInfo->sendOffset, retStatus);
+
+    DLOGD("Sending data over web socket: %s", pSignalingClient->pOngoingCallInfo->sendBuffer);
+
+    // Initialize the send result to none
+    ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
+
+    // Wake up the service event loop
+    CHK_STATUS(wssWakeServiceEventLoop(pSignalingClient));
+
+    MUTEX_LOCK(pSignalingClient->sendLock);
+    sendLocked = TRUE;
+    wssClientSendText(pSignalingClient->pWssContext,
+                      pSignalingClient->pOngoingCallInfo->sendBuffer,
+                      pSignalingClient->pOngoingCallInfo->sendBufferSize-pSignalingClient->pOngoingCallInfo->sendOffset);
+    //while (iterate) {
+    //    offset = ATOMIC_LOAD(&pSignalingClient->pOngoingCallInfo->sendOffset);
+    //    size = ATOMIC_LOAD(&pSignalingClient->pOngoingCallInfo->sendBufferSize);
+
+    //    result = (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->messageResult);
+
+    //    if (offset != size && result == SERVICE_CALL_RESULT_NOT_SET) {
+    //        CHK_STATUS(CVAR_WAIT(pSignalingClient->sendCvar, pSignalingClient->sendLock, SIGNALING_SEND_TIMEOUT));
+    //    } else {
+    //        iterate = FALSE;
+    //    }
+    //}
+
+    MUTEX_UNLOCK(pSignalingClient->sendLock);
+    sendLocked = FALSE;
+
+    // Do not await for the response in case of correlation id not specified
+    CHK(awaitForResponse, retStatus);
+
+    // Await for the response
+    MUTEX_LOCK(pSignalingClient->receiveLock);
+    receiveLocked = TRUE;
+
+    iterate = TRUE;
+    while (iterate) {
+        result = (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->messageResult);
+
+        if (result == SERVICE_CALL_RESULT_NOT_SET) {
+            CHK_STATUS(CVAR_WAIT(pSignalingClient->receiveCvar, pSignalingClient->receiveLock, SIGNALING_SEND_TIMEOUT));
+        } else {
+            iterate = FALSE;
+        }
+    }
+
+    MUTEX_UNLOCK(pSignalingClient->receiveLock);
+    receiveLocked = FALSE;
+
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->messageResult) == SERVICE_CALL_RESULT_OK, STATUS_SIGNALING_MESSAGE_DELIVERY_FAILED);
+
+CleanUp:
+
+    if (sendLocked) {
+        MUTEX_UNLOCK(pSignalingClient->sendLock);
+    }
+
+    if (receiveLocked) {
+        MUTEX_UNLOCK(pSignalingClient->receiveLock);
+    }
+
+    LEAVES();
+    return retStatus;
+}
+
+
 
 /**
  * @brief   
@@ -435,7 +551,7 @@ STATUS wssSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCH
     
     WSS_API_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
-    #if 0
+
     PCHAR pEncodedMessage = NULL;
     UINT32 size, writtenSize, correlationLen;
     BOOL awaitForResponse;
@@ -465,12 +581,12 @@ STATUS wssSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCH
     CHK_STATUS(base64Encode(pMessage, size, pEncodedMessage, &writtenSize));
 
     // Account for the template expansion + Action string + max recipient id
-    size = SIZEOF(pSignalingClient->pOngoingCallInfo->sendBuffer) - LWS_PRE;
+    size = SIZEOF(pSignalingClient->pOngoingCallInfo->sendBuffer);
     CHK(writtenSize <= size, STATUS_SIGNALING_MAX_MESSAGE_LEN_AFTER_ENCODING);
 
     // Prepare json message
     if (correlationLen == 0) {
-        writtenSize = (UINT32) SNPRINTF((PCHAR)(pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE),
+        writtenSize = (UINT32) SNPRINTF((PCHAR)(pSignalingClient->pOngoingCallInfo->sendBuffer),
                                         size,
                                         SIGNALING_SEND_MESSAGE_TEMPLATE,
                                         pMessageType,
@@ -478,7 +594,7 @@ STATUS wssSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCH
                                         peerClientId,
                                         pEncodedMessage);
     } else {
-        writtenSize = (UINT32) SNPRINTF((PCHAR)(pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE),
+        writtenSize = (UINT32) SNPRINTF((PCHAR)(pSignalingClient->pOngoingCallInfo->sendBuffer),
                                         size,
                                         SIGNALING_SEND_MESSAGE_TEMPLATE_WITH_CORRELATION_ID,
                                         pMessageType,
@@ -496,12 +612,12 @@ STATUS wssSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCH
     CHK(writtenSize <= size, STATUS_INVALID_ARG);
 
     // Store the data pointer
-    ATOMIC_STORE(&pSignalingClient->pOngoingCallInfo->sendBufferSize, LWS_PRE + writtenSize);
-    ATOMIC_STORE(&pSignalingClient->pOngoingCallInfo->sendOffset, LWS_PRE);
+    ATOMIC_STORE(&pSignalingClient->pOngoingCallInfo->sendBufferSize, writtenSize);
+    ATOMIC_STORE(&pSignalingClient->pOngoingCallInfo->sendOffset, 0);
 
     // Send the data to the web socket
     awaitForResponse = (correlationLen != 0) && BLOCK_ON_CORRELATION_ID;
-    CHK_STATUS(lwsWriteData(pSignalingClient, awaitForResponse));
+    CHK_STATUS(wssWriteData(pSignalingClient, awaitForResponse));
 
     // Re-setting the buffer size and offset
     ATOMIC_STORE(&pSignalingClient->pOngoingCallInfo->sendBufferSize, 0);
@@ -509,7 +625,6 @@ STATUS wssSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCH
 
 CleanUp:
     SAFE_MEMFREE(pEncodedMessage);
-    #endif
     WSS_API_EXIT();
     return retStatus;
 }
@@ -651,6 +766,7 @@ STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
                                     (PBYTE)(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payload), &outLen));
             pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payload[MAX_SIGNALING_MESSAGE_LEN] = '\0';
             pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payloadLen = outLen;
+            //DLOGD("decoded payload:%s", pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payload);
             i++;
         } else {
             if (!parsedStatusResponse) {
@@ -796,31 +912,6 @@ CleanUp:
     return retStatus;
 }
 
-/**
- * @brief   #YC_TBD.
- * 
- * @param[]
- * @param[]
- * 
- * @return
-*/
-STATUS wssWakeServiceEventLoop(PSignalingClient pSignalingClient)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-
-    // Early exit in case we don't need to do anything
-    CHK(pSignalingClient != NULL && pSignalingClient->pWssContext != NULL, retStatus);
-
-    MUTEX_LOCK(pSignalingClient->lwsServiceLock);
-    //lws_callback_on_writable_all_protocol(pSignalingClient->pWssContext, &pSignalingClient->signalingProtocols[WSS_SIGNALING_PROTOCOL_INDEX]);
-    MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
-
-CleanUp:
-
-    LEAVES();
-    return retStatus;
-}
 
 /**
  * @brief   terminate the websocket connection.

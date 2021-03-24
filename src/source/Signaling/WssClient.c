@@ -16,7 +16,6 @@
 #define LOG_CLASS "WssClient"
 #include "../Include_i.h"
 
-
 #define WSS_CLIENT_ENTER() //DLOGD("enter")
 #define WSS_CLIENT_EXIT() //DLOGD("exit")
 
@@ -156,9 +155,9 @@ STATUS wssClientValidateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR ac
  * 
  * @return
 */
-INT32 wss_client_socket_send(WssClientContext* pCtx, const UINT8* data, SIZE_T len, INT32 flags)
+INT32 wssClientSocketSend(WssClientContext* pCtx, const UINT8* data, SIZE_T len, INT32 flags)
 {
-  return networkSend( pCtx->pNetworkContext, data, len );
+    return networkSend( pCtx->pNetworkContext, data, len );
 }
 /**
  * @brief   receive data from the socket layer.
@@ -166,12 +165,12 @@ INT32 wss_client_socket_send(WssClientContext* pCtx, const UINT8* data, SIZE_T l
  * @param[in]
  * @return
 */
-INT32 wss_client_socket_read(WssClientContext* pCtx, UINT8* data, SIZE_T len, INT32 flags)
+INT32 wssClientSocketRead(WssClientContext* pCtx, UINT8* data, SIZE_T len, INT32 flags)
 {
   return networkRecv( pCtx->pNetworkContext, data, len );
 }
 
-SSIZE_T wss_client_feed_body(WssClientContext* pCtx, UINT8 *data, SIZE_T len) 
+SSIZE_T wssClientFeedBody(WssClientContext* pCtx, UINT8 *data, SIZE_T len) 
 {
   DLOGD("feed body callback****");
   return 0;
@@ -189,16 +188,16 @@ SSIZE_T wslay_send_callback(wslay_event_context_ptr ctx,
                       INT32 flags,
                       VOID *user_data) 
 {
-  WssClientContext *pCtx = (WssClientContext *)user_data;
-  SSIZE_T r = wss_client_socket_send(pCtx, data, len, flags);
-  if (r == -1) {
-    if (errno == EAGAIN || errno == EWOULDBLOCK) {
-      wslay_event_set_error(ctx, WSLAY_ERR_WOULDBLOCK);
-    } else {
-      wslay_event_set_error(ctx, WSLAY_ERR_CALLBACK_FAILURE);
+    WssClientContext *pCtx = (WssClientContext *)user_data;
+    SSIZE_T r = wssClientSocketSend(pCtx, data, len, flags);
+    if (r == -1) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            wslay_event_set_error(ctx, WSLAY_ERR_WOULDBLOCK);
+        } else {
+            wslay_event_set_error(ctx, WSLAY_ERR_CALLBACK_FAILURE);
+        }
     }
-  }
-  return r;
+    return r;
 }
 
 SSIZE_T wslay_recv_callback(wslay_event_context_ptr ctx,
@@ -207,57 +206,60 @@ SSIZE_T wslay_recv_callback(wslay_event_context_ptr ctx,
                       INT32 flags,
                       VOID *user_data) 
 {
-  WssClientContext *pCtx = (WssClientContext *)user_data;
-  SSIZE_T r = wss_client_socket_read(pCtx, data, len, flags);
-  if (r == -1) {
-    if (errno == EAGAIN || errno == EWOULDBLOCK) {
-      wslay_event_set_error(ctx, WSLAY_ERR_WOULDBLOCK);
-    } else {
-      wslay_event_set_error(ctx, WSLAY_ERR_CALLBACK_FAILURE);
+    WssClientContext *pCtx = (WssClientContext *)user_data;
+    SSIZE_T r = wssClientSocketRead(pCtx, data, len, flags);
+    if (r == -1) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            wslay_event_set_error(ctx, WSLAY_ERR_WOULDBLOCK);
+        } else {
+            wslay_event_set_error(ctx, WSLAY_ERR_CALLBACK_FAILURE);
+        }
+    } else if (r == 0) {
+        wslay_event_set_error(ctx, WSLAY_ERR_CALLBACK_FAILURE);
+        r = -1;
     }
-  } else if (r == 0) {
-    wslay_event_set_error(ctx, WSLAY_ERR_CALLBACK_FAILURE);
-    r = -1;
-  }
-  return r;
+    return r;
 }
 
 
 INT32 wslay_genmask_callback(wslay_event_context_ptr ctx, UINT8 *buf, SIZE_T len,
-                     VOID *user_data) {
-  WssClientContext *ws = (WssClientContext *)user_data;
-  wssClientGenerateRandomNumber(buf, len);
-  return 0;
+                     VOID *user_data) 
+{
+    WssClientContext *ws = (WssClientContext *)user_data;
+    wssClientGenerateRandomNumber(buf, len);
+    return 0;
 }
 
 VOID wslay_msg_recv_callback(wslay_event_context_ptr ctx,
                           const struct wslay_event_on_msg_recv_arg *arg,
                           VOID *user_data) 
 {
-  WssClientContext *ws = (WssClientContext *)user_data;
-  if (!wslay_is_ctrl_frame(arg->opcode)) {
-    //struct wslay_event_msg msgarg = {arg->opcode, arg->msg, arg->msg_length};
-    //wslay_event_queue_msg(ctx, &msgarg);
-    DLOGD("received(%d): %s", arg->opcode, arg->msg);
-    // #YC_TBD, 
-  }else{
-    DLOGD("<===   ");
-    if(arg->opcode==WSLAY_PONG){
-      DLOGD("received pong, len: %ld", arg->msg_length);
-    }else if(arg->opcode==WSLAY_PING){
-      DLOGD("received ping, len: %ld", arg->msg_length);
-    }else if(arg->opcode==WSLAY_CONNECTION_CLOSE){
-      DLOGD("received connection close, len: %ld", arg->msg_length);
+    WssClientContext *ws = (WssClientContext *)user_data;
+    if (!wslay_is_ctrl_frame(arg->opcode)) {
+        //struct wslay_event_msg msgarg = {arg->opcode, arg->msg, arg->msg_length};
+        //wslay_event_queue_msg(ctx, &msgarg);
+        DLOGD("received(%d): %s", arg->opcode, arg->msg);
+        // #YC_TBD, 
+        ws->messageHandler(ws->pUserData, arg->msg, arg->msg_length);
     }else{
-      DLOGD("received ctrl msg(%d), len: %ld", arg->opcode, arg->msg_length);
+        DLOGD("<===   ");
+        if(arg->opcode==WSLAY_PONG){
+            DLOGD("received pong, len: %ld", arg->msg_length);
+        }else if(arg->opcode==WSLAY_PING){
+            DLOGD("received ping, len: %ld", arg->msg_length);
+        }else if(arg->opcode==WSLAY_CONNECTION_CLOSE){
+            DLOGD("received connection close, len: %ld", arg->msg_length);
+        }else{
+            DLOGD("received ctrl msg(%d), len: %ld", arg->opcode, arg->msg_length);
+        }
     }
-  }
 }
 
-SSIZE_T feed_body_callback(wslay_event_context_ptr ctx, UINT8 *data,
-                           SIZE_T len, INT32 flags, VOID *user_data) {
-  WssClientContext *pCtx = (WssClientContext *)user_data;
-  return wss_client_feed_body(pCtx, data, len);
+SSIZE_T wslay_feed_body_callback(wslay_event_context_ptr ctx, UINT8 *data,
+                           SIZE_T len, INT32 flags, VOID *user_data)
+{
+    WssClientContext *pCtx = (WssClientContext *)user_data;
+    return wssClientFeedBody(pCtx, data, len);
 }
 
 
@@ -312,47 +314,48 @@ INT32 wss_client_on_write_event(WssClientContext* pCtx)
     return retStatus;
 }
 
-static INT32 wss_client_send(WssClientContext* pCtx, struct wslay_event_msg* arg)
+static INT32 wssClientSend(WssClientContext* pCtx, struct wslay_event_msg* arg)
 {
     WSS_CLIENT_ENTER();
     INT32 retStatus = 0;
-    DLOGD("===>   (%d)", arg->opcode);
     CLIENT_LOCK(pCtx);
+    DLOGD("===>   (%d)(%d)", arg->opcode, arg->msg_length);
     retStatus = wslay_event_queue_msg(pCtx->event_ctx, arg);
+    DLOGD("===>   (%d)(%d) done", arg->opcode, arg->msg_length);
     CLIENT_UNLOCK(pCtx);
     WSS_CLIENT_EXIT();
     return retStatus;
 }
 
-INT32 wss_client_send_text(WssClientContext* pCtx, UINT8* buf, UINT32 len)
+INT32 wssClientSendText(WssClientContext* pCtx, UINT8* buf, UINT32 len)
 {
     struct wslay_event_msg arg;
     arg.opcode = WSLAY_TEXT_FRAME;
     arg.msg = buf;
     arg.msg_length = len;
-    return  wss_client_send(pCtx, &arg);
+    return wssClientSend(pCtx, &arg);
 }
 
-INT32 wss_client_send_binary(WssClientContext* pCtx, UINT8* buf, UINT32 len)
+INT32 wssClientSendBinary(WssClientContext* pCtx, UINT8* buf, UINT32 len)
 {
     struct wslay_event_msg arg;
     arg.opcode = WSLAY_BINARY_FRAME;
     arg.msg = buf;
     arg.msg_length = len;
-    return  wss_client_send(pCtx, &arg);
+    return wssClientSend(pCtx, &arg);
 }
 
-INT32 wss_client_send_ping(WssClientContext* pCtx)
+INT32 wssClientSendPing(WssClientContext* pCtx)
 {
     struct wslay_event_msg arg;
     MEMSET(&arg, 0, sizeof(arg));
     arg.opcode = WSLAY_PING;
     arg.msg_length = 0;
-    return  wss_client_send(pCtx, &arg);
+    return wssClientSend(pCtx, &arg);
 }
 
 
-#define WSS_SEND_TEST 1
+#define WSS_SEND_TEST 0
 #if (WSS_SEND_TEST == 1)
 VOID* testThread(VOID* arg)
 {
@@ -369,10 +372,10 @@ VOID* testThread(VOID* arg)
                         "\t\"messagePayload\": \"string%d\","
                         "\t\"correlationId\": \"string\"\n}", index);
         DLOGD("send");
-        wss_client_send_text(context, indexBuf, STRLEN(indexBuf));
+        wssClientSendText(context, indexBuf, STRLEN(indexBuf));
         DLOGD("send done");
         #else
-        wss_client_send_ping(context);
+        wssClientSendPing(context);
         #endif
         sleep(1);
     }
@@ -388,7 +391,7 @@ VOID* testThread(VOID* arg)
  * 
  * @return
 */
-VOID wssClientCreate(WssClientContext** ppWssClientCtx, NetworkContext_t * pNetworkContext)
+VOID wssClientCreate(WssClientContext** ppWssClientCtx, NetworkContext_t * pNetworkContext, PVOID arg, MessageHandlerFunc pFunc)
 {
     WSS_CLIENT_ENTER();
     INT32 retStatus = 0;
@@ -407,6 +410,8 @@ VOID wssClientCreate(WssClientContext** ppWssClientCtx, NetworkContext_t * pNetw
 
     pCtx->event_callbacks = callbacks;
     pCtx->pNetworkContext = pNetworkContext;
+    pCtx->pUserData = arg;
+    pCtx->messageHandler = pFunc;
 
     // the initialization of the mutex 
     {
@@ -428,19 +433,19 @@ VOID wssClientCreate(WssClientContext** ppWssClientCtx, NetworkContext_t * pNetw
 
 VOID ctl_epollev(INT32 epollfd, INT32 op, WssClientContext* pWssClientCtx)
 {
-  struct epoll_event ev;
-  MEMSET(&ev, 0, sizeof(ev));
+    struct epoll_event ev;
+    MEMSET(&ev, 0, sizeof(ev));
 
-  if (wss_client_want_read(pWssClientCtx)) {
-      ev.events |= EPOLLIN;
-  }
-  if (wss_client_want_write(pWssClientCtx)) {
-      ev.events |= EPOLLOUT;
-  }
-  if (epoll_ctl(epollfd, op, pWssClientCtx->pNetworkContext->server_fd.fd, &ev) == -1) {
-      DLOGD("epoll_ctl failed ");
-      exit(EXIT_FAILURE);
-  }
+    if (wss_client_want_read(pWssClientCtx)) {
+        ev.events |= EPOLLIN;
+    }
+    if (wss_client_want_write(pWssClientCtx)) {
+        ev.events |= EPOLLOUT;
+    }
+    if (epoll_ctl(epollfd, op, pWssClientCtx->pNetworkContext->server_fd.fd, &ev) == -1) {
+        DLOGD("epoll_ctl failed ");
+        exit(EXIT_FAILURE);
+    }
 }
 
 /**
@@ -482,7 +487,7 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
     // check the wss client want to read or write or not.
     while (wss_client_want_read(pWssClientCtx) || wss_client_want_write(pWssClientCtx)) {
         // need to setup the timeout of epoll in order to let the wss cleint thread to write the buffer out.
-        INT32 nfds = epoll_wait(epollfd, events, MAX_EVENTS, 1000);
+        INT32 nfds = epoll_wait(epollfd, events, MAX_EVENTS, 50);
 
         if (nfds == -1) {
             DLOGD("epoll_wait failed");
