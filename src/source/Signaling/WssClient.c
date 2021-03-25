@@ -115,7 +115,6 @@ STATUS wssClientGenerateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR ac
 
     MEMCPY(buf, clientKey, STRLEN(clientKey));
     MEMCPY(buf+STRLEN(clientKey), WSS_CLIENT_RFC6455_UUID, STRLEN(WSS_CLIENT_RFC6455_UUID));
-    DLOGD("combined string(%ld):%s", STRLEN(buf), buf);
 
     mbedtls_sha1( buf, STRLEN(buf), obuf );
     retStatus = mbedtls_base64_encode(acceptKey, acceptKeyLen, (VOID*)&olen, obuf, 20);
@@ -123,7 +122,7 @@ STATUS wssClientGenerateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR ac
     if( retStatus!=0 || olen != WSS_CLIENT_ACCEPT_KEY_LEN){
         DLOGD("base64-encode accept key failed");
     }
-    DLOGD("output(%ld):%s", STRLEN(acceptKey), acceptKey);
+
     WSS_CLIENT_EXIT();
     return retStatus;
 }
@@ -134,7 +133,7 @@ STATUS wssClientValidateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR ac
     STATUS retStatus = STATUS_SUCCESS;
     UINT8 tmpKey[WSS_CLIENT_ACCEPT_KEY_LEN+1];
     MEMSET(tmpKey, 0, WSS_CLIENT_ACCEPT_KEY_LEN+1);
-    DLOGD("clientKey:%s", clientKey);
+
     retStatus = wssClientGenerateAcceptKey(clientKey, clientKeyLen, tmpKey, WSS_CLIENT_ACCEPT_KEY_LEN+1);
     if( retStatus!=0 ){
         DLOGD("generating accept key failed");

@@ -17,8 +17,8 @@
 #include "../Include_i.h"
 
 
-#define HTTP_API_ENTER() DLOGD("enter")
-#define HTTP_API_EXIT() DLOGD("exit")
+#define HTTP_API_ENTER() //DLOGD("enter")
+#define HTTP_API_EXIT() //DLOGD("exit")
 
 
 /*-----------------------------------------------------------*/
@@ -234,30 +234,34 @@ STATUS httpApiCreateChannl(PSignalingClient pSignalingClient, UINT64 time)
     PCHAR p = NULL;
 
     /* Variables for network connection */
-    NetworkContext_t *pNetworkContext = NULL;
+    NetworkContext_t* pNetworkContext = NULL;
     SIZE_T uConnectionRetryCnt = 0;
-    UINT32 uBytesToSend = 0;
+    UINT32 uBytesToSend = 0, uBytesReceived = 0;
 
     /* Variables for AWS signer V4 */
-    AwsSignerV4Context_t signerContext = { 0 };
+    AwsSignerV4Context_t signerContext;
     CHAR pXAmzDate[ SIGNATURE_DATE_TIME_STRING_LEN ];
 
     /* Variables for HTTP request */
-    CHAR *pHttpParameter = "";
-    CHAR *pHttpBody = NULL;
+    PCHAR pHttpParameter = "";
+    PCHAR pHttpBody = NULL;
     SIZE_T uHttpBodyLen = 0;
 
     UINT32 uHttpStatusCode = 0;
     HttpResponseContext* pHttpRspCtx = NULL;
 
     // temp interface.
-    PCHAR pAccessKey = getenv(ACCESS_KEY_ENV_VAR);  // It's AWS access key if not using IoT certification.
-    PCHAR pSecretKey = getenv(SECRET_KEY_ENV_VAR);  // It's secret of AWS access key if not using IoT certification.
-    PCHAR pToken = NULL;
+    PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
+    PCHAR pSecretKey = pSignalingClient->pAwsCredentials->secretKey;
+    PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
     PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
     PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
     PCHAR pHost = NULL;
     PCHAR pUserAgent = "userAgent";//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
+    PCHAR pResponseStr;
+    UINT32 resultLen;
+
+    MEMSET(&signerContext, 0, SIZEOF(AwsSignerV4Context_t));
 
     CHK(NULL != (pHost = (CHAR *)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
     SNPRINTF(pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s.%s%s", 
@@ -265,148 +269,97 @@ STATUS httpApiCreateChannl(PSignalingClient pSignalingClient, UINT64 time)
                                                     pSignalingClient->pChannelInfo->pRegion,
                                                     CONTROL_PLANE_URI_POSTFIX);
     DLOGD("preparing the call");
-    do
+    
+    CHK((pChannelInfo != NULL && pChannelInfo->pChannelName[0] != '\0'), STATUS_INVALID_ARG);
+
+    CHK(NULL != (pHttpBody = (CHAR *)MEMALLOC(  sizeof( CREATE_CHANNEL_JSON_TEMPLATE ) +
+                                                STRLEN( pChannelInfo->pChannelName ) +
+                                                MAX_STRLEN_OF_UINT32 + 1 )), STATUS_NOT_ENOUGH_MEMORY);
+
+    /* generate HTTP request body */
+    uHttpBodyLen = SPRINTF( pHttpBody, CREATE_CHANNEL_JSON_TEMPLATE, pChannelInfo->pChannelName);
+
+    /* generate UTC time in x-amz-date formate */
+    // #YC_TBD, 
+    CHK_STATUS(getTimeInIso8601( pXAmzDate, sizeof(pXAmzDate)));
+
+    /* Create canonical request and sign the request. */
+    CHK_STATUS(AwsSignerV4_initContext( &signerContext, AWS_SIGNER_V4_BUFFER_SIZE ));
+
+    CHK_STATUS(AwsSignerV4_initCanonicalRequest( &signerContext,
+                                                    HTTP_METHOD_POST,
+                                                    sizeof( HTTP_METHOD_POST ) - 1,
+                                                    WEBRTC_API_CREATE_SIGNALING_CHANNEL,
+                                                    sizeof( WEBRTC_API_CREATE_SIGNALING_CHANNEL ) - 1,
+                                                    pHttpParameter,
+                                                    STRLEN( pHttpParameter )) );
+
+    CHK_STATUS(AwsSignerV4_addCanonicalHeader( &signerContext, HDR_HOST, sizeof( HDR_HOST ) - 1,
+                                                pHost, STRLEN( pHost ) ));
+    
+
+    CHK_STATUS(AwsSignerV4_addCanonicalHeader( &signerContext, HDR_USER_AGENT, sizeof( HDR_USER_AGENT ) - 1,
+                                                pUserAgent, STRLEN( pUserAgent ) ));
+
+    CHK_STATUS(AwsSignerV4_addCanonicalHeader( &signerContext, HDR_X_AMZ_DATE, sizeof( HDR_X_AMZ_DATE ) - 1,
+                                                pXAmzDate, STRLEN( pXAmzDate ) ));
+
+    CHK_STATUS(AwsSignerV4_addCanonicalBody( &signerContext, ( uint8_t * )pHttpBody, uHttpBodyLen));
+
+    CHK_STATUS(AwsSignerV4_sign( &signerContext, pSecretKey, STRLEN( pSecretKey ),
+                                    pRegion, STRLEN( pRegion ),
+                                    pService, STRLEN( pService ),
+                                    pXAmzDate, STRLEN( pXAmzDate ) ));
+
+    /* Initialize and generate HTTP request, then send it. */
+    CHK(NULL != (pNetworkContext = (NetworkContext_t *)MEMALLOC( sizeof(NetworkContext_t))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(initNetworkContext( pNetworkContext ) );
+
+    for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
     {
-        CHK((pChannelInfo != NULL && pChannelInfo->pChannelName[0] != '\0'), STATUS_INVALID_ARG);
-
-        pHttpBody = ( CHAR * )MEMALLOC( sizeof( CREATE_CHANNEL_JSON_TEMPLATE ) + STRLEN( pChannelInfo->pChannelName ) +
-                MAX_STRLEN_OF_UINT32 + 1 );
-        if( pHttpBody == NULL )
-        {
-            retStatus = STATUS_NOT_ENOUGH_MEMORY;
-            break;
-        }
-
-        /* generate HTTP request body */
-        uHttpBodyLen = SPRINTF( pHttpBody, CREATE_CHANNEL_JSON_TEMPLATE, pChannelInfo->pChannelName);
-
-        /* generate UTC time in x-amz-date formate */
-        retStatus = getTimeInIso8601( pXAmzDate, sizeof( pXAmzDate ) );
-        if( retStatus != STATUS_SUCCESS )
+        if( ( retStatus = connectToServer( pNetworkContext, pHost, KVS_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
         {
             break;
         }
+        sleepInMs( CONNECTION_RETRY_INTERVAL_IN_MS );
+    }
 
-        /* Create canonical request and sign the request. */
-        retStatus = AwsSignerV4_initContext( &signerContext, AWS_SIGNER_V4_BUFFER_SIZE );
-        if( retStatus != STATUS_SUCCESS )
-        {
-            break;
-        }
+    p = ( PCHAR )( pNetworkContext->pHttpSendBuffer );
+    p += SPRINTF( p, "%s %s HTTP/1.1\r\n", HTTP_METHOD_POST, WEBRTC_API_CREATE_SIGNALING_CHANNEL );
+    p += SPRINTF( p, "Host: %s\r\n", pHost );
+    p += SPRINTF( p, "Accept: */*\r\n" );
+    p += SPRINTF( p, "Authorization: %s Credential=%s/%s, SignedHeaders=%s, Signature=%s\r\n",
+                    AWS_SIG_V4_ALGORITHM, pAccessKey, AwsSignerV4_getScope( &signerContext ),
+                    AwsSignerV4_getSignedHeader( &signerContext ), AwsSignerV4_getHmacEncoded( &signerContext ) );
+    p += SPRINTF( p, "content-length: %u\r\n", (UINT32) uHttpBodyLen );
+    p += SPRINTF( p, "content-type: application/json\r\n" );
+    p += SPRINTF( p, HDR_USER_AGENT ": %s\r\n", pUserAgent );
+    p += SPRINTF( p, HDR_X_AMZ_DATE ": %s\r\n", pXAmzDate );
+    p += SPRINTF( p, "\r\n" );
+    p += SPRINTF( p, "%s", pHttpBody );
 
-        retStatus = AwsSignerV4_initCanonicalRequest( &signerContext, HTTP_METHOD_POST, sizeof( HTTP_METHOD_POST ) - 1,
-                                                      WEBRTC_API_CREATE_SIGNALING_CHANNEL, sizeof( WEBRTC_API_CREATE_SIGNALING_CHANNEL ) - 1,
-                                                      pHttpParameter, STRLEN( pHttpParameter ) );
-        if( retStatus  != STATUS_SUCCESS )
-        {
-            break;
-        }
+    AwsSignerV4_terminateContext(&signerContext);
 
-        retStatus = AwsSignerV4_addCanonicalHeader( &signerContext, HDR_HOST, sizeof( HDR_HOST ) - 1,
-                                                    pHost, STRLEN( pHost ) );
-        if( retStatus != STATUS_SUCCESS )
-        {
-            break;
-        }
+    uBytesToSend = p - ( PCHAR )pNetworkContext->pHttpSendBuffer;
+    CHK(uBytesToSend == networkSend( pNetworkContext, pNetworkContext->pHttpSendBuffer, uBytesToSend ), STATUS_SEND_DATA_FAILED);
+    uBytesReceived = networkRecv( pNetworkContext, pNetworkContext->pHttpRecvBuffer, pNetworkContext->uHttpRecvBufferLen );
+    CHK(uBytesReceived > 0, STATUS_RECV_DATA_FAILED);
 
-        retStatus = AwsSignerV4_addCanonicalHeader( &signerContext, HDR_USER_AGENT, sizeof( HDR_USER_AGENT ) - 1,
-                                                    pUserAgent, STRLEN( pUserAgent ) );
-        if( retStatus != STATUS_SUCCESS )
-        {
-            break;
-        }
+    CHK_STATUS(httpParserStart(&pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )uBytesReceived, NULL));
 
-        retStatus = AwsSignerV4_addCanonicalHeader( &signerContext, HDR_X_AMZ_DATE, sizeof( HDR_X_AMZ_DATE ) - 1,
-                                                    pXAmzDate, STRLEN( pXAmzDate ) );
-        if( retStatus != STATUS_SUCCESS )
-        {
-            break;
-        }
+    pResponseStr = httpParserGetHttpBodyLocation(pHttpRspCtx);
+    resultLen = httpParserGetHttpBodyLength(pHttpRspCtx);
+    uHttpStatusCode = httpParserGetHttpStatusCode(pHttpRspCtx);
 
-        retStatus = AwsSignerV4_addCanonicalBody( &signerContext, ( uint8_t * )pHttpBody, uHttpBodyLen);
-        if( retStatus != STATUS_SUCCESS )
-        {
-            break;
-        }
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
+    /* Check HTTP results */
+    
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
 
-        retStatus = AwsSignerV4_sign( &signerContext, pSecretKey, STRLEN( pSecretKey ),
-                                      pRegion, STRLEN( pRegion ),
-                                      pService, STRLEN( pService ),
-                                      pXAmzDate, STRLEN( pXAmzDate ) );
-        if( retStatus != STATUS_SUCCESS )
-        {
-            break;
-        }
+    CHK_STATUS(httpApiRspCreateChannel( ( const CHAR * )pResponseStr, resultLen, pSignalingClient ));
 
-        /* Initialize and generate HTTP request, then send it. */
-        pNetworkContext = ( NetworkContext_t * ) MEMALLOC( sizeof( NetworkContext_t ) );
-        if( pNetworkContext == NULL )
-        {
-            retStatus = STATUS_NOT_ENOUGH_MEMORY;
-            break;
-        }
-
-        if( ( retStatus = initNetworkContext( pNetworkContext ) ) != STATUS_SUCCESS )
-        {
-            break;
-        }
-
-        for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
-        {
-            if( ( retStatus = connectToServer( pNetworkContext, pHost, KVS_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
-            {
-                break;
-            }
-            sleepInMs( CONNECTION_RETRY_INTERVAL_IN_MS );
-        }
-
-        p = ( CHAR * )( pNetworkContext->pHttpSendBuffer );
-        p += SPRINTF( p, "%s %s HTTP/1.1\r\n", HTTP_METHOD_POST, WEBRTC_API_CREATE_SIGNALING_CHANNEL );
-        p += SPRINTF( p, "Host: %s\r\n", pHost );
-        p += SPRINTF( p, "Accept: */*\r\n" );
-        p += SPRINTF( p, "Authorization: %s Credential=%s/%s, SignedHeaders=%s, Signature=%s\r\n",
-                      AWS_SIG_V4_ALGORITHM, pAccessKey, AwsSignerV4_getScope( &signerContext ),
-                      AwsSignerV4_getSignedHeader( &signerContext ), AwsSignerV4_getHmacEncoded( &signerContext ) );
-        p += SPRINTF( p, "content-length: %u\r\n", (UINT32) uHttpBodyLen );
-        p += SPRINTF( p, "content-type: application/json\r\n" );
-        p += SPRINTF( p, HDR_USER_AGENT ": %s\r\n", pUserAgent );
-        p += SPRINTF( p, HDR_X_AMZ_DATE ": %s\r\n", pXAmzDate );
-        p += SPRINTF( p, "\r\n" );
-        p += SPRINTF( p, "%s", pHttpBody );
-
-        AwsSignerV4_terminateContext(&signerContext);
-
-        uBytesToSend = p - ( CHAR * )pNetworkContext->pHttpSendBuffer;
-        retStatus = networkSend( pNetworkContext, pNetworkContext->pHttpSendBuffer, uBytesToSend );
-        if( retStatus != uBytesToSend )
-        {
-            retStatus = STATUS_SEND_DATA_FAILED;
-            break;
-        }
-
-        retStatus = networkRecv( pNetworkContext, pNetworkContext->pHttpRecvBuffer, pNetworkContext->uHttpRecvBufferLen );
-        if( retStatus < STATUS_SUCCESS )
-        {
-            break;
-        }
-
-        retStatus = httpParserStart(&pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )retStatus, NULL);
-        if( retStatus != STATUS_SUCCESS )
-        {
-            break;
-        }
-
-        PCHAR pResponseStr = httpParserGetHttpBodyLocation(pHttpRspCtx);
-        UINT32 resultLen = httpParserGetHttpBodyLength(pHttpRspCtx);
-        uHttpStatusCode = httpParserGetHttpStatusCode(pHttpRspCtx);
-
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
-        /* Check HTTP results */
-        CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
-        DLOGD("receive 200 response.");
-        retStatus = httpApiRspCreateChannel( ( const CHAR * )pResponseStr, resultLen, pSignalingClient );
-        /* We got a success response here. */
-    } while ( 0 );
+CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if( pNetworkContext != NULL )
     {
@@ -415,6 +368,7 @@ STATUS httpApiCreateChannl(PSignalingClient pSignalingClient, UINT64 time)
         MEMFREE( pNetworkContext );
         AwsSignerV4_terminateContext(&signerContext);
     }
+
     if(pHttpRspCtx != NULL)
     {
         retStatus =  httpParserDetroy(pHttpRspCtx);
@@ -423,11 +377,8 @@ STATUS httpApiCreateChannl(PSignalingClient pSignalingClient, UINT64 time)
             printf("destroying http parset failed. \n");
         }
     }
-    if( pHttpBody != NULL )
-    {
-        MEMFREE( pHttpBody );
-    }
-CleanUp:
+    SAFE_MEMFREE(pHttpBody);
+    SAFE_MEMFREE(pHost);
 
     HTTP_API_EXIT();
     return retStatus;
@@ -454,7 +405,7 @@ STATUS httpApiDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
     /* Variables for network connection */
     NetworkContext_t *pNetworkContext = NULL;
     SIZE_T uConnectionRetryCnt = 0;
-    UINT32 uBytesToSend = 0;
+    UINT32 uBytesToSend = 0, uBytesReceived = 0;
 
     /* Variables for AWS signer V4 */
     AwsSignerV4Context_t signerContext;
@@ -468,166 +419,108 @@ STATUS httpApiDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
     UINT32 uHttpStatusCode = 0;
     HttpResponseContext* pHttpRspCtx = NULL;
     // temp interface.
-    PCHAR pAccessKey = getenv(ACCESS_KEY_ENV_VAR);  // It's AWS access key if not using IoT certification.
-    PCHAR pSecretKey = getenv(SECRET_KEY_ENV_VAR);  // It's secret of AWS access key if not using IoT certification.
-    PCHAR pToken = NULL;
+    PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
+    PCHAR pSecretKey = pSignalingClient->pAwsCredentials->secretKey;
+    PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
     PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
     PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
     PCHAR pHost = NULL;
     PCHAR pUserAgent = "userAgent";//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
+    PCHAR pResponseStr;
+    UINT32 resultLen;
 
+    MEMSET(&signerContext, 0, SIZEOF(AwsSignerV4Context_t));
     CHK(NULL != (pHost = (CHAR *)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
     SNPRINTF(pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, "%s.%s%s", 
                                                     KINESIS_VIDEO_SERVICE_NAME,
                                                     pSignalingClient->pChannelInfo->pRegion,
                                                     CONTROL_PLANE_URI_POSTFIX);
 
-    do
+    CHK((pChannelInfo != NULL && pChannelInfo->pChannelName[0] != '\0'), STATUS_INVALID_ARG);
+    CHK(NULL != (pHttpBody = (CHAR *) MEMALLOC( sizeof( DESCRIBE_CHANNEL_JSON_TEMPLATE ) + STRLEN( pChannelInfo->pChannelName ) + 1 )), STATUS_NOT_ENOUGH_MEMORY);
+
+    /* generate HTTP request body */
+    uHttpBodyLen = SPRINTF( pHttpBody, DESCRIBE_CHANNEL_JSON_TEMPLATE, pChannelInfo->pChannelName );
+
+    /* generate UTC time in x-amz-date formate */
+    CHK_STATUS(getTimeInIso8601( pXAmzDate, sizeof( pXAmzDate ) ));
+
+    /* Create canonical request and sign the request. */
+    CHK_STATUS(AwsSignerV4_initContext( &signerContext, AWS_SIGNER_V4_BUFFER_SIZE ));
+
+    CHK_STATUS(AwsSignerV4_initCanonicalRequest( &signerContext, HTTP_METHOD_POST, sizeof( HTTP_METHOD_POST ) - 1,
+                                                    WEBRTC_API_DESCRIBE_SIGNALING_CHANNEL,
+                                                    sizeof( WEBRTC_API_DESCRIBE_SIGNALING_CHANNEL ) - 1,
+                                                    pHttpParameter, STRLEN( pHttpParameter ) ));
+
+    CHK_STATUS(AwsSignerV4_addCanonicalHeader( &signerContext, HDR_HOST, sizeof( HDR_HOST ) - 1,
+                                                pHost, STRLEN( pHost ) ));
+
+    CHK_STATUS(AwsSignerV4_addCanonicalHeader( &signerContext, HDR_USER_AGENT, sizeof( HDR_USER_AGENT ) - 1,
+                                                pUserAgent, STRLEN( pUserAgent ) ));
+
+    CHK_STATUS(AwsSignerV4_addCanonicalHeader( &signerContext, HDR_X_AMZ_DATE, sizeof( HDR_X_AMZ_DATE ) - 1,
+                                                pXAmzDate, STRLEN( pXAmzDate ) ));
+
+    CHK_STATUS(AwsSignerV4_addCanonicalBody( &signerContext, ( uint8_t * )pHttpBody, uHttpBodyLen ));
+
+    CHK_STATUS(AwsSignerV4_sign( &signerContext, pSecretKey, STRLEN( pSecretKey ),
+                                    pRegion, STRLEN( pRegion ),
+                                    pService, STRLEN( pService ),
+                                    pXAmzDate, STRLEN( pXAmzDate ) ));
+
+    /* Initialize and generate HTTP request, then send it. */
+    CHK(NULL != (pNetworkContext = (NetworkContext_t *) MEMALLOC( sizeof( NetworkContext_t ))), STATUS_NOT_ENOUGH_MEMORY);
+
+    CHK_STATUS(initNetworkContext( pNetworkContext ) );
+
+    for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
     {
-        CHK((pChannelInfo != NULL && pChannelInfo->pChannelName[0] != '\0'), STATUS_INVALID_ARG);
-        CHK(NULL != (pHttpBody = (CHAR *) MEMALLOC( sizeof( DESCRIBE_CHANNEL_JSON_TEMPLATE ) + STRLEN( pChannelInfo->pChannelName ) + 1 )), STATUS_NOT_ENOUGH_MEMORY);
-
-        /* generate HTTP request body */
-        uHttpBodyLen = SPRINTF( pHttpBody, DESCRIBE_CHANNEL_JSON_TEMPLATE, pChannelInfo->pChannelName );
-
-        /* generate UTC time in x-amz-date formate */
-        retStatus = getTimeInIso8601( pXAmzDate, sizeof( pXAmzDate ) );
-        if( retStatus != STATUS_SUCCESS )
+        if( ( retStatus = connectToServer( pNetworkContext, pHost, KVS_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
         {
             break;
         }
+        sleepInMs( CONNECTION_RETRY_INTERVAL_IN_MS );
+    }
 
-        /* Create canonical request and sign the request. */
-        retStatus = AwsSignerV4_initContext( &signerContext, AWS_SIGNER_V4_BUFFER_SIZE );
-        if( retStatus != STATUS_SUCCESS )
-        {
-            break;
-        }
+    p = (PCHAR)(pNetworkContext->pHttpSendBuffer);
+    p += SPRINTF(p, "%s %s HTTP/1.1\r\n", HTTP_METHOD_POST, WEBRTC_API_DESCRIBE_SIGNALING_CHANNEL);
+    p += SPRINTF(p, "Host: %s\r\n", pHost);
+    p += SPRINTF(p, "Accept: */*\r\n");
+    p += SPRINTF(p, "Authorization: %s Credential=%s/%s, SignedHeaders=%s, Signature=%s\r\n",
+                    AWS_SIG_V4_ALGORITHM, pAccessKey, AwsSignerV4_getScope( &signerContext ),
+                    AwsSignerV4_getSignedHeader( &signerContext ), AwsSignerV4_getHmacEncoded( &signerContext ) );
+    p += SPRINTF(p, "content-length: %u\r\n", (UINT32) uHttpBodyLen );
+    p += SPRINTF(p, "content-type: application/json\r\n" );
+    p += SPRINTF(p, HDR_USER_AGENT ": %s\r\n", pUserAgent );
+    p += SPRINTF(p, HDR_X_AMZ_DATE ": %s\r\n", pXAmzDate );
+    if( bUseIotCert )
+    {
+        p += SPRINTF(p, HDR_X_AMZ_SECURITY_TOKEN ": %s\r\n", pToken );
+    }
+    p += SPRINTF(p, "\r\n" );
+    p += SPRINTF(p, "%s", pHttpBody );
 
-        retStatus = AwsSignerV4_initCanonicalRequest( &signerContext, HTTP_METHOD_POST, sizeof( HTTP_METHOD_POST ) - 1,
-                                                      WEBRTC_API_DESCRIBE_SIGNALING_CHANNEL,
-                                                      sizeof( WEBRTC_API_DESCRIBE_SIGNALING_CHANNEL ) - 1,
-                                                      pHttpParameter, STRLEN( pHttpParameter ) );
-        if( retStatus != STATUS_SUCCESS )
-        {
-            break;
-        }
+    AwsSignerV4_terminateContext(&signerContext);
 
-        retStatus = AwsSignerV4_addCanonicalHeader( &signerContext, HDR_HOST, sizeof( HDR_HOST ) - 1,
-                                                    pHost, STRLEN( pHost ) );
-        if( retStatus != STATUS_SUCCESS )
-        {
-            break;
-        }
-
-        retStatus = AwsSignerV4_addCanonicalHeader( &signerContext, HDR_USER_AGENT, sizeof( HDR_USER_AGENT ) - 1,
-                                                    pUserAgent, STRLEN( pUserAgent ) );
-        if( retStatus != STATUS_SUCCESS )
-        {
-            break;
-        }
-
-        retStatus = AwsSignerV4_addCanonicalHeader( &signerContext, HDR_X_AMZ_DATE, sizeof( HDR_X_AMZ_DATE ) - 1,
-                                                    pXAmzDate, STRLEN( pXAmzDate ) );
-        if( retStatus != STATUS_SUCCESS )
-        {
-            break;
-        }
-
-        if( bUseIotCert )
-        {
-            retStatus = AwsSignerV4_addCanonicalHeader( &signerContext, HDR_X_AMZ_SECURITY_TOKEN, sizeof( HDR_X_AMZ_SECURITY_TOKEN ) - 1,
-                                                        pToken, STRLEN( pToken ) );
-            if( retStatus != STATUS_SUCCESS )
-            {
-                break;
-            }
-        }
-
-        retStatus = AwsSignerV4_addCanonicalBody( &signerContext, ( uint8_t * )pHttpBody, uHttpBodyLen );
-        if( retStatus != STATUS_SUCCESS )
-        {
-            break;
-        }
-
-        retStatus = AwsSignerV4_sign( &signerContext, pSecretKey, STRLEN( pSecretKey ),
-                                      pRegion, STRLEN( pRegion ),
-                                      pService, STRLEN( pService ),
-                                      pXAmzDate, STRLEN( pXAmzDate ) );
-        if( retStatus != STATUS_SUCCESS )
-        {
-            break;
-        }
-
-        /* Initialize and generate HTTP request, then send it. */
-
-        CHK(NULL != (pNetworkContext = (NetworkContext_t *) MEMALLOC( sizeof( NetworkContext_t ))), STATUS_NOT_ENOUGH_MEMORY);
-
-        if( ( retStatus = initNetworkContext( pNetworkContext ) ) != STATUS_SUCCESS )
-        {
-            break;
-        }
-
-        for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
-        {
-            if( ( retStatus = connectToServer( pNetworkContext, pHost, KVS_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
-            {
-                break;
-            }
-            sleepInMs( CONNECTION_RETRY_INTERVAL_IN_MS );
-        }
-
-        p = (CHAR *)(pNetworkContext->pHttpSendBuffer);
-        p += SPRINTF(p, "%s %s HTTP/1.1\r\n", HTTP_METHOD_POST, WEBRTC_API_DESCRIBE_SIGNALING_CHANNEL);
-        p += SPRINTF(p, "Host: %s\r\n", pHost);
-        p += SPRINTF(p, "Accept: */*\r\n");
-        p += SPRINTF(p, "Authorization: %s Credential=%s/%s, SignedHeaders=%s, Signature=%s\r\n",
-                     AWS_SIG_V4_ALGORITHM, pAccessKey, AwsSignerV4_getScope( &signerContext ),
-                     AwsSignerV4_getSignedHeader( &signerContext ), AwsSignerV4_getHmacEncoded( &signerContext ) );
-        p += SPRINTF(p, "content-length: %u\r\n", (UINT32) uHttpBodyLen );
-        p += SPRINTF(p, "content-type: application/json\r\n" );
-        p += SPRINTF(p, HDR_USER_AGENT ": %s\r\n", pUserAgent );
-        p += SPRINTF(p, HDR_X_AMZ_DATE ": %s\r\n", pXAmzDate );
-        if( bUseIotCert )
-        {
-            p += SPRINTF(p, HDR_X_AMZ_SECURITY_TOKEN ": %s\r\n", pToken );
-        }
-        p += SPRINTF(p, "\r\n" );
-        p += SPRINTF(p, "%s", pHttpBody );
-
-        AwsSignerV4_terminateContext(&signerContext);
-
-        uBytesToSend = p - ( CHAR * )pNetworkContext->pHttpSendBuffer;
-        retStatus = networkSend( pNetworkContext, pNetworkContext->pHttpSendBuffer, uBytesToSend );
-        if( retStatus != uBytesToSend )
-        {
-            retStatus = STATUS_SEND_DATA_FAILED;
-            break;
-        }
+    uBytesToSend = p - ( CHAR * )pNetworkContext->pHttpSendBuffer;
+    CHK(uBytesToSend == networkSend( pNetworkContext, pNetworkContext->pHttpSendBuffer, uBytesToSend ), STATUS_SEND_DATA_FAILED);
+    uBytesReceived = networkRecv( pNetworkContext, pNetworkContext->pHttpRecvBuffer, pNetworkContext->uHttpRecvBufferLen );
+    CHK(uBytesReceived > 0, STATUS_RECV_DATA_FAILED);
     
-        retStatus = networkRecv( pNetworkContext, pNetworkContext->pHttpRecvBuffer, pNetworkContext->uHttpRecvBufferLen );
-        if( retStatus < STATUS_SUCCESS )
-        {
-            break;
-        }
-        
-        CHK_STATUS(httpParserStart(&pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )retStatus, NULL));
+    CHK_STATUS(httpParserStart(&pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )uBytesReceived, NULL));
 
+    pResponseStr = httpParserGetHttpBodyLocation(pHttpRspCtx);
+    resultLen = httpParserGetHttpBodyLength(pHttpRspCtx);
+    uHttpStatusCode = httpParserGetHttpStatusCode(pHttpRspCtx);
 
-        PCHAR pResponseStr = httpParserGetHttpBodyLocation(pHttpRspCtx);
-        UINT32 resultLen = httpParserGetHttpBodyLength(pHttpRspCtx);
-        uHttpStatusCode = httpParserGetHttpStatusCode(pHttpRspCtx);
-
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
-        /* Check HTTP results */
-        CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
-        DLOGD("receive 200 response.");
-        retStatus = httpApiRspDescribeChannel( ( const CHAR * )pResponseStr, resultLen, pSignalingClient );
-
-    } while ( 0 );
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
+    /* Check HTTP results */
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
+    retStatus = httpApiRspDescribeChannel( ( const CHAR * )pResponseStr, resultLen, pSignalingClient );
 
 CleanUp:
-
+    CHK_LOG_ERR(retStatus);
     if( pNetworkContext != NULL )
     {
         disconnectFromServer( pNetworkContext );
@@ -643,7 +536,6 @@ CleanUp:
             printf("destroying http parset failed. \n");
         }
     }
-
     SAFE_MEMFREE(pHttpBody);
     SAFE_MEMFREE(pHost);
 
@@ -678,9 +570,9 @@ STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time
     UINT32 uHttpStatusCode = 0;
 
     // temp interface.
-    PCHAR pAccessKey = getenv(ACCESS_KEY_ENV_VAR);  // It's AWS access key if not using IoT certification.
-    PCHAR pSecretKey = getenv(SECRET_KEY_ENV_VAR);  // It's secret of AWS access key if not using IoT certification.
-    PCHAR pToken = NULL;
+    PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
+    PCHAR pSecretKey = pSignalingClient->pAwsCredentials->secretKey;
+    PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
     PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
     PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
     PCHAR pHost = NULL;
@@ -847,12 +739,13 @@ STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
         /* Check HTTP results */
         CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
-        DLOGD("receive 200 response.");
+
         retStatus = httpApiRspGetChannelEndpoint( ( const CHAR * )pResponseStr, resultLen, pSignalingClient );
         /* We got a success response here. */
         
     } while ( 0 );
 
+CleanUp:
     if( pNetworkContext != NULL )
     {
         disconnectFromServer( pNetworkContext );
@@ -861,10 +754,6 @@ STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time
         AwsSignerV4_terminateContext(&signerContext);
     }
 
-    if( pHttpBody != NULL )
-    {
-        MEMFREE( pHttpBody );
-    }
     if(pHttpRspCtx != NULL)
     {
         retStatus =  httpParserDetroy(pHttpRspCtx);
@@ -873,8 +762,8 @@ STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time
             printf("destroying http parset failed. \n");
         }
     }
-
-CleanUp:
+    SAFE_MEMFREE(pHttpBody);
+    SAFE_MEMFREE(pHost);
 
     HTTP_API_EXIT();
     return retStatus;
@@ -906,11 +795,10 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
     HttpResponseContext* pHttpRspCtx = NULL;
     UINT32 uHttpStatusCode = 0;
 
-
-// temp interface.
-    PCHAR pAccessKey = getenv(ACCESS_KEY_ENV_VAR);  // It's AWS access key if not using IoT certification.
-    PCHAR pSecretKey = getenv(SECRET_KEY_ENV_VAR);  // It's secret of AWS access key if not using IoT certification.
-    PCHAR pToken = NULL;
+    // temp interface.
+    PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
+    PCHAR pSecretKey = pSignalingClient->pAwsCredentials->secretKey;
+    PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
     PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
     PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
     PCHAR pHost = NULL;
@@ -919,8 +807,6 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
     CHK(NULL != (pHost = (CHAR *)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
     MEMSET(pHost, 0, STRLEN(pSignalingClient->channelEndpointHttps+1));
     STRCPY(pHost, pSignalingClient->channelEndpointHttps+8);
-    DLOGD("pSignalingClient->channelEndpointHttps:%s", pSignalingClient->channelEndpointHttps);
-    DLOGD("pHost:%s", pHost);
 
     DLOGD("preparing the call");
     pHttpBody = (CHAR *) MEMALLOC( sizeof( GET_ICE_CONFIG_PARAM_JSON_TEMPLATE ) + 
@@ -932,11 +818,8 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
         retStatus = STATUS_NOT_ENOUGH_MEMORY;
     }
 
-    
-
     /* generate HTTP request body */
     uHttpBodyLen = SPRINTF( pHttpBody, GET_ICE_CONFIG_PARAM_JSON_TEMPLATE, pSignalingClient->channelDescription.channelArn, pSignalingClient->clientInfo.signalingClientInfo.clientId);
-    DLOGD("pHttpBody:%s", pHttpBody);
 
     /* generate UTC time in x-amz-date formate */
     retStatus = getTimeInIso8601( pXAmzDate, sizeof( pXAmzDate ) );
@@ -1020,24 +903,22 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
     /* Check HTTP results */
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
-    DLOGD("receive 200 response.");
+
     retStatus = httpApiRspGetIceConfig( ( const CHAR * )pResponseStr, resultLen, pSignalingClient );
 
     if(retStatus != STATUS_SUCCESS)
     {
         DLOGD("parse failed.");
     }
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
     if( pNetworkContext != NULL )
     {
         disconnectFromServer( pNetworkContext );
         terminateNetworkContext(pNetworkContext);
         MEMFREE( pNetworkContext );
         AwsSignerV4_terminateContext(&signerContext);
-    }
-
-    if( pHttpBody != NULL )
-    {
-        MEMFREE( pHttpBody );
     }
     if(pHttpRspCtx != NULL)
     {
@@ -1047,9 +928,8 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
             printf("destroying http parset failed. \n");
         }
     }
-
-CleanUp:
-
+    SAFE_MEMFREE(pHttpBody);
+    SAFE_MEMFREE(pHost);
     HTTP_API_EXIT();
     return retStatus;
 }

@@ -124,30 +124,11 @@ void AwsSignerV4_terminateContext( AwsSignerV4Context_t * pCtx )
 {
     if( pCtx != NULL )
     {
-        if( pCtx->pBuf != NULL )
-        {
-            MEMFREE( pCtx->pBuf );
-            pCtx->pBuf = NULL;
-            pCtx->uBufSize = 0;
-        }
-
-        if( pCtx->pSignedHeader != NULL )
-        {
-            MEMFREE( pCtx->pSignedHeader );
-            pCtx->pSignedHeader = NULL;
-        }
-
-        if( pCtx->pCredentialScope != NULL )
-        {
-            MEMFREE( pCtx->pCredentialScope );
-            pCtx->pCredentialScope = NULL;
-        }
-
-        if( pCtx->pHmacEncoded != NULL )
-        {
-            MEMFREE( pCtx->pHmacEncoded );
-            pCtx->pHmacEncoded = NULL;
-        }
+        SAFE_MEMFREE(pCtx->pBuf);
+        pCtx->uBufSize = 0;
+        SAFE_MEMFREE(pCtx->pSignedHeader);
+        SAFE_MEMFREE(pCtx->pCredentialScope);
+        SAFE_MEMFREE(pCtx->pHmacEncoded);
     }
 }
 

@@ -302,7 +302,7 @@ INT32 networkSend( NetworkContext_t * pNetworkContext,
     {
         while( uBytesRemaining > 0UL )
         {
-            DLOGD("try to send %d bytes", uBytesRemaining);
+            //DLOGD("try to send %d bytes", uBytesRemaining);
             n = mbedtls_ssl_write( &( pNetworkContext->ssl ), pIndex, uBytesRemaining );
 
             if( n < 0 || n > uBytesRemaining )
@@ -313,7 +313,7 @@ INT32 networkSend( NetworkContext_t * pNetworkContext,
             }
             else
             {
-                DLOGD("sent %d bytes", n);
+                //DLOGD("sent %d bytes", n);
                 uBytesRemaining -= n;
                 pIndex += n;
             }
@@ -407,7 +407,7 @@ INT32 networkRecv( NetworkContext_t * pNetworkContext,
         }
         else
         {
-            DLOGD("ssl read %d bytes", n);
+            //DLOGD("ssl read %d bytes", n);
         }
     }
 

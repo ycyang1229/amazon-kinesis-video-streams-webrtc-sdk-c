@@ -17,8 +17,8 @@
 #include "../Include_i.h"
 
 
-#define WSS_API_ENTER() DLOGD("enter")
-#define WSS_API_EXIT() DLOGD("exit")
+#define WSS_API_ENTER() //DLOGD("enter")
+#define WSS_API_EXIT() //DLOGD("exit")
 /*-----------------------------------------------------------*/
 
 #define KVS_ENDPOINT_TCP_PORT   "443"
@@ -138,20 +138,17 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
     CHAR pParameter[1024];
     CHAR pParameterUriEncode[1024];
     CHAR clientKey[WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1];
-
-    int n;
-    
+    int n;    
     HttpResponseContext* pHttpRspCtx = NULL;
-
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelEndpointWss[0] != '\0', STATUS_INTERNAL_ERROR);
     ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
 
     // temp interface.
-    PCHAR pAccessKey = getenv(ACCESS_KEY_ENV_VAR);  // It's AWS access key if not using IoT certification.
-    PCHAR pSecretKey = getenv(SECRET_KEY_ENV_VAR);  // It's secret of AWS access key if not using IoT certification.
-    PCHAR pToken = NULL;
+    PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
+    PCHAR pSecretKey = pSignalingClient->pAwsCredentials->secretKey;
+    PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
     PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
     PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
     PCHAR pHost = NULL;
@@ -161,10 +158,6 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
     CHK(NULL != (pHost = (CHAR *)MEMALLOC(STRLEN(pSignalingClient->channelEndpointWss)+1)), STATUS_NOT_ENOUGH_MEMORY);
     MEMSET(pHost, 0, STRLEN(pSignalingClient->channelEndpointWss+1));
     STRCPY(pHost, pSignalingClient->channelEndpointWss+6);
-    DLOGD("pSignalingClient->channelEndpointWss:%s", pSignalingClient->channelEndpointWss);
-    DLOGD("pHost:%s", pHost);
-
-    DLOGD("%s(%d) connect\n", __func__, __LINE__);
 
     do
     {
@@ -178,13 +171,12 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
 
         if( retStatus != STATUS_SUCCESS )
         {
-            DLOGD("%s(%d) connect\n", __func__, __LINE__);
+            DLOGD("%s(%d) connect", __func__, __LINE__);
             break;
         }
         //strcpy(pXAmzDate, "20210311T024335Z");
         p = pParameter;
         p += SPRINTF(p, "?X-Amz-ChannelARN=%s", pSignalingClient->channelDescription.channelArn);
-        DLOGD("pParameter:%d", strlen(pParameter));
         uriEncode(pParameter, pParameterUriEncode);
 
 
@@ -202,13 +194,13 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         if( pNetworkContext == NULL )
         {
             retStatus = STATUS_NOT_ENOUGH_MEMORY;
-            DLOGD("%s(%d) connect\n", __func__, __LINE__);
+            DLOGD("%s(%d) connect", __func__, __LINE__);
             break;
         }
 
         if( ( retStatus = initNetworkContext( pNetworkContext ) ) != STATUS_SUCCESS )
         {
-            DLOGD("%s(%d) connect\n", __func__, __LINE__);
+            DLOGD("%s(%d) connect", __func__, __LINE__);
             break;
         }
 
@@ -216,7 +208,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         {
             if( ( retStatus = connectToServer( pNetworkContext, pHost, KVS_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
             {
-                DLOGD("%s(%d) connect successfully\n", __func__, __LINE__);
+                DLOGD("%s(%d) connect successfully", __func__, __LINE__);
                 break;
             }
             sleepInMs( CONNECTION_RETRY_INTERVAL_IN_MS );
@@ -268,8 +260,6 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
 
         p += SPRINTF(p, "\r\n");
 
-        DLOGD("--\nsending http request:\n%s\n--\n", pNetworkContext->pHttpSendBuffer);
-
         AwsSignerV4_terminateContext(&signerContext);
 
         uBytesToSend = p - ( CHAR * )pNetworkContext->pHttpSendBuffer;
@@ -281,13 +271,12 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         }
 
         retStatus = networkRecv( pNetworkContext, pNetworkContext->pHttpRecvBuffer, pNetworkContext->uHttpRecvBufferLen );
-        DLOGD("--\nreceived http response:\n%s\n--\n", pNetworkContext->pHttpRecvBuffer);
+
         if( retStatus < STATUS_SUCCESS )
         {
             break;
         }
 
-        //DLOGD("start parsing \n");
         struct list_head* requiredHeader = malloc(sizeof(struct list_head));
         // on_status, Switching Protocols
         // Connection, upgrade
@@ -301,29 +290,23 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         
         PHttpField node;
         node = httpParserGetValueByField(requiredHeader, HTTP_HEADER_FIELD_CONNECTION, STRLEN(HTTP_HEADER_FIELD_CONNECTION));
-        //DLOGD("val:%d, -%s-\n\n", val, node->value, );
+
         if( node != NULL && 
             node->valueLen == STRLEN(HTTP_HEADER_VALUE_UPGRADE) &&
             MEMCMP(node->value, HTTP_HEADER_VALUE_UPGRADE, node->valueLen) == 0 ){
-            //DLOGD("connection upgrade\n");
         }
 
         node = httpParserGetValueByField(requiredHeader, HTTP_HEADER_FIELD_UPGRADE, STRLEN(HTTP_HEADER_FIELD_UPGRADE));
-        //DLOGD("val:%d, -%s-\n\n", val, node->value, );
         if( node != NULL && 
             node->valueLen == STRLEN(HTTP_HEADER_VALUE_WS) &&
             MEMCMP(node->value, HTTP_HEADER_VALUE_WS, node->valueLen) == 0 ){
-            //DLOGD("upgrade websocket\n");
         }
 
         node = httpParserGetValueByField(requiredHeader, HTTP_HEADER_FIELD_SEC_WS_ACCEPT, STRLEN(HTTP_HEADER_FIELD_SEC_WS_ACCEPT));
-        //DLOGD("val:%d, -%s-\n\n", val, node->value, );
         if( node != NULL ){
             
             if(wssClientValidateAcceptKey(clientKey, WSS_CLIENT_BASED64_RANDOM_SEED_LEN, node->value, node->valueLen)!=0){
-                DLOGD("validate accept key failed\n");
-            }else{
-                DLOGD("validate accept key success\n");
+                DLOGD("validate accept key failed");
             }
         }
 
@@ -341,7 +324,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
             // #YC_TBD.
             
 
-            DLOGD("connect signaling channel successfully.\n");
+            DLOGD("connect signaling channel successfully.");
             /* We got a success response here. */
             WssClientContext* wssClientCtx = NULL;
             // #YC_TBD.
@@ -389,7 +372,7 @@ CleanUp:
         retStatus =  httpParserDetroy(pHttpRspCtx);
         if( retStatus != STATUS_SUCCESS )
         {
-            DLOGD("destroying http parset failed. \n");
+            DLOGD("destroying http parset failed.");
         }
     }
 

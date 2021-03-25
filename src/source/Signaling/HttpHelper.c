@@ -288,13 +288,13 @@ CleanUp:
 STATUS httpParserDetroy(HttpResponseContext* pHttpRspCtx)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    DLOGD("detroying required headers...");
+    //DLOGD("detroying required headers...");
     if(pHttpRspCtx != NULL && pHttpRspCtx->requiredHeader != NULL){
         httpParserDeleteAllHeader(pHttpRspCtx->requiredHeader);
-        DLOGD("all required headers is removed...");
+        //DLOGD("all required headers is removed...");
         MEMFREE(pHttpRspCtx->requiredHeader);
     }
-    DLOGD("detroying context...");
+    //DLOGD("detroying context...");
     MEMFREE(pHttpRspCtx);
     return retStatus;
 }

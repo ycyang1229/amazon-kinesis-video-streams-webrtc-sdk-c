@@ -16,8 +16,8 @@
 #define LOG_CLASS "HttpApiRsp"
 #include "../Include_i.h"
 
-#define HTTP_RSP_ENTER() DLOGD("enter")
-#define HTTP_RSP_EXIT() DLOGD("exit")
+#define HTTP_RSP_ENTER() //DLOGD("enter")
+#define HTTP_RSP_EXIT() //DLOGD("exit")
 
 
 /*-----------------------------------------------------------*/
@@ -317,7 +317,6 @@ STATUS httpApiRspGetIceConfig( const CHAR * pResponseStr, UINT32 resultLen, PSig
                     STRNCPY(pSignalingClient->iceConfigs[configCount - 1].uris[j], pResponseStr + pToken[j + 2].start, strLen);
                     pSignalingClient->iceConfigs[configCount - 1].uris[j][MAX_ICE_CONFIG_URI_LEN] = '\0';
                     pSignalingClient->iceConfigs[configCount - 1].uriCount++;
-                    DLOGD("uri:%s", pSignalingClient->iceConfigs[configCount - 1].uris[j]);
                 }
 
                 i += pToken[1].size + 1;
