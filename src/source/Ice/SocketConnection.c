@@ -432,8 +432,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
         socketWriteAttempt++;
     }
 
-    if (
-         != NULL) {
+    if (pBytesWritten != NULL) {
         *pBytesWritten = bytesWritten;
     }
 
