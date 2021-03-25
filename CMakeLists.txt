@@ -151,7 +151,8 @@ if(BUILD_DEPENDENCIES)
       -DUSE_OPENSSL=${USE_OPENSSL}
       -DUSE_MBEDTLS=${USE_MBEDTLS})
   #build_dependency(kvsCommonLws ${BUILD_ARGS})
-  build_dependency(kvspic ${BUILD_ARGS})
+  #build_dependency(kvspic ${BUILD_ARGS})
+  build_dependency(kvsCommon ${BUILD_ARGS})
 
   message(STATUS "Finished building dependencies.")
 endif()
@@ -368,9 +369,9 @@ target_compile_options(kvsWebrtcSignalingClient PUBLIC -Wno-format-truncation)
 
 target_link_libraries(
   kvsWebrtcSignalingClient
-  #PUBLIC
+  PUBLIC
         #${LIBWEBSOCKETS_LIBRARIES} 
-        #kvsCommonLws
+        kvsCommon
   PRIVATE kvspicUtils
          kvspicState
          ${CMAKE_THREAD_LIBS_INIT}

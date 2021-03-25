@@ -11,6 +11,7 @@ function(build_dependency lib_name)
       mbedtls
       kvspic
       kvsCommonLws
+      kvsCommon
       llhttp
       parson
       wslay)
