@@ -22,25 +22,7 @@
 /*-----------------------------------------------------------*/
 
 #define KVS_ENDPOINT_TCP_PORT   "443"
-#define HTTP_METHOD_POST        "POST"
-#define HTTP_METHOD_GET        "GET"
-
-
 /*-----------------------------------------------------------*/
-
-#define HDR_CONNECTION                  "connection"
-#define HDR_HOST                        "host"
-#define HDR_TRANSFER_ENCODING           "transfer-encoding"
-#define HDR_USER_AGENT                  "user-agent"
-#define HDR_X_AMZ_DATE                  "x-amz-date"
-#define HDR_X_AMZ_SECURITY_TOKEN        "x-amz-security-token"
-#define HDR_X_AMZN_FRAG_ACK_REQUIRED    "x-amzn-fragment-acknowledgment-required"
-#define HDR_X_AMZN_FRAG_T_TYPE          "x-amzn-fragment-timecode-type"
-#define HDR_X_AMZN_PRODUCER_START_T     "x-amzn-producer-start-timestamp"
-#define HDR_X_AMZN_STREAM_NAME          "x-amzn-stream-name"
-#define HDR_X_AMZN_CHANNELARN           "X-Amz-ChannelARN"
-
-
 #define MAX_STRLEN_OF_INT32_t   ( 11 )
 #define MAX_STRLEN_OF_UINT32    ( 10 )
 #define MIN_FRAGMENT_LENGTH     ( 6 )
@@ -54,11 +36,18 @@
 #define HTTP_HEADER_VALUE_WS "websocket"
 
 // #YC_TBD, need to be fixed.
-#define AWS_SIGNER_V4_BUFFER_SIZE           ( 4096+4096+4096 )
+#define SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define MAX_CONNECTION_RETRY                ( 3 )
 #define CONNECTION_RETRY_INTERVAL_IN_MS     ( 1000 )
 
 
+
+// Parameterized string for WSS connect
+#define SIGNALING_ENDPOINT_MASTER_URL_WSS_TEMPLATE "%s?%s=%s"
+#define SIGNALING_ENDPOINT_VIEWER_URL_WSS_TEMPLATE "%s?%s=%s&%s=%s"
+#define SIGNALING_CHANNEL_ARN_PARAM_NAME  "X-Amz-ChannelARN"
+#define SIGNALING_CLIENT_ID_PARAM_NAME    "X-Amz-ClientId"
 
 // Send message JSON template
 #define SIGNALING_SEND_MESSAGE_TEMPLATE                                                                                                              \
@@ -80,29 +69,6 @@
 /*-----------------------------------------------------------*/
 /*-----------------------------------------------------------*/
 
-static VOID uriEncode(CHAR *ori, CHAR *dst)
-{
-    CHAR *p = dst;
-    for (int i=0; i<STRLEN(ori); i++)
-    {
-        switch(ori[i])
-        {
-            case ':':
-                p += SPRINTF(p, "%%3A");
-                break;
-            case '/':
-                p += SPRINTF(p, "%%2F");
-                break;
-            case '&':
-                p += SPRINTF(p, "%%3B");
-                break;
-            default:
-                p += SPRINTF(p, "%c", ori[i]);
-                break;
-        }
-    }
-}
-
 /*-----------------------------------------------------------*/
 /**
  * @brief   It is a non-blocking call, and it spin off one thread to handle the reception.
@@ -116,34 +82,19 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
 {
     WSS_API_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
-    CHAR *p = NULL;
-    BOOL bUseIotCert = FALSE;
     PChannelInfo pChannelInfo = pSignalingClient->pChannelInfo;
+
     /* Variables for network connection */
     NetworkContext_t *pNetworkContext = NULL;
     SIZE_T uConnectionRetryCnt = 0;
-    UINT32 uBytesToSend = 0;
-
-    /* Variables for AWS signer V4 */
-    AwsSignerV4Context_t signerContext;
-    CHAR pXAmzDate[SIGNATURE_DATE_TIME_STRING_LEN];
+    UINT32 uBytesToSend = 0, uBytesReceived = 0;
 
     /* Variables for HTTP request */
-    CHAR *pHttpParameter = "";
-    CHAR *pHttpBody = "";
-    UINT32 uHttpBodyLen = 0;
-
-    UINT32 uHttpStatusCode = 0;
-    CHAR *uri = "/";
-    CHAR pParameter[1024];
-    CHAR pParameterUriEncode[1024];
+    PCHAR pUrl = NULL;
+    PRequestInfo pRequestInfo = NULL;
+    BOOL secureConnection;
+    PCHAR pHttpBody = NULL;
     CHAR clientKey[WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1];
-    int n;    
-    HttpResponseContext* pHttpRspCtx = NULL;
-
-    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
-    CHK(pSignalingClient->channelEndpointWss[0] != '\0', STATUS_INTERNAL_ERROR);
-    ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
 
     // temp interface.
     PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
@@ -151,68 +102,53 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
     PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
     PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
     PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
-    PCHAR pHost = NULL;
-    
+    PCHAR pHost = NULL;    
     PCHAR pUserAgent = pChannelInfo->pUserAgent;// HTTP agent name
+    // rsp
+    UINT32 uHttpStatusCode = 0;
+    HttpResponseContext* pHttpRspCtx = NULL;
+    PCHAR pResponseStr;
+    UINT32 resultLen;
 
-    CHK(NULL != (pHost = (CHAR *)MEMALLOC(STRLEN(pSignalingClient->channelEndpointWss)+1)), STATUS_NOT_ENOUGH_MEMORY);
-    MEMSET(pHost, 0, STRLEN(pSignalingClient->channelEndpointWss+1));
-    STRCPY(pHost, pSignalingClient->channelEndpointWss+6);
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+    CHK(pSignalingClient->channelEndpointWss[0] != '\0', STATUS_INTERNAL_ERROR);
+    ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
+    CHK(NULL != (pHost = (CHAR *)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pUrl = (PCHAR) MEMALLOC(MAX_URI_CHAR_LEN + 1)), STATUS_NOT_ENOUGH_MEMORY);
+
+    // Prepare the json params for the call
+    if (pSignalingClient->pChannelInfo->channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER) {
+        SNPRINTF(pUrl, (MAX_URI_CHAR_LEN + 1), SIGNALING_ENDPOINT_VIEWER_URL_WSS_TEMPLATE, pSignalingClient->channelEndpointWss,
+                 SIGNALING_CHANNEL_ARN_PARAM_NAME, pSignalingClient->channelDescription.channelArn, SIGNALING_CLIENT_ID_PARAM_NAME,
+                 pSignalingClient->clientInfo.signalingClientInfo.clientId);
+    } else {
+        SNPRINTF(pUrl, (MAX_URI_CHAR_LEN + 1), SIGNALING_ENDPOINT_MASTER_URL_WSS_TEMPLATE, pSignalingClient->channelEndpointWss,
+                 SIGNALING_CHANNEL_ARN_PARAM_NAME, pSignalingClient->channelDescription.channelArn);
+    }
 
     do
     {
-        CHK((pChannelInfo != NULL && pChannelInfo->pChannelName[0] != '\0'), STATUS_INVALID_ARG);
 
-        /* generate HTTP request body */
-        
+    /* Initialize and generate HTTP request, then send it. */
+    CHK(NULL != (pNetworkContext = (NetworkContext_t *)MEMALLOC( sizeof(NetworkContext_t))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(initNetworkContext( pNetworkContext ) );
 
-        /* generate UTC time in x-amz-date formate */
-        retStatus = getTimeInIso8601( pXAmzDate, sizeof( pXAmzDate ) );
+    CHK_STATUS(createRequestInfo(pUrl, NULL, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
+                                 SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
+                                 SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
+                                 DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
 
-        if( retStatus != STATUS_SUCCESS )
+    httpPackSendBufEx(pRequestInfo, HTTP_REQUEST_VERB_GET_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, TRUE);
+
+    for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
+    {
+        if( ( retStatus = connectToServer( pNetworkContext, pHost, KVS_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
         {
-            DLOGD("%s(%d) connect", __func__, __LINE__);
+            DLOGD("%s(%d) connect successfully", __func__, __LINE__);
             break;
         }
-        //strcpy(pXAmzDate, "20210311T024335Z");
-        p = pParameter;
-        p += SPRINTF(p, "?X-Amz-ChannelARN=%s", pSignalingClient->channelDescription.channelArn);
-        uriEncode(pParameter, pParameterUriEncode);
-
-
-        /* Create canonical request and sign the request. */
-        retStatus = AwsSignerV4_initContext( &signerContext, AWS_SIGNER_V4_BUFFER_SIZE );
-        AwsSignerV4_initCanonicalRequest( &signerContext, HTTP_METHOD_GET, STRLEN(HTTP_METHOD_GET), uri, STRLEN(uri), pParameterUriEncode, STRLEN(pParameterUriEncode) );
-        AwsSignerV4_addCanonicalHeader( &signerContext, HDR_HOST, STRLEN(HDR_HOST), pHost, STRLEN( pHost ) );
-        AwsSignerV4_addCanonicalHeader( &signerContext, HDR_USER_AGENT, STRLEN(HDR_USER_AGENT), pUserAgent, STRLEN( pUserAgent ) );
-        AwsSignerV4_addCanonicalHeader( &signerContext, HDR_X_AMZ_DATE, STRLEN(HDR_X_AMZ_DATE), pXAmzDate, STRLEN( pXAmzDate ) );
-        AwsSignerV4_addCanonicalBody( &signerContext, pHttpBody, STRLEN( pHttpBody ) );
-        AwsSignerV4_sign( &signerContext, pSecretKey, STRLEN(pSecretKey), pRegion, STRLEN(pRegion), pService, STRLEN(pService), pXAmzDate, STRLEN(pXAmzDate) );
-
-        /* Initialize and generate HTTP request, then send it. */
-        pNetworkContext = ( NetworkContext_t * ) MEMALLOC( sizeof( NetworkContext_t ) );
-        if( pNetworkContext == NULL )
-        {
-            retStatus = STATUS_NOT_ENOUGH_MEMORY;
-            DLOGD("%s(%d) connect", __func__, __LINE__);
-            break;
-        }
-
-        if( ( retStatus = initNetworkContext( pNetworkContext ) ) != STATUS_SUCCESS )
-        {
-            DLOGD("%s(%d) connect", __func__, __LINE__);
-            break;
-        }
-
-        for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
-        {
-            if( ( retStatus = connectToServer( pNetworkContext, pHost, KVS_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
-            {
-                DLOGD("%s(%d) connect successfully", __func__, __LINE__);
-                break;
-            }
-            sleepInMs( CONNECTION_RETRY_INTERVAL_IN_MS );
-        }
+        sleepInMs( CONNECTION_RETRY_INTERVAL_IN_MS );
+    }
 
         /*
             GET /?X-Amz-Algorithm=AWS4-HMAC-SHA256&
@@ -234,48 +170,11 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         MEMSET(clientKey, 0, WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1);
         wssClientGenerateClientKey(clientKey, WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1);
 
-        p = (CHAR *)(pNetworkContext->pHttpSendBuffer);
-        p += SPRINTF(p, "%s %s%s HTTP/1.1\r\n", HTTP_METHOD_GET, uri, pParameterUriEncode);
-        p += SPRINTF(p, "Host: %s\r\n", pHost);
-        p += SPRINTF(p, "Accept: */*\r\n");
-        p += SPRINTF(p, "Authorization: %s Credential=%s/%s, SignedHeaders=%s, Signature=%s\r\n",
-                        AWS_SIG_V4_ALGORITHM,
-                        pAccessKey,
-                        AwsSignerV4_getScope( &signerContext ),
-                        AwsSignerV4_getSignedHeader( &signerContext ),
-                        AwsSignerV4_getHmacEncoded( &signerContext ));
 
-        p += SPRINTF(p, "Pragma: no-cache\r\n");
-        p += SPRINTF(p, "Cache-Control: no-cache\r\n");
-        p += SPRINTF(p, "user-agent: %s\r\n", pUserAgent);
-        p += SPRINTF(p, "X-Amz-Date: %s\r\n", pXAmzDate);
-
-        /* Web socket upgrade */
-        p += SPRINTF(p, "upgrade: WebSocket\r\n");
-        p += SPRINTF(p, "connection: Upgrade\r\n");
-        
-        p += SPRINTF(p, "Sec-WebSocket-Key: %s\r\n", clientKey);
-        p += SPRINTF(p, "Sec-WebSocket-Protocol: wss\r\n");
-        p += SPRINTF(p, "Sec-WebSocket-Version: 13\r\n");
-
-        p += SPRINTF(p, "\r\n");
-
-        AwsSignerV4_terminateContext(&signerContext);
-
-        uBytesToSend = p - ( CHAR * )pNetworkContext->pHttpSendBuffer;
-        retStatus = networkSend( pNetworkContext, pNetworkContext->pHttpSendBuffer, uBytesToSend );
-        if( retStatus != uBytesToSend )
-        {
-            retStatus = STATUS_SEND_DATA_FAILED;
-            break;
-        }
-
-        retStatus = networkRecv( pNetworkContext, pNetworkContext->pHttpRecvBuffer, pNetworkContext->uHttpRecvBufferLen );
-
-        if( retStatus < STATUS_SUCCESS )
-        {
-            break;
-        }
+        uBytesToSend = STRLEN((PCHAR)pNetworkContext->pHttpSendBuffer);
+        CHK(uBytesToSend == networkSend( pNetworkContext, pNetworkContext->pHttpSendBuffer, uBytesToSend ), STATUS_SEND_DATA_FAILED);
+        uBytesReceived = networkRecv( pNetworkContext, pNetworkContext->pHttpRecvBuffer, pNetworkContext->uHttpRecvBufferLen );
+        CHK(uBytesReceived > 0, STATUS_RECV_DATA_FAILED);
 
         struct list_head* requiredHeader = malloc(sizeof(struct list_head));
         // on_status, Switching Protocols
@@ -286,7 +185,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         httpParserAddRequiredHeader(requiredHeader, HTTP_HEADER_FIELD_CONNECTION, STRLEN(HTTP_HEADER_FIELD_CONNECTION), NULL, 0);
         httpParserAddRequiredHeader(requiredHeader, HTTP_HEADER_FIELD_UPGRADE, STRLEN(HTTP_HEADER_FIELD_UPGRADE), NULL, 0);
         httpParserAddRequiredHeader(requiredHeader, HTTP_HEADER_FIELD_SEC_WS_ACCEPT, STRLEN(HTTP_HEADER_FIELD_SEC_WS_ACCEPT), NULL, 0);
-        retStatus = httpParserStart( &pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )retStatus, requiredHeader);
+        CHK_STATUS(httpParserStart(&pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )uBytesReceived, NULL));
         
         PHttpField node;
         node = httpParserGetValueByField(requiredHeader, HTTP_HEADER_FIELD_CONNECTION, STRLEN(HTTP_HEADER_FIELD_CONNECTION));
@@ -311,8 +210,8 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         }
 
 
-        PCHAR pResponseStr = httpParserGetHttpBodyLocation(pHttpRspCtx);
-        UINT32 resultLen = httpParserGetHttpBodyLength(pHttpRspCtx);
+        pResponseStr = httpParserGetHttpBodyLocation(pHttpRspCtx);
+        resultLen = httpParserGetHttpBodyLength(pHttpRspCtx);
         uHttpStatusCode = httpParserGetHttpStatusCode(pHttpRspCtx);
         
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);

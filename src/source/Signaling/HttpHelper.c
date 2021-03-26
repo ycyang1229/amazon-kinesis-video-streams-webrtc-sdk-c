@@ -300,7 +300,7 @@ STATUS httpParserDetroy(HttpResponseContext* pHttpRspCtx)
 }
 
 
-STATUS httpPackSendBuf(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT32 hostLen, PCHAR outputBuf, UINT32 bufLen)
+STATUS httpPackSendBuf(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT32 hostLen, PCHAR outputBuf, UINT32 bufLen, BOOL bWss)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR p = NULL;
@@ -312,7 +312,11 @@ STATUS httpPackSendBuf(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT
     PRequestHeader pRequestHeader;    
         
     // Sign the request
-    CHK_STATUS(signAwsRequestInfo(pRequestInfo));
+    if(!bWss){
+        CHK_STATUS(signAwsRequestInfo(pRequestInfo));
+    }else{
+        CHK_STATUS(signAwsRequestInfoQueryParam(pRequestInfo));
+    }
 
     CHK_STATUS(getRequestHost(pRequestInfo->url, &pHostStart, &pHostEnd));
     CHK(pHostEnd == NULL || *pHostEnd == '/' || *pHostEnd == '?', STATUS_INTERNAL_ERROR);
@@ -346,7 +350,7 @@ STATUS httpPackSendBuf(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT
         pRequestHeader = (PRequestHeader) item;
 
         //pPrevNode = pCurNode;
-        //DLOGD("Appending header - %s %s", pRequestHeader->pName, pRequestHeader->pValue);
+        DLOGD("Appending header - %s %s", pRequestHeader->pName, pRequestHeader->pValue);
         p += SPRINTF(p, "%s: %s\r\n", pRequestHeader->pName, pRequestHeader->pValue);
 
         CHK_STATUS(singleListGetNextNode(pCurNode, &pCurNode));
@@ -357,10 +361,83 @@ STATUS httpPackSendBuf(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT
     p += SPRINTF(p, "%s\r\n", pRequestInfo->body );
     p += SPRINTF(p, "\r\n" );
 CleanUp:
-    //DLOGD("URL:%s", pRequestInfo->url);
-    //DLOGD("HOST:%s", pHost);
-    //DLOGD("PATH:%s", pPath);
-    //DLOGD("(%d)%s", STRLEN(outputBuf), outputBuf);
+
+    SAFE_MEMFREE(pPath);
+    return retStatus;
+}
+
+
+STATUS httpPackSendBufEx(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT32 hostLen, PCHAR outputBuf, UINT32 bufLen, BOOL bWss)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PCHAR p = NULL;
+    PCHAR pPath = NULL;
+    PCHAR pHostStart, pHostEnd;
+    UINT32 headerCount;
+    PSingleListNode pCurNode;
+    UINT64 item;
+    PRequestHeader pRequestHeader;    
+        
+    // Sign the request
+    if(!bWss){
+        CHK_STATUS(signAwsRequestInfo(pRequestInfo));
+    }else{
+        CHK_STATUS(signAwsRequestInfoQueryParam(pRequestInfo));
+    }
+
+    CHK_STATUS(getRequestHost(pRequestInfo->url, &pHostStart, &pHostEnd));
+    CHK(pHostEnd == NULL || *pHostEnd == '/' || *pHostEnd == '?', STATUS_INTERNAL_ERROR);
+    MEMCPY(pHost, pHostStart, pHostEnd-pHostStart);
+
+    UINT32 pathLen = MAX_URI_CHAR_LEN;
+    CHK(NULL != (pPath = (PCHAR) MEMCALLOC(pathLen + 1, SIZEOF(CHAR))), STATUS_NOT_ENOUGH_MEMORY);
+    // Store the pPath
+    pPath[MAX_URI_CHAR_LEN] = '\0';
+    if (pHostEnd != NULL) {
+        if (*pHostEnd == '/') {
+            STRNCPY(pPath, pHostEnd, MAX_URI_CHAR_LEN);
+        } else {
+            pPath[0] = '/';
+            STRNCPY(&pPath[1], pHostEnd, MAX_URI_CHAR_LEN - 1);
+        }
+    } else {
+        pPath[0] = '/';
+        pPath[1] = '\0';
+    }
+
+    p = (PCHAR)(outputBuf);
+    /* header */
+    p += SPRINTF(p, "%s %s%s HTTP/1.1\r\n", HTTP_METHOD_GET, uri, pParameterUriEncode);
+    p += SPRINTF(p, "Accept: */*\r\n");
+
+
+    CHK_STATUS(singleListGetHeadNode(pRequestInfo->pRequestHeaders, &pCurNode));
+    while (pCurNode != NULL) {
+        CHK_STATUS(singleListGetNodeData(pCurNode, &item));
+        pRequestHeader = (PRequestHeader) item;
+
+        //pPrevNode = pCurNode;
+        DLOGD("Appending header - %s %s", pRequestHeader->pName, pRequestHeader->pValue);
+        p += SPRINTF(p, "%s: %s\r\n", pRequestHeader->pName, pRequestHeader->pValue);
+
+        CHK_STATUS(singleListGetNextNode(pCurNode, &pCurNode));
+    }
+    /* Web socket upgrade */
+        p += SPRINTF(p, "Pragma: no-cache\r\n");
+        p += SPRINTF(p, "Cache-Control: no-cache\r\n");
+        p += SPRINTF(p, "upgrade: WebSocket\r\n");
+        p += SPRINTF(p, "connection: Upgrade\r\n");
+        
+        p += SPRINTF(p, "Sec-WebSocket-Key: %s\r\n", clientKey);
+        p += SPRINTF(p, "Sec-WebSocket-Protocol: wss\r\n");
+        p += SPRINTF(p, "Sec-WebSocket-Version: 13\r\n");
+
+
+    p += SPRINTF(p, "\r\n" );
+    /* body */
+    p += SPRINTF(p, "%s\r\n", pRequestInfo->body );
+    p += SPRINTF(p, "\r\n" );
+CleanUp:
 
     SAFE_MEMFREE(pPath);
     return retStatus;

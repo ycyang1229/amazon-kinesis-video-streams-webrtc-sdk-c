@@ -234,7 +234,7 @@ STATUS httpApiCreateChannl(PSignalingClient pSignalingClient, UINT64 time)
     CHK(NULL != (pNetworkContext = (NetworkContext_t *)MEMALLOC( sizeof(NetworkContext_t))), STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(initNetworkContext( pNetworkContext ) );
     
-    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN);
+    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE);
 
     for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
     {
@@ -353,7 +353,7 @@ STATUS httpApiDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
 
     CHK_STATUS(initNetworkContext( pNetworkContext ) );
     
-    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN);
+    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE);
 
     for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
     {
@@ -462,7 +462,7 @@ STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time
     CHK(NULL != (pNetworkContext = (NetworkContext_t *) MEMALLOC( sizeof( NetworkContext_t ))), STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(initNetworkContext( pNetworkContext ) != STATUS_SUCCESS);
 
-    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN);
+    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE);
 
     for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
     {
@@ -574,7 +574,7 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
 
     CHK_STATUS(initNetworkContext( pNetworkContext ) != STATUS_SUCCESS);
 
-    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN);
+    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE);
 
     for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
     {
