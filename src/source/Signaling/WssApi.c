@@ -153,7 +153,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
     PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
     PCHAR pHost = NULL;
     
-    PCHAR pUserAgent = "userAgent";//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
+    PCHAR pUserAgent = pChannelInfo->pUserAgent;// HTTP agent name
 
     CHK(NULL != (pHost = (CHAR *)MEMALLOC(STRLEN(pSignalingClient->channelEndpointWss)+1)), STATUS_NOT_ENOUGH_MEMORY);
     MEMSET(pHost, 0, STRLEN(pSignalingClient->channelEndpointWss+1));
@@ -314,6 +314,8 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         PCHAR pResponseStr = httpParserGetHttpBodyLocation(pHttpRspCtx);
         UINT32 resultLen = httpParserGetHttpBodyLength(pHttpRspCtx);
         uHttpStatusCode = httpParserGetHttpStatusCode(pHttpRspCtx);
+        
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
 
         /* Check HTTP results */
         if( uHttpStatusCode == 101 )
@@ -338,35 +340,14 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
             CHK_STATUS(THREAD_CREATE(&pSignalingClient->listenerTracker.threadId, wssClientStart, (PVOID) wssClientCtx));
             CHK_STATUS(THREAD_DETACH(pSignalingClient->listenerTracker.threadId));
             ATOMIC_STORE_BOOL(&pSignalingClient->connected, TRUE);
+            ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
         }
-        else if( uHttpStatusCode == 404 )
-        {
-            retStatus = STATUS_HTTP_RES_NOT_FOUND_ERROR;
-            break;
-        }
-        else
-        {
-            DLOGE("Unable to get endpoint:\r\n%.*s\r\n", (int)httpParserGetHttpBodyLength(pHttpRspCtx), httpParserGetHttpBodyLocation(pHttpRspCtx));
-            if( uHttpStatusCode == 400 )
-            {
-                retStatus = STATUS_HTTP_REST_EXCEPTION_ERROR;
-                break;
-            }
-            else if( uHttpStatusCode == 401 )
-            {
-                retStatus = STATUS_HTTP_REST_NOT_AUTHORIZED_ERROR;
-                break;
-            }
-            else
-            {
-                retStatus = STATUS_HTTP_REST_UNKNOWN_ERROR;
-                break;
-            }
-        }
+        CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK, retStatus);
         
     } while ( 0 );
 
 CleanUp:
+    CHK_LOG_ERR(retStatus);
 
     if(pHttpRspCtx != NULL){
         retStatus =  httpParserDetroy(pHttpRspCtx);
@@ -384,8 +365,6 @@ CleanUp:
         AwsSignerV4_terminateContext(&signerContext);
     }
 
-    CHK_LOG_ERR(retStatus);
-
     if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
         // Fix-up the timeout case
         SERVICE_CALL_RESULT serviceCallResult =
@@ -399,6 +378,7 @@ CleanUp:
 
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) serviceCallResult);
     }
+    SAFE_MEMFREE(pHost);
     WSS_API_EXIT();
     return retStatus;
 }

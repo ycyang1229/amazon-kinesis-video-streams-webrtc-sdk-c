@@ -298,3 +298,70 @@ STATUS httpParserDetroy(HttpResponseContext* pHttpRspCtx)
     MEMFREE(pHttpRspCtx);
     return retStatus;
 }
+
+
+STATUS httpPackSendBuf(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT32 hostLen, PCHAR outputBuf, UINT32 bufLen)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PCHAR p = NULL;
+    PCHAR pPath = NULL;
+    PCHAR pHostStart, pHostEnd;
+    UINT32 headerCount;
+    PSingleListNode pCurNode;
+    UINT64 item;
+    PRequestHeader pRequestHeader;    
+        
+    // Sign the request
+    CHK_STATUS(signAwsRequestInfo(pRequestInfo));
+
+    CHK_STATUS(getRequestHost(pRequestInfo->url, &pHostStart, &pHostEnd));
+    CHK(pHostEnd == NULL || *pHostEnd == '/' || *pHostEnd == '?', STATUS_INTERNAL_ERROR);
+    MEMCPY(pHost, pHostStart, pHostEnd-pHostStart);
+
+    UINT32 pathLen = MAX_URI_CHAR_LEN;
+    CHK(NULL != (pPath = (PCHAR) MEMCALLOC(pathLen + 1, SIZEOF(CHAR))), STATUS_NOT_ENOUGH_MEMORY);
+    // Store the pPath
+    pPath[MAX_URI_CHAR_LEN] = '\0';
+    if (pHostEnd != NULL) {
+        if (*pHostEnd == '/') {
+            STRNCPY(pPath, pHostEnd, MAX_URI_CHAR_LEN);
+        } else {
+            pPath[0] = '/';
+            STRNCPY(&pPath[1], pHostEnd, MAX_URI_CHAR_LEN - 1);
+        }
+    } else {
+        pPath[0] = '/';
+        pPath[1] = '\0';
+    }
+
+    p = (PCHAR)(outputBuf);
+    /* header */
+    p += SPRINTF(p, "%s %s HTTP/1.1\r\n", pVerb, pPath);
+    p += SPRINTF(p, "Accept: */*\r\n");
+
+
+    CHK_STATUS(singleListGetHeadNode(pRequestInfo->pRequestHeaders, &pCurNode));
+    while (pCurNode != NULL) {
+        CHK_STATUS(singleListGetNodeData(pCurNode, &item));
+        pRequestHeader = (PRequestHeader) item;
+
+        //pPrevNode = pCurNode;
+        //DLOGD("Appending header - %s %s", pRequestHeader->pName, pRequestHeader->pValue);
+        p += SPRINTF(p, "%s: %s\r\n", pRequestHeader->pName, pRequestHeader->pValue);
+
+        CHK_STATUS(singleListGetNextNode(pCurNode, &pCurNode));
+    }
+
+    p += SPRINTF(p, "\r\n" );
+    /* body */
+    p += SPRINTF(p, "%s\r\n", pRequestInfo->body );
+    p += SPRINTF(p, "\r\n" );
+CleanUp:
+    //DLOGD("URL:%s", pRequestInfo->url);
+    //DLOGD("HOST:%s", pHost);
+    //DLOGD("PATH:%s", pPath);
+    //DLOGD("(%d)%s", STRLEN(outputBuf), outputBuf);
+
+    SAFE_MEMFREE(pPath);
+    return retStatus;
+}

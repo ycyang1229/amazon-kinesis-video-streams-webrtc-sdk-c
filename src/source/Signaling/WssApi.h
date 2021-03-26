@@ -57,7 +57,7 @@ struct __LwsCallInfo {
 
     // Scratch buffer for http processing
     #define LWS_SCRATCH_BUFFER_SIZE (MAX_JSON_PARAMETER_STRING_LEN)
-    CHAR buffer[LWS_SCRATCH_BUFFER_SIZE];
+    //CHAR buffer[LWS_SCRATCH_BUFFER_SIZE];
     #define LWS_MESSAGE_BUFFER_SIZE (SIZEOF(CHAR) * (MAX_SIGNALING_MESSAGE_LEN))
     // Scratch buffer for sending
     BYTE sendBuffer[LWS_MESSAGE_BUFFER_SIZE];

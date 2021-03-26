@@ -29,10 +29,10 @@ extern "C" {
 
 
 /* The size of HTTP send buffer */
-#define MAX_HTTP_SEND_BUFFER_LEN            ( 2048 )
+#define MAX_HTTP_SEND_BUFFER_LEN            ( 2048 + 2048)
 
 /* The size of HTTP receive buffer */
-#define MAX_HTTP_RECV_BUFFER_LEN            ( 2048 )
+#define MAX_HTTP_RECV_BUFFER_LEN            ( 2048 + 2048)
 
 struct tls_context{
   // net related.

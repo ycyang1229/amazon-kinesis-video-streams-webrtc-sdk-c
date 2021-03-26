@@ -96,7 +96,7 @@ VOID terminateNetworkContext( NetworkContext_t * pNetworkContext )
 {
     if( pNetworkContext != NULL )
     {
-        DLOGD("Terminate network context");
+        //DLOGD("Terminate network context");
 
         mbedtls_net_free( &( pNetworkContext->server_fd ) );
         mbedtls_ssl_free( &( pNetworkContext->ssl ) );
@@ -154,6 +154,7 @@ static STATUS _connectToServer( NetworkContext_t * pNetworkContext,
     else if( pRootCA != NULL && pCertificate != NULL && pPrivateKey != NULL )
     {
         bHasX509Certificate = TRUE;
+
         if( ( pNetworkContext->pRootCA = ( mbedtls_x509_crt * )MEMALLOC( sizeof( mbedtls_x509_crt ) ) ) == NULL )
         {
             DLOGE("OOM: pRootCA");
