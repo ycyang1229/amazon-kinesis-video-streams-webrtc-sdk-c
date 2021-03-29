@@ -35,7 +35,6 @@ PHttpField httpParserGetValueByField(struct list_head* head, char* field, UINT32
     list_for_each(listptr, head) {
         node = list_entry(listptr, HttpField, list);
         if(STRNCMP(node->field, field, node->fieldLen) == 0 && node->fieldLen == fieldLen ){
-            //DLOGD("%s found", node->field);
             found = 1;
             break;
         }
@@ -300,7 +299,8 @@ STATUS httpParserDetroy(HttpResponseContext* pHttpRspCtx)
 }
 
 
-STATUS httpPackSendBuf(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT32 hostLen, PCHAR outputBuf, UINT32 bufLen, BOOL bWss)
+
+STATUS httpPackSendBuf(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT32 hostLen, PCHAR outputBuf, UINT32 bufLen, BOOL bWss, PCHAR clientKey)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR p = NULL;
@@ -337,11 +337,27 @@ STATUS httpPackSendBuf(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT
         pPath[0] = '/';
         pPath[1] = '\0';
     }
-
+    /*
+        GET /?X-Amz-Algorithm=AWS4-HMAC-SHA256&
+        X-Amz-ChannelARN=arn%3Aaws%3Akinesisvideo%3Aus-west-2%3A021108525330%3Achannel%2FScaryTestChannel%2F1599141861798&
+        X-Amz-Credential=AKIAQJ2RKREJMCCKFZ3G%2F20210309%2Fus-west-2%2Fkinesisvideo%2Faws4_request&
+        X-Amz-Date=20210309T151602Z&
+        X-Amz-Expires=604800&
+        X-Amz-SignedHeaders=host&
+        X-Amz-Signature=1797277081a3c6d77b4ad3acdd6515348fbed9d015bcabf0e891d9388d29ae5e HTTP/1.1
+        Pragma: no-cache
+        Cache-Control: no-cache
+        Host: m-d73cdb00.kinesisvideo.us-west-2.amazonaws.com
+        Upgrade: websocket
+        Connection: Upgrade
+        Sec-WebSocket-Key: yZfoKfFLHC2SNs5mO4HmaQ==
+        Sec-WebSocket-Protocol: wss
+        Sec-WebSocket-Version: 13
+    */
     p = (PCHAR)(outputBuf);
     /* header */
+    //p += SPRINTF(p, "%s %s%s HTTP/1.1\r\n", pVerb, uri, pParameterUriEncode);
     p += SPRINTF(p, "%s %s HTTP/1.1\r\n", pVerb, pPath);
-    p += SPRINTF(p, "Accept: */*\r\n");
 
 
     CHK_STATUS(singleListGetHeadNode(pRequestInfo->pRequestHeaders, &pCurNode));
@@ -350,79 +366,14 @@ STATUS httpPackSendBuf(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT
         pRequestHeader = (PRequestHeader) item;
 
         //pPrevNode = pCurNode;
-        DLOGD("Appending header - %s %s", pRequestHeader->pName, pRequestHeader->pValue);
-        p += SPRINTF(p, "%s: %s\r\n", pRequestHeader->pName, pRequestHeader->pValue);
-
-        CHK_STATUS(singleListGetNextNode(pCurNode, &pCurNode));
-    }
-
-    p += SPRINTF(p, "\r\n" );
-    /* body */
-    p += SPRINTF(p, "%s\r\n", pRequestInfo->body );
-    p += SPRINTF(p, "\r\n" );
-CleanUp:
-
-    SAFE_MEMFREE(pPath);
-    return retStatus;
-}
-
-
-STATUS httpPackSendBufEx(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT32 hostLen, PCHAR outputBuf, UINT32 bufLen, BOOL bWss)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    PCHAR p = NULL;
-    PCHAR pPath = NULL;
-    PCHAR pHostStart, pHostEnd;
-    UINT32 headerCount;
-    PSingleListNode pCurNode;
-    UINT64 item;
-    PRequestHeader pRequestHeader;    
-        
-    // Sign the request
-    if(!bWss){
-        CHK_STATUS(signAwsRequestInfo(pRequestInfo));
-    }else{
-        CHK_STATUS(signAwsRequestInfoQueryParam(pRequestInfo));
-    }
-
-    CHK_STATUS(getRequestHost(pRequestInfo->url, &pHostStart, &pHostEnd));
-    CHK(pHostEnd == NULL || *pHostEnd == '/' || *pHostEnd == '?', STATUS_INTERNAL_ERROR);
-    MEMCPY(pHost, pHostStart, pHostEnd-pHostStart);
-
-    UINT32 pathLen = MAX_URI_CHAR_LEN;
-    CHK(NULL != (pPath = (PCHAR) MEMCALLOC(pathLen + 1, SIZEOF(CHAR))), STATUS_NOT_ENOUGH_MEMORY);
-    // Store the pPath
-    pPath[MAX_URI_CHAR_LEN] = '\0';
-    if (pHostEnd != NULL) {
-        if (*pHostEnd == '/') {
-            STRNCPY(pPath, pHostEnd, MAX_URI_CHAR_LEN);
-        } else {
-            pPath[0] = '/';
-            STRNCPY(&pPath[1], pHostEnd, MAX_URI_CHAR_LEN - 1);
-        }
-    } else {
-        pPath[0] = '/';
-        pPath[1] = '\0';
-    }
-
-    p = (PCHAR)(outputBuf);
-    /* header */
-    p += SPRINTF(p, "%s %s%s HTTP/1.1\r\n", HTTP_METHOD_GET, uri, pParameterUriEncode);
-    p += SPRINTF(p, "Accept: */*\r\n");
-
-
-    CHK_STATUS(singleListGetHeadNode(pRequestInfo->pRequestHeaders, &pCurNode));
-    while (pCurNode != NULL) {
-        CHK_STATUS(singleListGetNodeData(pCurNode, &item));
-        pRequestHeader = (PRequestHeader) item;
-
-        //pPrevNode = pCurNode;
-        DLOGD("Appending header - %s %s", pRequestHeader->pName, pRequestHeader->pValue);
+        //DLOGD("Appending header - %s %s", pRequestHeader->pName, pRequestHeader->pValue);
         p += SPRINTF(p, "%s: %s\r\n", pRequestHeader->pName, pRequestHeader->pValue);
 
         CHK_STATUS(singleListGetNextNode(pCurNode, &pCurNode));
     }
     /* Web socket upgrade */
+    if(bWss && clientKey != NULL)
+    {
         p += SPRINTF(p, "Pragma: no-cache\r\n");
         p += SPRINTF(p, "Cache-Control: no-cache\r\n");
         p += SPRINTF(p, "upgrade: WebSocket\r\n");
@@ -431,12 +382,16 @@ STATUS httpPackSendBufEx(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UI
         p += SPRINTF(p, "Sec-WebSocket-Key: %s\r\n", clientKey);
         p += SPRINTF(p, "Sec-WebSocket-Protocol: wss\r\n");
         p += SPRINTF(p, "Sec-WebSocket-Version: 13\r\n");
-
+    }
 
     p += SPRINTF(p, "\r\n" );
     /* body */
-    p += SPRINTF(p, "%s\r\n", pRequestInfo->body );
-    p += SPRINTF(p, "\r\n" );
+    if(pRequestInfo->body != NULL)
+    {
+        p += SPRINTF(p, "%s\r\n", pRequestInfo->body );
+        p += SPRINTF(p, "\r\n" );
+    }
+
 CleanUp:
 
     SAFE_MEMFREE(pPath);

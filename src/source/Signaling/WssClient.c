@@ -109,13 +109,10 @@ STATUS wssClientGenerateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR ac
     UINT8 buf[bufLen];
     UINT8 obuf[WSS_CLIENT_SHA1_RANDOM_SEED_W_UUID_LEN+1];
     UINT32 olen = 0;
-
     MEMSET(buf, 0, bufLen);
     MEMSET(obuf, 0, WSS_CLIENT_SHA1_RANDOM_SEED_W_UUID_LEN+1);
-
     MEMCPY(buf, clientKey, STRLEN(clientKey));
     MEMCPY(buf+STRLEN(clientKey), WSS_CLIENT_RFC6455_UUID, STRLEN(WSS_CLIENT_RFC6455_UUID));
-
     mbedtls_sha1( buf, STRLEN(buf), obuf );
     retStatus = mbedtls_base64_encode(acceptKey, acceptKeyLen, (VOID*)&olen, obuf, 20);
 
@@ -133,9 +130,8 @@ STATUS wssClientValidateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR ac
     STATUS retStatus = STATUS_SUCCESS;
     UINT8 tmpKey[WSS_CLIENT_ACCEPT_KEY_LEN+1];
     MEMSET(tmpKey, 0, WSS_CLIENT_ACCEPT_KEY_LEN+1);
-
     retStatus = wssClientGenerateAcceptKey(clientKey, clientKeyLen, tmpKey, WSS_CLIENT_ACCEPT_KEY_LEN+1);
-    if( retStatus!=0 ){
+    if( retStatus != STATUS_SUCCESS ){
         DLOGD("generating accept key failed");
     }
     //wssClientGenerateAcceptKey(clientKey, clientKeyLen, buf, WSS_CLIENT_ACCEPT_KEY_LEN);
@@ -156,6 +152,7 @@ STATUS wssClientValidateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR ac
 */
 INT32 wssClientSocketSend(WssClientContext* pCtx, const UINT8* data, SIZE_T len, INT32 flags)
 {
+    DLOGD("S ==>");
     return networkSend( pCtx->pNetworkContext, data, len );
 }
 /**
@@ -166,7 +163,8 @@ INT32 wssClientSocketSend(WssClientContext* pCtx, const UINT8* data, SIZE_T len,
 */
 INT32 wssClientSocketRead(WssClientContext* pCtx, UINT8* data, SIZE_T len, INT32 flags)
 {
-  return networkRecv( pCtx->pNetworkContext, data, len );
+    DLOGD("S <==");
+    return networkRecv( pCtx->pNetworkContext, data, len );
 }
 
 SSIZE_T wssClientFeedBody(WssClientContext* pCtx, UINT8 *data, SIZE_T len) 
@@ -247,7 +245,7 @@ VOID wslay_msg_recv_callback(wslay_event_context_ptr ctx,
         }else if(arg->opcode==WSLAY_PING){
             DLOGD("received ping, len: %ld", arg->msg_length);
         }else if(arg->opcode==WSLAY_CONNECTION_CLOSE){
-            DLOGD("received connection close, len: %ld", arg->msg_length);
+            DLOGD("received connection close, len: %ld, reason:%s", arg->msg_length, arg->msg);
         }else{
             DLOGD("received ctrl msg(%d), len: %ld", arg->opcode, arg->msg_length);
         }
@@ -318,9 +316,7 @@ static INT32 wssClientSend(WssClientContext* pCtx, struct wslay_event_msg* arg)
     WSS_CLIENT_ENTER();
     INT32 retStatus = 0;
     CLIENT_LOCK(pCtx);
-    DLOGD("===>   (%d)(%d)", arg->opcode, arg->msg_length);
     retStatus = wslay_event_queue_msg(pCtx->event_ctx, arg);
-    DLOGD("===>   (%d)(%d) done", arg->opcode, arg->msg_length);
     CLIENT_UNLOCK(pCtx);
     WSS_CLIENT_EXIT();
     return retStatus;
@@ -500,6 +496,7 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
                 break;
             }
         }
+        
 
         if (!ok) {
             break;

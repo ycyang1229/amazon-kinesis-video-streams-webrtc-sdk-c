@@ -109,11 +109,13 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
     HttpResponseContext* pHttpRspCtx = NULL;
     PCHAR pResponseStr;
     UINT32 resultLen;
+    BOOL locked = FALSE;
+    UINT64 timeout;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelEndpointWss[0] != '\0', STATUS_INTERNAL_ERROR);
     ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
-    CHK(NULL != (pHost = (CHAR *)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pHost = (CHAR *)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pUrl = (PCHAR) MEMALLOC(MAX_URI_CHAR_LEN + 1)), STATUS_NOT_ENOUGH_MEMORY);
 
     // Prepare the json params for the call
@@ -126,9 +128,6 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
                  SIGNALING_CHANNEL_ARN_PARAM_NAME, pSignalingClient->channelDescription.channelArn);
     }
 
-    do
-    {
-
     /* Initialize and generate HTTP request, then send it. */
     CHK(NULL != (pNetworkContext = (NetworkContext_t *)MEMALLOC( sizeof(NetworkContext_t))), STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(initNetworkContext( pNetworkContext ) );
@@ -137,8 +136,10 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
                                  SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
                                  SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
-
-    httpPackSendBufEx(pRequestInfo, HTTP_REQUEST_VERB_GET_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, TRUE);
+    pRequestInfo->verb = HTTP_REQUEST_VERB_GET;
+    MEMSET(clientKey, 0, WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1);
+    wssClientGenerateClientKey(clientKey, WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1);
+    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_GET_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, TRUE, clientKey);
 
     for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
     {
@@ -150,104 +151,96 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         sleepInMs( CONNECTION_RETRY_INTERVAL_IN_MS );
     }
 
-        /*
-            GET /?X-Amz-Algorithm=AWS4-HMAC-SHA256&
-            X-Amz-ChannelARN=arn%3Aaws%3Akinesisvideo%3Aus-west-2%3A021108525330%3Achannel%2FScaryTestChannel%2F1599141861798&
-            X-Amz-Credential=AKIAQJ2RKREJMCCKFZ3G%2F20210309%2Fus-west-2%2Fkinesisvideo%2Faws4_request&
-            X-Amz-Date=20210309T151602Z&
-            X-Amz-Expires=604800&
-            X-Amz-SignedHeaders=host&
-            X-Amz-Signature=1797277081a3c6d77b4ad3acdd6515348fbed9d015bcabf0e891d9388d29ae5e HTTP/1.1
-            Pragma: no-cache
-            Cache-Control: no-cache
-            Host: m-d73cdb00.kinesisvideo.us-west-2.amazonaws.com
-            Upgrade: websocket
-            Connection: Upgrade
-            Sec-WebSocket-Key: yZfoKfFLHC2SNs5mO4HmaQ==
-            Sec-WebSocket-Protocol: wss
-            Sec-WebSocket-Version: 13
+    uBytesToSend = STRLEN((PCHAR)pNetworkContext->pHttpSendBuffer);
+    CHK(uBytesToSend == networkSend( pNetworkContext, pNetworkContext->pHttpSendBuffer, uBytesToSend ), STATUS_SEND_DATA_FAILED);
+    uBytesReceived = networkRecv( pNetworkContext, pNetworkContext->pHttpRecvBuffer, pNetworkContext->uHttpRecvBufferLen );
+    CHK(uBytesReceived > 0, STATUS_RECV_DATA_FAILED);
+
+    struct list_head* requiredHeader = malloc(sizeof(struct list_head));
+    // on_status, Switching Protocols
+    // Connection, upgrade
+    // upgrade, websocket
+    // sec-websocket-accept, P9UpKZWjaPkoB8NXkHhLgAYqRtc=
+    INIT_LIST_HEAD(requiredHeader);
+    httpParserAddRequiredHeader(requiredHeader, HTTP_HEADER_FIELD_CONNECTION, STRLEN(HTTP_HEADER_FIELD_CONNECTION), NULL, 0);
+    httpParserAddRequiredHeader(requiredHeader, HTTP_HEADER_FIELD_UPGRADE, STRLEN(HTTP_HEADER_FIELD_UPGRADE), NULL, 0);
+    httpParserAddRequiredHeader(requiredHeader, HTTP_HEADER_FIELD_SEC_WS_ACCEPT, STRLEN(HTTP_HEADER_FIELD_SEC_WS_ACCEPT), NULL, 0);
+    CHK_STATUS(httpParserStart(&pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )uBytesReceived, requiredHeader));
+    
+    PHttpField node;
+    node = httpParserGetValueByField(requiredHeader, HTTP_HEADER_FIELD_CONNECTION, STRLEN(HTTP_HEADER_FIELD_CONNECTION));
+    if( node != NULL && 
+        node->valueLen == STRLEN(HTTP_HEADER_VALUE_UPGRADE) &&
+        MEMCMP(node->value, HTTP_HEADER_VALUE_UPGRADE, node->valueLen) == 0 ){
+    }
+
+    node = httpParserGetValueByField(requiredHeader, HTTP_HEADER_FIELD_UPGRADE, STRLEN(HTTP_HEADER_FIELD_UPGRADE));
+    if( node != NULL && 
+        node->valueLen == STRLEN(HTTP_HEADER_VALUE_WS) &&
+        MEMCMP(node->value, HTTP_HEADER_VALUE_WS, node->valueLen) == 0 ){
+    }
+    node = httpParserGetValueByField(requiredHeader, HTTP_HEADER_FIELD_SEC_WS_ACCEPT, STRLEN(HTTP_HEADER_FIELD_SEC_WS_ACCEPT));
+    if( node != NULL ){
+        if(wssClientValidateAcceptKey(clientKey, WSS_CLIENT_BASED64_RANDOM_SEED_LEN, node->value, node->valueLen)!=0){
+            DLOGD("validate accept key failed");
+        }
+    }
+
+    pResponseStr = httpParserGetHttpBodyLocation(pHttpRspCtx);
+    resultLen = httpParserGetHttpBodyLength(pHttpRspCtx);
+    uHttpStatusCode = httpParserGetHttpStatusCode(pHttpRspCtx);
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
+    
+    /* Check HTTP results */
+    if( uHttpStatusCode == SERVICE_CALL_RESULT_UPGRADE )
+    {
+        /**
+         * switch to wss client.
         */
-        MEMSET(clientKey, 0, WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1);
-        wssClientGenerateClientKey(clientKey, WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1);
+        SERVICE_CALL_RESULT callResult = SERVICE_CALL_RESULT_NOT_SET;
+        /* We got a success response here. */
+        WssClientContext* wssClientCtx = NULL;
+        // #YC_TBD.
+        mbedtls_ssl_conf_read_timeout(&pNetworkContext->conf, 50);
+        //setNonBlocking(pNetworkContext);
+        //mbedtls_ssl_set_timer_cb( &ssl, &timer, mbedtls_timing_set_delay,
+        //                                    mbedtls_timing_get_delay );
+        wssClientCreate(&wssClientCtx, pNetworkContext, pSignalingClient, wssReceiveMessage);
+        // #YC_TBD !!!!!!!!! MUST
+        pSignalingClient->pOngoingCallInfo = MEMALLOC(SIZEOF(LwsCallInfo));
+        pSignalingClient->pWssContext = wssClientCtx;
 
+        // Don't let the thread to start running initially
+        MUTEX_LOCK(pSignalingClient->connectedLock);
+        locked = TRUE;
 
-        uBytesToSend = STRLEN((PCHAR)pNetworkContext->pHttpSendBuffer);
-        CHK(uBytesToSend == networkSend( pNetworkContext, pNetworkContext->pHttpSendBuffer, uBytesToSend ), STATUS_SEND_DATA_FAILED);
-        uBytesReceived = networkRecv( pNetworkContext, pNetworkContext->pHttpRecvBuffer, pNetworkContext->uHttpRecvBufferLen );
-        CHK(uBytesReceived > 0, STATUS_RECV_DATA_FAILED);
+        // Set the state to not connected
+        ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) callResult);
 
-        struct list_head* requiredHeader = malloc(sizeof(struct list_head));
-        // on_status, Switching Protocols
-        // Connection, upgrade
-        // upgrade, websocket
-        // sec-websocket-accept, P9UpKZWjaPkoB8NXkHhLgAYqRtc=
-        INIT_LIST_HEAD(requiredHeader);
-        httpParserAddRequiredHeader(requiredHeader, HTTP_HEADER_FIELD_CONNECTION, STRLEN(HTTP_HEADER_FIELD_CONNECTION), NULL, 0);
-        httpParserAddRequiredHeader(requiredHeader, HTTP_HEADER_FIELD_UPGRADE, STRLEN(HTTP_HEADER_FIELD_UPGRADE), NULL, 0);
-        httpParserAddRequiredHeader(requiredHeader, HTTP_HEADER_FIELD_SEC_WS_ACCEPT, STRLEN(HTTP_HEADER_FIELD_SEC_WS_ACCEPT), NULL, 0);
-        CHK_STATUS(httpParserStart(&pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )uBytesReceived, NULL));
-        
-        PHttpField node;
-        node = httpParserGetValueByField(requiredHeader, HTTP_HEADER_FIELD_CONNECTION, STRLEN(HTTP_HEADER_FIELD_CONNECTION));
+        // The actual connection will be handled in a separate thread
+        // Start the request/response thread
+        CHK_STATUS(THREAD_CREATE(&pSignalingClient->listenerTracker.threadId, wssClientStart, (PVOID) wssClientCtx));
+        CHK_STATUS(THREAD_DETACH(pSignalingClient->listenerTracker.threadId));
 
-        if( node != NULL && 
-            node->valueLen == STRLEN(HTTP_HEADER_VALUE_UPGRADE) &&
-            MEMCMP(node->value, HTTP_HEADER_VALUE_UPGRADE, node->valueLen) == 0 ){
-        }
+        // Set the call result to succeeded
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
+        ATOMIC_STORE_BOOL(&pSignalingClient->connected, TRUE);
 
-        node = httpParserGetValueByField(requiredHeader, HTTP_HEADER_FIELD_UPGRADE, STRLEN(HTTP_HEADER_FIELD_UPGRADE));
-        if( node != NULL && 
-            node->valueLen == STRLEN(HTTP_HEADER_VALUE_WS) &&
-            MEMCMP(node->value, HTTP_HEADER_VALUE_WS, node->valueLen) == 0 ){
-        }
-
-        node = httpParserGetValueByField(requiredHeader, HTTP_HEADER_FIELD_SEC_WS_ACCEPT, STRLEN(HTTP_HEADER_FIELD_SEC_WS_ACCEPT));
-        if( node != NULL ){
-            
-            if(wssClientValidateAcceptKey(clientKey, WSS_CLIENT_BASED64_RANDOM_SEED_LEN, node->value, node->valueLen)!=0){
-                DLOGD("validate accept key failed");
-            }
-        }
-
-
-        pResponseStr = httpParserGetHttpBodyLocation(pHttpRspCtx);
-        resultLen = httpParserGetHttpBodyLength(pHttpRspCtx);
-        uHttpStatusCode = httpParserGetHttpStatusCode(pHttpRspCtx);
-        
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
-
-        /* Check HTTP results */
-        if( uHttpStatusCode == 101 )
-        {
-            /**
-             * switch to wss client.
-            */
-            // #YC_TBD.
-            
-
-            DLOGD("connect signaling channel successfully.");
-            /* We got a success response here. */
-            WssClientContext* wssClientCtx = NULL;
-            // #YC_TBD.
-            mbedtls_ssl_conf_read_timeout(&pNetworkContext->conf, 50);
-            //mbedtls_ssl_set_timer_cb( &ssl, &timer, mbedtls_timing_set_delay,
-            //                                    mbedtls_timing_get_delay );
-            wssClientCreate(&wssClientCtx, pNetworkContext, pSignalingClient, wssReceiveMessage);
-            // #YC_TBD !!!!!!!!! MUST
-            pSignalingClient->pOngoingCallInfo = MEMALLOC(SIZEOF(LwsCallInfo));
-            pSignalingClient->pWssContext = wssClientCtx;
-            CHK_STATUS(THREAD_CREATE(&pSignalingClient->listenerTracker.threadId, wssClientStart, (PVOID) wssClientCtx));
-            CHK_STATUS(THREAD_DETACH(pSignalingClient->listenerTracker.threadId));
-            ATOMIC_STORE_BOOL(&pSignalingClient->connected, TRUE);
+        // Notify the listener thread
+        CVAR_BROADCAST(pSignalingClient->connectedCvar);
+        // Check whether we are connected and reset the result
+        if (ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
         }
-        CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK, retStatus);
-        
-    } while ( 0 );
+
+        MUTEX_UNLOCK(pSignalingClient->connectedLock);
+        locked = FALSE;
+    }
+    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK, retStatus);
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
-
     if(pHttpRspCtx != NULL){
         retStatus =  httpParserDetroy(pHttpRspCtx);
         if( retStatus != STATUS_SUCCESS )
@@ -256,19 +249,19 @@ CleanUp:
         }
     }
 
-    if( pNetworkContext != NULL )
-    {
-        //disconnectFromServer( pNetworkContext );
-        //terminateNetworkContext(pNetworkContext);
-        //MEMFREE( pNetworkContext );
-        AwsSignerV4_terminateContext(&signerContext);
-    }
-
     if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
         // Fix-up the timeout case
         SERVICE_CALL_RESULT serviceCallResult =
             (retStatus == STATUS_OPERATION_TIMED_OUT) ? SERVICE_CALL_NETWORK_CONNECTION_TIMEOUT : SERVICE_CALL_UNKNOWN;
         // Trigger termination
+        if( pNetworkContext != NULL )
+        {
+            //disconnectFromServer( pNetworkContext );
+            //terminateNetworkContext(pNetworkContext);
+            //MEMFREE( pNetworkContext );
+            //AwsSignerV4_terminateContext(&signerContext);
+        }
+
         if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) &&
             pSignalingClient->pOngoingCallInfo != NULL /*&&
             pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL*/) {
@@ -278,6 +271,8 @@ CleanUp:
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) serviceCallResult);
     }
     SAFE_MEMFREE(pHost);
+    SAFE_MEMFREE(pUrl);
+    freeRequestInfo(pRequestInfo);
     WSS_API_EXIT();
     return retStatus;
 }
