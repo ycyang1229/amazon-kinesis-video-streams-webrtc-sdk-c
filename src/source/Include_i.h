@@ -49,7 +49,7 @@ extern "C" {
 #endif
 
 #include <llhttp.h>
-#include <parson.h>
+//#include <parson.h>
 #include <wslay/wslay.h>
 #include <errno.h> // #YC_TBD.
 #include <sys/epoll.h>// #YC_TBD.
@@ -180,10 +180,10 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 // new
 #include "Signaling/list.h"
 #include "Signaling/WebrtcPort.h"
-#include "Signaling/AwsSignerV4.h"
+//#include "Signaling/AwsSignerV4.h"
 #include "Signaling/NetworkApi.h"
 #include "Signaling/HttpHelper.h"
-#include "Signaling/JsonHelper.h"
+//#include "Signaling/JsonHelper.h"
 
 #include "Signaling/FileCache.h"
 #include "Signaling/WssClient.h"

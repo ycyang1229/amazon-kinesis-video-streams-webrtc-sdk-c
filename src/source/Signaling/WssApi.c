@@ -111,20 +111,35 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
     UINT32 resultLen;
     BOOL locked = FALSE;
     UINT64 timeout;
+    UINT32 urlLen = 0;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient->channelEndpointWss[0] != '\0', STATUS_INTERNAL_ERROR);
     ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
     CHK(NULL != (pHost = (CHAR *)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
-    CHK(NULL != (pUrl = (PCHAR) MEMALLOC(MAX_URI_CHAR_LEN + 1)), STATUS_NOT_ENOUGH_MEMORY);
+    
 
     // Prepare the json params for the call
     if (pSignalingClient->pChannelInfo->channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER) {
-        SNPRINTF(pUrl, (MAX_URI_CHAR_LEN + 1), SIGNALING_ENDPOINT_VIEWER_URL_WSS_TEMPLATE, pSignalingClient->channelEndpointWss,
+        
+        urlLen = STRLEN(SIGNALING_ENDPOINT_VIEWER_URL_WSS_TEMPLATE) +
+                 STRLEN(pSignalingClient->channelEndpointWss) +
+                 STRLEN(SIGNALING_CHANNEL_ARN_PARAM_NAME) +
+                 STRLEN(pSignalingClient->channelDescription.channelArn) +
+                 STRLEN(SIGNALING_CLIENT_ID_PARAM_NAME) +
+                 STRLEN(pSignalingClient->clientInfo.signalingClientInfo.clientId);
+        CHK(NULL != (pUrl = (PCHAR) MEMALLOC(urlLen + 1)), STATUS_NOT_ENOUGH_MEMORY);
+        SNPRINTF(pUrl, (urlLen + 1), SIGNALING_ENDPOINT_VIEWER_URL_WSS_TEMPLATE, pSignalingClient->channelEndpointWss,
                  SIGNALING_CHANNEL_ARN_PARAM_NAME, pSignalingClient->channelDescription.channelArn, SIGNALING_CLIENT_ID_PARAM_NAME,
                  pSignalingClient->clientInfo.signalingClientInfo.clientId);
     } else {
-        SNPRINTF(pUrl, (MAX_URI_CHAR_LEN + 1), SIGNALING_ENDPOINT_MASTER_URL_WSS_TEMPLATE, pSignalingClient->channelEndpointWss,
+        urlLen = STRLEN(SIGNALING_ENDPOINT_MASTER_URL_WSS_TEMPLATE) +
+                 STRLEN(pSignalingClient->channelEndpointWss) +
+                 STRLEN(SIGNALING_CHANNEL_ARN_PARAM_NAME) +
+                 STRLEN(pSignalingClient->channelDescription.channelArn);
+        CHK(NULL != (pUrl = (PCHAR) MEMALLOC(urlLen + 1)), STATUS_NOT_ENOUGH_MEMORY);
+
+        SNPRINTF(pUrl, (urlLen + 1), SIGNALING_ENDPOINT_MASTER_URL_WSS_TEMPLATE, pSignalingClient->channelEndpointWss,
                  SIGNALING_CHANNEL_ARN_PARAM_NAME, pSignalingClient->channelDescription.channelArn);
     }
 
@@ -201,7 +216,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         /* We got a success response here. */
         WssClientContext* wssClientCtx = NULL;
         // #YC_TBD.
-        mbedtls_ssl_conf_read_timeout(&pNetworkContext->conf, WSS_CLIENT_POLLING_INTERVAL);
+        
         //setNonBlocking(pNetworkContext);
         //mbedtls_ssl_set_timer_cb( &ssl, &timer, mbedtls_timing_set_delay,
         //                                    mbedtls_timing_get_delay );

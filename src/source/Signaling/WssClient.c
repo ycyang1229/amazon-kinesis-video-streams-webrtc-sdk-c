@@ -35,8 +35,8 @@
 //#include <pthread.h>
 // time
 
-#define CLIENT_LOCK(pCtx) pthread_mutex_lock(&pCtx->client_lock)
-#define CLIENT_UNLOCK(pCtx) pthread_mutex_unlock(&pCtx->client_lock)
+#define CLIENT_LOCK(pCtx) MUTEX_LOCK(pCtx->client_lock)
+#define CLIENT_UNLOCK(pCtx) MUTEX_UNLOCK(pCtx->client_lock)
 
 /*-----------------------------------------------------------*/
 STATUS wssClientGenerateRandomNumber(PCHAR num, UINT32 len)
@@ -353,33 +353,6 @@ INT32 wssClientSendPing(WssClientContext* pCtx)
 }
 
 
-#define WSS_SEND_TEST 0
-#if (WSS_SEND_TEST == 1)
-VOID* testThread(VOID* arg)
-{
-    WssClientContext* context = (WssClientContext*)arg;
-    UINT32 index = 0;
-    CHAR indexBuf[256];
-
-    while(1){
-        #if 0
-        MEMSET(indexBuf, 0, 256);
-        sprintf(indexBuf, "{\n"
-                        "\t\"action\": \"ICE_CANDIDATE\","
-                        "\t\"recipientClientId\": \"string\","
-                        "\t\"messagePayload\": \"string%d\","
-                        "\t\"correlationId\": \"string\"\n}", index);
-        DLOGD("send");
-        wssClientSendText(context, indexBuf, STRLEN(indexBuf));
-        DLOGD("send done");
-        #else
-        wssClientSendPing(context);
-        #endif
-        sleep(1);
-    }
-}
-#endif
-
 
 /**
  * @brief create the context of wss client and initialize the wss client.
@@ -412,40 +385,12 @@ VOID wssClientCreate(WssClientContext** ppWssClientCtx, NetworkContext_t * pNetw
     pCtx->messageHandler = pFunc;
 
     // the initialization of the mutex 
-    {
-    pthread_mutexattr_t mutexAttributes;
-
-    if (0 != pthread_mutexattr_init(&mutexAttributes) ||
-        0 != pthread_mutexattr_settype(&mutexAttributes, PTHREAD_MUTEX_NORMAL) ||
-        0 != pthread_mutex_init(&pCtx->client_lock, &mutexAttributes)) {
-        DLOGD("create the mutex failed");
-        return;
-    }
-
-    }
+    pCtx->client_lock = MUTEX_CREATE(FALSE);
     wslay_event_context_client_init(&pCtx->event_ctx, &pCtx->event_callbacks, pCtx);;
     *ppWssClientCtx = pCtx;
     WSS_CLIENT_EXIT();
     return;
 }
-
-VOID ctl_epollev(INT32 epollfd, INT32 op, WssClientContext* pWssClientCtx)
-{
-    struct epoll_event ev;
-    MEMSET(&ev, 0, sizeof(ev));
-
-    if (wssClientWantRead(pWssClientCtx)) {
-        ev.events |= EPOLLIN;
-    }
-    if (wssClientWantWrite(pWssClientCtx)) {
-        ev.events |= EPOLLOUT;
-    }
-    if (epoll_ctl(epollfd, op, pWssClientCtx->pNetworkContext->server_fd.fd, &ev) == -1) {
-        DLOGD("epoll_ctl failed ");
-        exit(EXIT_FAILURE);
-    }
-}
-
 /**
  * @brief 
  * 
@@ -456,36 +401,23 @@ VOID ctl_epollev(INT32 epollfd, INT32 op, WssClientContext* pWssClientCtx)
 INT32 wssClientStart(WssClientContext* pWssClientCtx)
 {
     WSS_CLIENT_ENTER();
-    static const SIZE_T MAX_EVENTS = 1;
-    struct epoll_event events[MAX_EVENTS];
     BOOL ok = TRUE;
+    // for the inteface of socket.
     INT32 nfds = 0;
     INT32 retval;
     fd_set rfds;
     struct timeval tv;
+    // for ping-pong.
     UINT32 counter = 0;
-    //
+
     wslay_event_config_set_callbacks(pWssClientCtx->event_ctx, &pWssClientCtx->event_callbacks);
-
-    DLOGD("polling start");
-
-    #if (WSS_SEND_TEST == 1)
-
-    pthread_t threadId;
-
-    INT32 ret = pthread_create (&threadId, NULL, testThread, pWssClientCtx);
-    if(ret != 0){
-        DLOGD("create the child thread failed.");
-    }
-    #endif
-    
     mbedtls_ssl_conf_read_timeout(&(pWssClientCtx->pNetworkContext->conf), WSS_CLIENT_POLLING_INTERVAL);
 
     nfds = pWssClientCtx->pNetworkContext->server_fd.fd;
     FD_ZERO(&rfds);
-	
-    UINT64 prev, cur;
+
     // check the wss client want to read or write or not.
+    DLOGD("wss client start");
     while (wssClientWantRead(pWssClientCtx) || wssClientWantWrite(pWssClientCtx)) {
         // need to setup the timeout of epoll in order to let the wss cleint thread to write the buffer out.
 	    FD_SET(nfds, &rfds);
@@ -502,6 +434,7 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
         {
             wssClientOnReadEvent(pWssClientCtx);
         }
+        // for ping-pong
         counter++;
         if(counter == WSS_CLIENT_PING_PONG_COUNTER)
         {  
@@ -512,11 +445,7 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
         wssClientOnWriteEvent(pWssClientCtx);
     }
 
-    DLOGD("polling end");
-    #if (WSS_SEND_TEST == 1)
-    // waiting for the child thread.
-    pthread_join(threadId, NULL);
-    #endif
+    DLOGD("wss client end");
     WSS_CLIENT_EXIT();
     return ok ? 0 : -1;
 }
@@ -524,16 +453,16 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
 
 VOID wss_client_close(WssClientContext* pWssClientCtx)
 {
-  INT32 retStatus = 0;
-  {
-    retStatus = pthread_mutex_destroy(&pWssClientCtx->client_lock);
-    if(retStatus != 0){
-      DLOGD("destroy the client mutex failed");
+    INT32 retStatus = 0;
+    CLIENT_LOCK(pWssClientCtx);
+    wslay_event_shutdown_read(pWssClientCtx->event_ctx);
+    wslay_event_shutdown_write(pWssClientCtx->event_ctx);
+
+    if (IS_VALID_MUTEX_VALUE(pWssClientCtx->client_lock)) {
+        MUTEX_FREE(pWssClientCtx->client_lock);
     }
-    
-  }
-  free(pWssClientCtx);
-  return;
+    free(pWssClientCtx);
+    return;
 }
 /*-----------------------------------------------------------*/
 

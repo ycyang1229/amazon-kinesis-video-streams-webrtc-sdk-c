@@ -40,13 +40,10 @@ typedef STATUS (*MessageHandlerFunc)(PVOID, PCHAR, UINT32);
 typedef struct {
     wslay_event_context_ptr event_ctx;
     struct wslay_event_callbacks event_callbacks;
-    PCHAR client_key;
-    UINT32 client_key_len;
     // socket related stuff.
     NetworkContext_t * pNetworkContext;
     // os related stuff.
-    pthread_t thread_id;    
-    pthread_mutex_t client_lock;
+    MUTEX client_lock;
     PVOID pUserData;
     MessageHandlerFunc messageHandler;
 }WssClientContext, *PWssClientContext;

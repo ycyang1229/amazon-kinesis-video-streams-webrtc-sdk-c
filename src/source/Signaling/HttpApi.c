@@ -210,15 +210,15 @@ STATUS httpApiCreateChannl(PSignalingClient pSignalingClient, UINT64 time)
     UINT32 resultLen;
 
 
-    CHK(NULL != (pHost = (CHAR *)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
-    CHK(NULL != (pUrl = (PCHAR) MEMALLOC(STRLEN(pSignalingClient->pChannelInfo->pControlPlaneUrl) +
+    CHK(NULL != (pHost = (PCHAR)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pUrl = (PCHAR)MEMALLOC(STRLEN(pSignalingClient->pChannelInfo->pControlPlaneUrl) +
                                         STRLEN(WEBRTC_API_CREATE_SIGNALING_CHANNEL) + 1)), STATUS_NOT_ENOUGH_MEMORY);
 
     // Create the API url
     STRCPY(pUrl, pSignalingClient->pChannelInfo->pControlPlaneUrl);
     STRCAT(pUrl, WEBRTC_API_CREATE_SIGNALING_CHANNEL);
 
-    CHK(NULL != (pHttpBody = (CHAR *)MEMALLOC(  sizeof( CREATE_CHANNEL_JSON_TEMPLATE ) +
+    CHK(NULL != (pHttpBody = (CHAR *)MEMALLOC(  SIZEOF( CREATE_CHANNEL_JSON_TEMPLATE ) +
                                                 STRLEN( pChannelInfo->pChannelName ) +
                                                 MAX_STRLEN_OF_UINT32 + 1 )), STATUS_NOT_ENOUGH_MEMORY);
 
@@ -231,7 +231,7 @@ STATUS httpApiCreateChannl(PSignalingClient pSignalingClient, UINT64 time)
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
 
     /* Initialize and generate HTTP request, then send it. */
-    CHK(NULL != (pNetworkContext = (NetworkContext_t *)MEMALLOC( sizeof(NetworkContext_t))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pNetworkContext = (NetworkContext_t *)MEMALLOC( SIZEOF(NetworkContext_t))), STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(initNetworkContext( pNetworkContext ) );
     
     httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE, NULL);
@@ -351,7 +351,7 @@ STATUS httpApiDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
 
     /* Initialize and generate HTTP request, then send it. */
-    CHK(NULL != (pNetworkContext = (NetworkContext_t *)MEMALLOC( sizeof(NetworkContext_t))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pNetworkContext = (NetworkContext_t *)MEMALLOC( SIZEOF(NetworkContext_t))), STATUS_NOT_ENOUGH_MEMORY);
 
     CHK_STATUS(initNetworkContext( pNetworkContext ) );
     
@@ -447,7 +447,7 @@ STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time
     STRCPY(pUrl, pSignalingClient->pChannelInfo->pControlPlaneUrl);
     STRCAT(pUrl, WEBRTC_API_GET_SIGNALING_CHANNEL_ENDPOINT);
 
-    CHK(NULL != (pHttpBody = (PCHAR) MEMALLOC( sizeof( GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE ) + 
+    CHK(NULL != (pHttpBody = (PCHAR) MEMALLOC( SIZEOF( GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE ) + 
                                     STRLEN( pSignalingClient->channelDescription.channelArn ) + 
                                     STRLEN( WEBRTC_CHANNEL_PROTOCOL ) +
                                     STRLEN( getStringFromChannelRoleType( pChannelInfo->channelRoleType )) + 
@@ -462,7 +462,7 @@ STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
 
     /* Initialize and generate HTTP request, then send it. */
-    CHK(NULL != (pNetworkContext = (NetworkContext_t *) MEMALLOC( sizeof( NetworkContext_t ))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pNetworkContext = (NetworkContext_t *) MEMALLOC( SIZEOF( NetworkContext_t ))), STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(initNetworkContext( pNetworkContext ) != STATUS_SUCCESS);
 
     httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE, NULL);
@@ -556,7 +556,7 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
     CHK(NULL != (pHost = (PCHAR)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pUrl = (PCHAR) MEMALLOC(STRLEN(pSignalingClient->channelEndpointHttps) +
                                         STRLEN(WEBRTC_API_GET_ICE_CONFIG) + 1)), STATUS_NOT_ENOUGH_MEMORY);
-    CHK(NULL != (pHttpBody = (PCHAR) MEMALLOC( sizeof( GET_ICE_CONFIG_PARAM_JSON_TEMPLATE ) + 
+    CHK(NULL != (pHttpBody = (PCHAR) MEMALLOC( SIZEOF( GET_ICE_CONFIG_PARAM_JSON_TEMPLATE ) + 
                                     STRLEN( pSignalingClient->channelDescription.channelArn ) + 
                                     STRLEN( pSignalingClient->clientInfo.signalingClientInfo.clientId ) +
                                     1 )), STATUS_NOT_ENOUGH_MEMORY);
@@ -574,7 +574,7 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
 
     /* Initialize and generate HTTP request, then send it. */
-    CHK(NULL != (pNetworkContext = (NetworkContext_t *) MEMALLOC( sizeof( NetworkContext_t ))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pNetworkContext = (NetworkContext_t *) MEMALLOC( SIZEOF( NetworkContext_t ))), STATUS_NOT_ENOUGH_MEMORY);
 
     CHK_STATUS(initNetworkContext( pNetworkContext ) != STATUS_SUCCESS);
 

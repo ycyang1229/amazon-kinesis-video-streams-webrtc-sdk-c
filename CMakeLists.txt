@@ -118,7 +118,7 @@ if(BUILD_DEPENDENCIES)
   endif()
 
   build_dependency(llhttp ${BUILD_ARGS})
-  build_dependency(parson ${BUILD_ARGS})
+  #build_dependency(parson ${BUILD_ARGS})
   build_dependency(wslay)
 
   set(BUILD_ARGS -DBUILD_STATIC_LIBS=${BUILD_STATIC_LIBS}
@@ -179,13 +179,13 @@ if (ENABLE_STREAMING AND NOT KVS_PLAT_ESP_FREERTOS)
   endif()
 endif()
 
-if (ENABLE_STREAMING AND NOT KVS_PLAT_ESP_FREERTOS)
-  if (OPEN_SRC_INSTALL_PREFIX)
-    find_library(PARSON_LIBRARIES parson REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
-  else()
-    find_library(PARSON_LIBRARIES parson REQUIRED )
-  endif()
-endif()
+#if (ENABLE_STREAMING AND NOT KVS_PLAT_ESP_FREERTOS)
+#  if (OPEN_SRC_INSTALL_PREFIX)
+#    find_library(PARSON_LIBRARIES parson REQUIRED PATHS ${OPEN_SRC_INSTALL_PREFIX})
+#  else()
+#    find_library(PARSON_LIBRARIES parson REQUIRED )
+#  endif()
+#endif()
 
 
 if (ENABLE_STREAMING AND NOT KVS_PLAT_ESP_FREERTOS)
