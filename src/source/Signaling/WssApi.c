@@ -192,7 +192,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
     
     /* Check HTTP results */
-    if( uHttpStatusCode == SERVICE_CALL_RESULT_UPGRADE )
+    if( uHttpStatusCode == 101 )
     {
         /**
          * switch to wss client.
@@ -201,7 +201,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         /* We got a success response here. */
         WssClientContext* wssClientCtx = NULL;
         // #YC_TBD.
-        mbedtls_ssl_conf_read_timeout(&pNetworkContext->conf, 50);
+        mbedtls_ssl_conf_read_timeout(&pNetworkContext->conf, WSS_CLIENT_POLLING_INTERVAL);
         //setNonBlocking(pNetworkContext);
         //mbedtls_ssl_set_timer_cb( &ssl, &timer, mbedtls_timing_set_delay,
         //                                    mbedtls_timing_get_delay );

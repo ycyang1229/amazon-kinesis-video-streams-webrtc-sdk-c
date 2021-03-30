@@ -152,7 +152,7 @@ STATUS wssClientValidateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR ac
 */
 INT32 wssClientSocketSend(WssClientContext* pCtx, const UINT8* data, SIZE_T len, INT32 flags)
 {
-    DLOGD("S ==>");
+    //DLOGD("S ==>");
     return networkSend( pCtx->pNetworkContext, data, len );
 }
 /**
@@ -163,7 +163,7 @@ INT32 wssClientSocketSend(WssClientContext* pCtx, const UINT8* data, SIZE_T len,
 */
 INT32 wssClientSocketRead(WssClientContext* pCtx, UINT8* data, SIZE_T len, INT32 flags)
 {
-    DLOGD("S <==");
+    //DLOGD("R <==");
     return networkRecv( pCtx->pNetworkContext, data, len );
 }
 
@@ -235,19 +235,18 @@ VOID wslay_msg_recv_callback(wslay_event_context_ptr ctx,
     if (!wslay_is_ctrl_frame(arg->opcode)) {
         //struct wslay_event_msg msgarg = {arg->opcode, arg->msg, arg->msg_length};
         //wslay_event_queue_msg(ctx, &msgarg);
-        DLOGD("received(%d): %s", arg->opcode, arg->msg);
+        DLOGD("<== (%d): %s", arg->opcode, arg->msg);
         // #YC_TBD, 
         ws->messageHandler(ws->pUserData, arg->msg, arg->msg_length);
     }else{
-        DLOGD("<===   ");
         if(arg->opcode==WSLAY_PONG){
-            DLOGD("received pong, len: %ld", arg->msg_length);
+            DLOGD("<== pong, len: %ld", arg->msg_length);
         }else if(arg->opcode==WSLAY_PING){
-            DLOGD("received ping, len: %ld", arg->msg_length);
+            DLOGD("<== ping, len: %ld", arg->msg_length);
         }else if(arg->opcode==WSLAY_CONNECTION_CLOSE){
-            DLOGD("received connection close, len: %ld, reason:%s", arg->msg_length, arg->msg);
+            DLOGD("<== connection close, len: %ld, reason:%s", arg->msg_length, arg->msg);
         }else{
-            DLOGD("received ctrl msg(%d), len: %ld", arg->opcode, arg->msg_length);
+            DLOGD("<== ctrl msg(%d), len: %ld", arg->opcode, arg->msg_length);
         }
     }
 }
@@ -305,7 +304,9 @@ INT32 wssClientOnWriteEvent(WssClientContext* pCtx)
     WSS_CLIENT_ENTER();
     INT32 retStatus = 0;
     CLIENT_LOCK(pCtx);
+    //DLOGD("transmitted");
     retStatus = wslay_event_send(pCtx->event_ctx);
+    //DLOGD("transmission handled");
     CLIENT_UNLOCK(pCtx);
     WSS_CLIENT_EXIT();
     return retStatus;
@@ -316,6 +317,7 @@ static INT32 wssClientSend(WssClientContext* pCtx, struct wslay_event_msg* arg)
     WSS_CLIENT_ENTER();
     INT32 retStatus = 0;
     CLIENT_LOCK(pCtx);
+    
     retStatus = wslay_event_queue_msg(pCtx->event_ctx, arg);
     CLIENT_UNLOCK(pCtx);
     WSS_CLIENT_EXIT();
@@ -346,6 +348,7 @@ INT32 wssClientSendPing(WssClientContext* pCtx)
     MEMSET(&arg, 0, sizeof(arg));
     arg.opcode = WSLAY_PING;
     arg.msg_length = 0;
+    DLOGD("ping ==>");
     return wssClientSend(pCtx, &arg);
 }
 
@@ -456,17 +459,14 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
     static const SIZE_T MAX_EVENTS = 1;
     struct epoll_event events[MAX_EVENTS];
     BOOL ok = TRUE;
-
+    INT32 nfds = 0;
+    INT32 retval;
+    fd_set rfds;
+    struct timeval tv;
+    UINT32 counter = 0;
     //
     wslay_event_config_set_callbacks(pWssClientCtx->event_ctx, &pWssClientCtx->event_callbacks);
 
-    INT32 epollfd = epoll_create(1);
-    if (epollfd == -1) {
-        DLOGD("epoll failed");
-        return -1;
-    }
-
-    ctl_epollev(epollfd, EPOLL_CTL_ADD, pWssClientCtx);
     DLOGD("polling start");
 
     #if (WSS_SEND_TEST == 1)
@@ -478,30 +478,38 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
         DLOGD("create the child thread failed.");
     }
     #endif
+    
+    mbedtls_ssl_conf_read_timeout(&(pWssClientCtx->pNetworkContext->conf), WSS_CLIENT_POLLING_INTERVAL);
 
+    nfds = pWssClientCtx->pNetworkContext->server_fd.fd;
+    FD_ZERO(&rfds);
+	
+    UINT64 prev, cur;
     // check the wss client want to read or write or not.
     while (wssClientWantRead(pWssClientCtx) || wssClientWantWrite(pWssClientCtx)) {
         // need to setup the timeout of epoll in order to let the wss cleint thread to write the buffer out.
-        INT32 nfds = epoll_wait(epollfd, events, MAX_EVENTS, 50);
-
-        if (nfds == -1) {
-            DLOGD("epoll_wait failed");
-            return -1;
+	    FD_SET(nfds, &rfds);
+        // #YC_TBD, this may need to be modified.
+        tv.tv_sec = 0;
+        tv.tv_usec = WSS_CLIENT_POLLING_INTERVAL*1000;
+        retval = select(nfds+1, &rfds, NULL, NULL, &tv);
+        
+        if (retval == -1) {
+            DLOGE("select() failed with errno %s", getErrorString(getErrorCode()));
+            continue;
         }
-
-        for (INT32 n = 0; n < nfds; ++n) {
-            if (((events[n].events & EPOLLIN) && wssClientOnReadEvent(pWssClientCtx) != 0) ||
-                ((events[n].events & EPOLLOUT) && wssClientOnWriteEvent(pWssClientCtx) != 0)) {
-                ok = FALSE;
-                break;
-            }
+        if(FD_ISSET(nfds, &rfds))
+        {
+            wssClientOnReadEvent(pWssClientCtx);
+        }
+        counter++;
+        if(counter == WSS_CLIENT_PING_PONG_COUNTER)
+        {  
+            wssClientSendPing(pWssClientCtx);
+            counter = 0;
         }
         
-
-        if (!ok) {
-            break;
-        }
-        ctl_epollev(epollfd, EPOLL_CTL_MOD, pWssClientCtx);
+        wssClientOnWriteEvent(pWssClientCtx);
     }
 
     DLOGD("polling end");

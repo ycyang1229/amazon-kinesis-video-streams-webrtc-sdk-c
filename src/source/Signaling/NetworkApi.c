@@ -403,7 +403,7 @@ INT32 networkRecv( NetworkContext_t * pNetworkContext,
 
         if( n < 0 || n > uBytesToRecv )
         {
-            DLOGW("ssl read err (%d)", n);
+            //DLOGW("ssl read err (%d)", n);
             retStatus = n;
         }
         else
