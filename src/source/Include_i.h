@@ -41,6 +41,7 @@ extern "C" {
 #include <mbedtls/error.h>
 #include <mbedtls/certs.h>
 #include <mbedtls/sha256.h>
+#include <mbedtls/md5.h>
 // new interface.
 #include <mbedtls/net.h>
 #include <mbedtls/base64.h>
@@ -52,7 +53,7 @@ extern "C" {
 //#include <parson.h>
 #include <wslay/wslay.h>
 #include <errno.h> // #YC_TBD.
-#include <sys/epoll.h>// #YC_TBD.
+//#include <sys/epoll.h>// #YC_TBD.
 #include <pthread.h>
 
 #ifdef ENABLE_STREAMING
@@ -184,14 +185,12 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Signaling/NetworkApi.h"
 #include "Signaling/HttpHelper.h"
 //#include "Signaling/JsonHelper.h"
-
 #include "Signaling/FileCache.h"
-#include "Signaling/WssClient.h"
-
 #include "Signaling/ChannelInfo.h"
 #include "Signaling/Signaling.h"
 #include "Signaling/HttpApi.h"
 #include "Signaling/WssApi.h"
+#include "Signaling/WssClient.h"
 #include "Signaling/StateMachine.h"
 #include "Metrics/Metrics.h"
 

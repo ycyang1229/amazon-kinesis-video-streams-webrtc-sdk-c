@@ -192,17 +192,16 @@ STATUS httpApiCreateChannl(PSignalingClient pSignalingClient, UINT64 time)
     /* Variables for HTTP request */
     PCHAR pUrl = NULL;
     PRequestInfo pRequestInfo = NULL;
-    BOOL secureConnection;
     PCHAR pHttpBody = NULL;
 
     // temp interface.
-    PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
-    PCHAR pSecretKey = pSignalingClient->pAwsCredentials->secretKey;
-    PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
-    PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
-    PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
+    //PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
+    //PCHAR pSecretKey = pSignalingClient->pAwsCredentials->secretKey;
+    //PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
+    //PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
+    //PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
     PCHAR pHost = NULL;
-    PCHAR pUserAgent = pChannelInfo->pUserAgent;//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
+    //PCHAR pUserAgent = pChannelInfo->pUserAgent;//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
     // rsp
     UINT32 uHttpStatusCode = 0;
     HttpResponseContext* pHttpRspCtx = NULL;
@@ -225,7 +224,7 @@ STATUS httpApiCreateChannl(PSignalingClient pSignalingClient, UINT64 time)
     /* generate HTTP request body */
     SPRINTF( pHttpBody, CREATE_CHANNEL_JSON_TEMPLATE, pChannelInfo->pChannelName);
     // Create the request info with the body
-    CHK_STATUS(createRequestInfo(pUrl, pHttpBody, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
+    CHK_STATUS(createRequestInfo(pUrl, pHttpBody, pSignalingClient->pChannelInfo->pRegion, (PCHAR)pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
                                  SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
                                  SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
@@ -234,7 +233,7 @@ STATUS httpApiCreateChannl(PSignalingClient pSignalingClient, UINT64 time)
     CHK(NULL != (pNetworkContext = (NetworkContext_t *)MEMALLOC( SIZEOF(NetworkContext_t))), STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(initNetworkContext( pNetworkContext ) );
     
-    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE, NULL);
+    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, (PCHAR)pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE, NULL);
 
     for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
     {
@@ -265,6 +264,7 @@ STATUS httpApiCreateChannl(PSignalingClient pSignalingClient, UINT64 time)
     CHK_STATUS(httpApiRspCreateChannel( ( const CHAR * )pResponseStr, resultLen, pSignalingClient ));
 
 CleanUp:
+
     CHK_LOG_ERR(retStatus);
 
     if( pNetworkContext != NULL )
@@ -285,7 +285,7 @@ CleanUp:
     SAFE_MEMFREE(pHttpBody);
     SAFE_MEMFREE(pHost);
     SAFE_MEMFREE(pUrl);
-    freeRequestInfo(pRequestInfo);
+    freeRequestInfo(&pRequestInfo);
     
     HTTP_API_EXIT();
     return retStatus;
@@ -315,17 +315,16 @@ STATUS httpApiDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
     // http req.
     PCHAR pUrl = NULL;
     PRequestInfo pRequestInfo = NULL;
-    BOOL secureConnection;
     PCHAR pHttpBody = NULL;
 
     // temp interface.
-    PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
-    PCHAR pSecretKey = pSignalingClient->pAwsCredentials->secretKey;
-    PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
-    PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
-    PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
+    //PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
+    //PCHAR pSecretKey = pSignalingClient->pAwsCredentials->secretKey;
+    //PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
+    //PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
+    //PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
     PCHAR pHost = NULL;
-    PCHAR pUserAgent = pChannelInfo->pUserAgent;//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
+    //PCHAR pUserAgent = pChannelInfo->pUserAgent;//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
     // rsp
     UINT32 uHttpStatusCode = 0;
     HttpResponseContext* pHttpRspCtx = NULL;
@@ -355,7 +354,7 @@ STATUS httpApiDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
 
     CHK_STATUS(initNetworkContext( pNetworkContext ) );
     
-    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE, NULL);
+    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, (PCHAR)pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE, NULL);
 
     for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
     {
@@ -400,7 +399,7 @@ CleanUp:
     SAFE_MEMFREE(pHttpBody);
     SAFE_MEMFREE(pHost);
     SAFE_MEMFREE(pUrl);
-    freeRequestInfo(pRequestInfo);
+    freeRequestInfo(&pRequestInfo);
 
     HTTP_API_EXIT();
     return retStatus;
@@ -422,17 +421,16 @@ STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time
     /* Variables for HTTP request */
     PCHAR pUrl = NULL;
     PRequestInfo pRequestInfo = NULL;
-    BOOL secureConnection;
     PCHAR pHttpBody = NULL;
 
     // temp interface.
-    PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
-    PCHAR pSecretKey = pSignalingClient->pAwsCredentials->secretKey;
-    PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
-    PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
-    PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
+    //PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
+    //PCHAR pSecretKey = pSignalingClient->pAwsCredentials->secretKey;
+    //PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
+    //PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
+    //PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
     PCHAR pHost = NULL;
-    PCHAR pUserAgent = pChannelInfo->pUserAgent;//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
+    //PCHAR pUserAgent = pChannelInfo->pUserAgent;//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
     // rsp
     UINT32 uHttpStatusCode = 0;
     HttpResponseContext* pHttpRspCtx = NULL;
@@ -465,7 +463,7 @@ STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time
     CHK(NULL != (pNetworkContext = (NetworkContext_t *) MEMALLOC( SIZEOF( NetworkContext_t ))), STATUS_NOT_ENOUGH_MEMORY);
     CHK_STATUS(initNetworkContext( pNetworkContext ) != STATUS_SUCCESS);
 
-    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE, NULL);
+    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, (PCHAR)pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE, NULL);
 
     for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
     {
@@ -514,7 +512,7 @@ CleanUp:
     SAFE_MEMFREE(pHttpBody);
     SAFE_MEMFREE(pHost);
     SAFE_MEMFREE(pUrl);
-    freeRequestInfo(pRequestInfo);
+    freeRequestInfo(&pRequestInfo);
     HTTP_API_EXIT();
     return retStatus;
 }
@@ -536,17 +534,16 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
     // http req.
     PCHAR pUrl = NULL;
     PRequestInfo pRequestInfo = NULL;
-    BOOL secureConnection;
     PCHAR pHttpBody = NULL;
 
     // temp interface.
-    PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
-    PCHAR pSecretKey = pSignalingClient->pAwsCredentials->secretKey;
-    PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
-    PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
-    PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
+    //PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
+    //PCHAR pSecretKey = pSignalingClient->pAwsCredentials->secretKey;
+    //PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
+    //PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
+    //PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
     PCHAR pHost = NULL;
-    PCHAR pUserAgent = pChannelInfo->pUserAgent;//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
+    //PCHAR pUserAgent = pChannelInfo->pUserAgent;//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
     // rsp
     UINT32 uHttpStatusCode = 0;
     HttpResponseContext* pHttpRspCtx = NULL;
@@ -578,7 +575,7 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
 
     CHK_STATUS(initNetworkContext( pNetworkContext ) != STATUS_SUCCESS);
 
-    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE, NULL);
+    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, (PCHAR)pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE, NULL);
 
     for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
     {
@@ -630,7 +627,7 @@ CleanUp:
     SAFE_MEMFREE(pHttpBody);
     SAFE_MEMFREE(pHost);
     SAFE_MEMFREE(pUrl);
-    freeRequestInfo(pRequestInfo);
+    freeRequestInfo(&pRequestInfo);
     HTTP_API_EXIT();
     return retStatus;
 }
@@ -638,6 +635,6 @@ CleanUp:
 
 STATUS httpApiDeleteChannl(PSignalingClient pSignalingClient, UINT64 time)
 {
-    STATUS retStatus = STATUS_SUCCESS;
-    return retStatus;
+    //STATUS retStatus = STATUS_SUCCESS;
+    return STATUS_SUCCESS;//retStatus;
 }

@@ -154,7 +154,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
     pRequestInfo->verb = HTTP_REQUEST_VERB_GET;
     MEMSET(clientKey, 0, WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1);
     wssClientGenerateClientKey(clientKey, WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1);
-    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_GET_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, TRUE, clientKey);
+    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_GET_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, (PCHAR)pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, TRUE, clientKey);
 
     for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
     {
@@ -567,6 +567,71 @@ CleanUp:
 
     return (PVOID)(ULONG_PTR) retStatus;
 }
+#if defined(KVS_PLAT_ESP_FREERTOS) || defined(KVS_PLAT_RTK_FREERTOS)
+/** #YC_TBD, need to add the code of initialization. */
+TID receivedTid = INVALID_TID_VALUE;
+QueueHandle_t lwsMsgQ = NULL;
+#define KVSWEBRTC_LWS_MSGQ_LENGTH 32
+
+/**
+ * @brief for the original design, we create one thread for each message.
+ */
+PVOID lwsHandleMsg(PVOID args)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingMessageWrapper pMsg;
+    while (1) {
+        BaseType_t err = xQueueReceive(lwsMsgQ, &pMsg, 0xffffffffUL);
+        if (err == pdPASS) {
+            DLOGD("handling wss");
+            retStatus = STATUS_SUCCESS;
+
+            PSignalingClient pSignalingClient = NULL;
+
+            CHK(pMsg != NULL, STATUS_NULL_ARG);
+
+            pSignalingClient = pMsg->pSignalingClient;
+
+            CHK(pSignalingClient != NULL, STATUS_INTERNAL_ERROR);
+            // Calling client receive message callback if specified
+            if (pSignalingClient->signalingClientCallbacks.messageReceivedFn != NULL) {
+                CHK_STATUS(pSignalingClient->signalingClientCallbacks.messageReceivedFn(pSignalingClient->signalingClientCallbacks.customData,
+                                                                                        &pMsg->receivedSignalingMessage));
+            }
+        CleanUp:
+            CHK_LOG_ERR(retStatus);
+            SAFE_MEMFREE(pMsg);
+        } else {
+            DLOGW("Did not get the lws msg.");
+        }
+    }
+    DLOGW("should not happen.");
+    return (PVOID)(ULONG_PTR) retStatus;
+}
+
+STATUS lwsDispatchMsg(PVOID pMessage)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingMessageWrapper msg = (PSignalingMessageWrapper) pMessage;
+
+    if (receivedTid == INVALID_TID_VALUE) {
+        lwsMsgQ = xQueueCreate(KVSWEBRTC_LWS_MSGQ_LENGTH, SIZEOF(PSignalingMessageWrapper));
+        CHK(lwsMsgQ != NULL, STATUS_SIGNALING_CREATE_MSGQ_FAILED);
+        CHK(THREAD_CREATE(&receivedTid, lwsHandleMsg, (PVOID) NULL) == STATUS_SUCCESS, STATUS_SIGNALING_CREATE_THREAD_FAILED);
+    }
+    UBaseType_t num = uxQueueSpacesAvailable(lwsMsgQ);
+    DLOGD("unhandled num in q: %d", KVSWEBRTC_LWS_MSGQ_LENGTH - num);
+    CHK(xQueueSend(lwsMsgQ, &msg, 0) == pdPASS, STATUS_SIGNALING_DISPATCH_FAILED);
+
+CleanUp:
+    CHK_LOG_ERR(retStatus);
+    if (STATUS_FAILED(retStatus)) {
+        SAFE_MEMFREE(msg);
+    }
+    return retStatus;
+}
+#endif
+
 
 STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT32 messageLen)
 {

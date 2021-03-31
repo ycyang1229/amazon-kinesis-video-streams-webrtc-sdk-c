@@ -1566,7 +1566,7 @@ STATUS turnConnectionGetLongTermKey(PCHAR username, PCHAR realm, PCHAR password,
     SPRINTF(stringBuffer, "%s:%s:%s", username, realm, password);
 
     // TODO: Return back the error check
-    KVS_MD5_DIGEST((PBYTE) stringBuffer, STRLEN(stringBuffer), pBuffer);
+    KVS_MD5_DIGEST((PBYTE) stringBuffer, STRLEN(stringBuffer), (UINT8*)pBuffer);
 
 CleanUp:
 

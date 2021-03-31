@@ -260,6 +260,7 @@ STATUS connectToServer( NetworkContext_t * pNetworkContext,
                          const PCHAR pServerHost,
                          const PCHAR pServerPort )
 {
+    DLOGD("connecting to %s:%s", pServerHost, pServerPort);
     return _connectToServer( pNetworkContext, pServerHost, pServerPort, NULL, NULL, NULL );
 }
 

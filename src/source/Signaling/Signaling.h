@@ -303,12 +303,12 @@ typedef struct {
 typedef STATUS (*httpApi)(PSignalingClient, UINT64);
 // Check for the stale credentials
 #define CHECK_SIGNALING_CREDENTIALS_EXPIRATION(p)                                                                                                    \
-//    do {                                                                                                                                             \
-//        if (GETTIME() >= (p)->pAwsCredentials->expiration) {                                                                                         \
-//            ATOMIC_STORE(&(p)->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED);                                                                        \
-//            CHK(FALSE, retStatus);                                                                                                                   \
-//        }                                                                                                                                            \
-//    } while (FALSE)
+    do {                                                                                                                                             \
+        if (GETTIME() >= (p)->pAwsCredentials->expiration) {                                                                                         \
+            ATOMIC_STORE(&(p)->result, (SIZE_T) SERVICE_CALL_NOT_AUTHORIZED);                                                                        \
+            CHK(FALSE, retStatus);                                                                                                                   \
+        }                                                                                                                                            \
+    } while (FALSE)
 
 STATUS signalingCreate(PSignalingClientInfoInternal, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider, PSignalingClient*);
 STATUS signalingFree(PSignalingClient*);

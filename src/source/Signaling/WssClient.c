@@ -54,7 +54,7 @@ STATUS wssClientGenerateRandomNumber(PCHAR num, UINT32 len)
         DLOGD("setup ctr_drbg failed(%d)", retStatus);
         return -1;
     }
-    retStatus = mbedtls_ctr_drbg_random( &ctr_drbg, num, len);
+    retStatus = mbedtls_ctr_drbg_random( &ctr_drbg, (UINT8*)num, len);
     if( retStatus != 0 )
     {
         DLOGD("access ctr_drbg failed(%d)", retStatus);
@@ -82,7 +82,7 @@ STATUS wssClientGenerateClientKey(PCHAR buf, UINT32 bufLen)
         return -1;
     }
     // base64 the random value.
-    retStatus = mbedtls_base64_encode(buf, bufLen, (VOID*)&olen, randomNum, WSS_CLIENT_RANDOM_SEED_LEN );
+    retStatus = mbedtls_base64_encode((UINT8*)buf, bufLen, (VOID*)&olen, (UINT8*)randomNum, WSS_CLIENT_RANDOM_SEED_LEN );
     if( retStatus != 0 )
     {
         DLOGD("base64-encode the random value failed(%d)", retStatus);
@@ -113,8 +113,8 @@ STATUS wssClientGenerateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR ac
     MEMSET(obuf, 0, WSS_CLIENT_SHA1_RANDOM_SEED_W_UUID_LEN+1);
     MEMCPY(buf, clientKey, STRLEN(clientKey));
     MEMCPY(buf+STRLEN(clientKey), WSS_CLIENT_RFC6455_UUID, STRLEN(WSS_CLIENT_RFC6455_UUID));
-    mbedtls_sha1( buf, STRLEN(buf), obuf );
-    retStatus = mbedtls_base64_encode(acceptKey, acceptKeyLen, (VOID*)&olen, obuf, 20);
+    mbedtls_sha1( buf, STRLEN((PCHAR)buf), obuf );
+    retStatus = mbedtls_base64_encode((UINT8*)acceptKey, acceptKeyLen, (VOID*)&olen, (UINT8*)obuf, 20);
 
     if( retStatus!=0 || olen != WSS_CLIENT_ACCEPT_KEY_LEN){
         DLOGD("base64-encode accept key failed");
@@ -130,7 +130,7 @@ STATUS wssClientValidateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR ac
     STATUS retStatus = STATUS_SUCCESS;
     UINT8 tmpKey[WSS_CLIENT_ACCEPT_KEY_LEN+1];
     MEMSET(tmpKey, 0, WSS_CLIENT_ACCEPT_KEY_LEN+1);
-    retStatus = wssClientGenerateAcceptKey(clientKey, clientKeyLen, tmpKey, WSS_CLIENT_ACCEPT_KEY_LEN+1);
+    retStatus = wssClientGenerateAcceptKey(clientKey, clientKeyLen, (PCHAR)tmpKey, WSS_CLIENT_ACCEPT_KEY_LEN+1);
     if( retStatus != STATUS_SUCCESS ){
         DLOGD("generating accept key failed");
     }
@@ -223,7 +223,7 @@ INT32 wslay_genmask_callback(wslay_event_context_ptr ctx, UINT8 *buf, SIZE_T len
                      VOID *user_data) 
 {
     WssClientContext *ws = (WssClientContext *)user_data;
-    wssClientGenerateRandomNumber(buf, len);
+    wssClientGenerateRandomNumber((PCHAR)buf, len);
     return 0;
 }
 

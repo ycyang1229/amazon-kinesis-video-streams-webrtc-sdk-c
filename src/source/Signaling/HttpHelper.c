@@ -278,7 +278,6 @@ STATUS httpParserStart(HttpResponseContext** ppHttpRspCtx, PCHAR pBuf, UINT32 uL
         pCtx->httpStatusCode = ( UINT32 )(userParser.httpParser.status_code);
         return STATUS_SUCCESS;
     }
-CleanUp:
 
     return retStatus;
 }
@@ -321,6 +320,7 @@ STATUS httpPackSendBuf(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT
     CHK_STATUS(getRequestHost(pRequestInfo->url, &pHostStart, &pHostEnd));
     CHK(pHostEnd == NULL || *pHostEnd == '/' || *pHostEnd == '?', STATUS_INTERNAL_ERROR);
     MEMCPY(pHost, pHostStart, pHostEnd-pHostStart);
+    pHost[pHostEnd-pHostStart] = '\0';
 
     UINT32 pathLen = MAX_URI_CHAR_LEN;
     CHK(NULL != (pPath = (PCHAR) MEMCALLOC(pathLen + 1, SIZEOF(CHAR))), STATUS_NOT_ENOUGH_MEMORY);
