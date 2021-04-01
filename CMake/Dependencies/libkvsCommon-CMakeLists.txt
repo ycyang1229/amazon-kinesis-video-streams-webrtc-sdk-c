@@ -18,6 +18,7 @@ ExternalProject_Add(libkvsCommon-download
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
       -DUSE_OPENSSL=${USE_OPENSSL}
       -DUSE_MBEDTLS=${USE_MBEDTLS}
+      -DBUILD_KVSPIC=OFF
     BUILD_ALWAYS      TRUE
     TEST_COMMAND      ""
 )

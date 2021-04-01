@@ -151,7 +151,7 @@ if(BUILD_DEPENDENCIES)
       -DUSE_OPENSSL=${USE_OPENSSL}
       -DUSE_MBEDTLS=${USE_MBEDTLS})
   #build_dependency(kvsCommonLws ${BUILD_ARGS})
-  #build_dependency(kvspic ${BUILD_ARGS})
+  build_dependency(kvspic ${BUILD_ARGS})
   build_dependency(kvsCommon ${BUILD_ARGS})
 
   message(STATUS "Finished building dependencies.")
