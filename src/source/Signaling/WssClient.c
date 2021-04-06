@@ -235,7 +235,7 @@ VOID wslay_msg_recv_callback(wslay_event_context_ptr ctx,
     if (!wslay_is_ctrl_frame(arg->opcode)) {
         //struct wslay_event_msg msgarg = {arg->opcode, arg->msg, arg->msg_length};
         //wslay_event_queue_msg(ctx, &msgarg);
-        DLOGD("<== (%d): %s", arg->opcode, arg->msg);
+        //DLOGD("<== (%d): %s", arg->opcode, arg->msg);
         // #YC_TBD, 
         ws->messageHandler(ws->pUserData, arg->msg, arg->msg_length);
     }else{
@@ -444,6 +444,7 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
         
         wssClientOnWriteEvent(pWssClientCtx);
     }
+
 
     DLOGD("wss client end");
     WSS_CLIENT_EXIT();

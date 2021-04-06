@@ -576,7 +576,7 @@ QueueHandle_t lwsMsgQ = NULL;
 /**
  * @brief for the original design, we create one thread for each message.
  */
-PVOID lwsHandleMsg(PVOID args)
+PVOID wssHandleMsg(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingMessageWrapper pMsg;
@@ -609,7 +609,7 @@ PVOID lwsHandleMsg(PVOID args)
     return (PVOID)(ULONG_PTR) retStatus;
 }
 
-STATUS lwsDispatchMsg(PVOID pMessage)
+STATUS wssDispatchMsg(PVOID pMessage)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSignalingMessageWrapper msg = (PSignalingMessageWrapper) pMessage;
@@ -617,7 +617,7 @@ STATUS lwsDispatchMsg(PVOID pMessage)
     if (receivedTid == INVALID_TID_VALUE) {
         lwsMsgQ = xQueueCreate(KVSWEBRTC_LWS_MSGQ_LENGTH, SIZEOF(PSignalingMessageWrapper));
         CHK(lwsMsgQ != NULL, STATUS_SIGNALING_CREATE_MSGQ_FAILED);
-        CHK(THREAD_CREATE(&receivedTid, lwsHandleMsg, (PVOID) NULL) == STATUS_SUCCESS, STATUS_SIGNALING_CREATE_THREAD_FAILED);
+        CHK(THREAD_CREATE(&receivedTid, wssHandleMsg, (PVOID) NULL) == STATUS_SUCCESS, STATUS_SIGNALING_CREATE_THREAD_FAILED);
     }
     UBaseType_t num = uxQueueSpacesAvailable(lwsMsgQ);
     DLOGD("unhandled num in q: %d", KVSWEBRTC_LWS_MSGQ_LENGTH - num);
@@ -826,7 +826,7 @@ STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
     CHK_STATUS(THREAD_CREATE(&receivedTid, wssReceiveMessageWrapper, (PVOID) pSignalingMessageWrapper));
     CHK_STATUS(THREAD_DETACH(receivedTid));
 #else
-    CHK_STATUS(lwsDispatchMsg((PVOID) pSignalingMessageWrapper));
+    CHK_STATUS(wssDispatchMsg((PVOID) pSignalingMessageWrapper));
 #endif
 
 CleanUp:
@@ -864,7 +864,7 @@ CleanUp:
 */
 STATUS wssTerminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_CALL_RESULT callResult)
 {
-    ENTERS();
+    WSS_API_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
@@ -887,7 +887,7 @@ STATUS wssTerminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVI
 
 CleanUp:
 
-    LEAVES();
+    WSS_API_EXIT();
     return retStatus;
 }
 
