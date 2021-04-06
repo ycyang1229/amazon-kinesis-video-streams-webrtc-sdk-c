@@ -451,7 +451,7 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
 }
 
 
-VOID wss_client_close(WssClientContext* pWssClientCtx)
+VOID wssClientClose(WssClientContext* pWssClientCtx)
 {
     INT32 retStatus = 0;
     CLIENT_LOCK(pWssClientCtx);

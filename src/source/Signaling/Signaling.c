@@ -209,7 +209,7 @@ STATUS signalingFree(PSignalingClient* ppSignalingClient)
     if (pSignalingClient->pWssContext != NULL) {
         MUTEX_LOCK(pSignalingClient->lwsSerializerLock);
         // #YC_TBD, MUST!!!!
-        wss_client_close((PVOID)pSignalingClient->pWssContext);
+        wssClientClose((PVOID)pSignalingClient->pWssContext);
         pSignalingClient->pWssContext = NULL;
         MUTEX_UNLOCK(pSignalingClient->lwsSerializerLock);
     }

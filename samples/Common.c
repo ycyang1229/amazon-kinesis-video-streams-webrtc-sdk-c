@@ -492,7 +492,6 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
     if (IS_VALID_TID_VALUE(pSampleStreamingSession->receiveAudioVideoSenderTid)) {
         THREAD_JOIN(pSampleStreamingSession->receiveAudioVideoSenderTid, NULL);
     }
-
     CHK_LOG_ERR(closePeerConnection(pSampleStreamingSession->pPeerConnection));
     CHK_LOG_ERR(freePeerConnection(&pSampleStreamingSession->pPeerConnection));
     SAFE_MEMFREE(pSampleStreamingSession);
@@ -666,7 +665,6 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
 
     CHK_STATUS(
         createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
-
     pSampleConfiguration->audioSenderTid = INVALID_TID_VALUE;
     pSampleConfiguration->videoSenderTid = INVALID_TID_VALUE;
     pSampleConfiguration->signalingClientHandle = INVALID_SIGNALING_CLIENT_HANDLE_VALUE;
@@ -707,13 +705,11 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
-
     CHK_STATUS(timerQueueCreate(&pSampleConfiguration->timerQueueHandle));
-
     pSampleConfiguration->iceUriCount = 0;
-
     CHK_STATUS(hashTableCreateWithParams(SAMPLE_HASH_TABLE_BUCKET_COUNT, SAMPLE_HASH_TABLE_BUCKET_LENGTH,
                                          &pSampleConfiguration->pPendingSignalingMessageForRemoteClient));
+
     CHK_STATUS(hashTableCreateWithParams(SAMPLE_HASH_TABLE_BUCKET_COUNT, SAMPLE_HASH_TABLE_BUCKET_LENGTH,
                                          &pSampleConfiguration->pRtcPeerConnectionForRemoteClient));
 
@@ -970,7 +966,6 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 }
 
                 MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
-
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
             }
         }
@@ -984,7 +979,6 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
             // Re-set the variable again
             ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
         }
-
         // Check the signaling client state and connect if needed
         if (IS_VALID_SIGNALING_CLIENT_HANDLE(pSampleConfiguration->signalingClientHandle)) {
             CHK_STATUS(signalingClientGetCurrentState(pSampleConfiguration->signalingClientHandle, &signalingClientState));

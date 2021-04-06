@@ -57,7 +57,7 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx);
 INT32 wssClientSendText(WssClientContext* pCtx, UINT8* buf, UINT32 len);
 INT32 wssClientSendBinary(WssClientContext* pCtx, UINT8* buf, UINT32 len);
 INT32 wssClientSendPing(WssClientContext* pCtx);
-VOID wss_client_close(WssClientContext* pWssClientCtx);
+VOID wssClientClose(WssClientContext* pWssClientCtx);
 
 #ifdef __cplusplus
 }

@@ -331,7 +331,6 @@ STATUS httpApiDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
     PCHAR pResponseStr;
     UINT32 resultLen;
     
-    
     CHK(NULL != (pHost = (PCHAR)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pUrl = (PCHAR) MEMALLOC(STRLEN(pSignalingClient->pChannelInfo->pControlPlaneUrl) +
                                         STRLEN(WEBRTC_API_DESCRIBE_SIGNALING_CHANNEL) + 1)), STATUS_NOT_ENOUGH_MEMORY);
