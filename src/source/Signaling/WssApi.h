@@ -26,6 +26,7 @@ extern "C" {
 #define BLOCK_ON_CORRELATION_ID FALSE
 // Max length of the signaling message type string length
 #define MAX_SIGNALING_MESSAGE_TYPE_LEN ARRAY_SIZE(SIGNALING_RECONNECT_ICE_SERVER)
+#define LWS_MESSAGE_BUFFER_SIZE (SIZEOF(CHAR) * (MAX_SIGNALING_MESSAGE_LEN))
 
 typedef struct {
     // The first member is the public signaling message structure
@@ -35,48 +36,11 @@ typedef struct {
     PSignalingClient pSignalingClient;
 } SignalingMessageWrapper, *PSignalingMessageWrapper;
 
-typedef struct __LwsCallInfo LwsCallInfo;
-struct __LwsCallInfo {
-    // Size of the data in the buffer
-    volatile SIZE_T sendBufferSize;
-
-    // Offset from which to send data
-    volatile SIZE_T sendOffset;
-
-    // Service exit indicator;
-    volatile ATOMIC_BOOL cancelService;
-
-    // Protocol index
-    UINT32 protocolIndex;
-
-    // Call info object
-    CallInfo callInfo;
-
-    // Back reference to the signaling client
-    PSignalingClient pSignalingClient;
-
-    // Scratch buffer for http processing
-    #define LWS_SCRATCH_BUFFER_SIZE (MAX_JSON_PARAMETER_STRING_LEN)
-    //CHAR buffer[LWS_SCRATCH_BUFFER_SIZE];
-    #define LWS_MESSAGE_BUFFER_SIZE (SIZEOF(CHAR) * (MAX_SIGNALING_MESSAGE_LEN))
-    // Scratch buffer for sending
-    BYTE sendBuffer[LWS_MESSAGE_BUFFER_SIZE];
-
-    // Scratch buffer for receiving
-    BYTE receiveBuffer[LWS_MESSAGE_BUFFER_SIZE];
-
-    // Size of the data in the receive buffer
-    UINT32 receiveBufferSize;
-};
-
-
-
 STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time);
 STATUS wssSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCHAR peerClientId, PCHAR pMessage, UINT32 messageLen,
                       PCHAR pCorrelationId, UINT32 correlationIdLen);
 STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT32 messageLen);
 // #YC_TBD.
-STATUS wssTerminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_CALL_RESULT callResult);
 STATUS wssTerminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_CALL_RESULT callResult);
 STATUS wssTerminateListenerLoop(PSignalingClient pSignalingClient);
 // json parser.

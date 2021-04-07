@@ -118,10 +118,7 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     CHK(IS_VALID_CVAR_VALUE(pSignalingClient->connectedCvar), STATUS_INVALID_OPERATION);
     pSignalingClient->connectedLock = MUTEX_CREATE(FALSE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->connectedLock), STATUS_INVALID_OPERATION);
-    pSignalingClient->sendCvar = CVAR_CREATE();
-    CHK(IS_VALID_CVAR_VALUE(pSignalingClient->sendCvar), STATUS_INVALID_OPERATION);
-    pSignalingClient->sendLock = MUTEX_CREATE(FALSE);
-    CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->sendLock), STATUS_INVALID_OPERATION);
+
     pSignalingClient->receiveCvar = CVAR_CREATE();
     CHK(IS_VALID_CVAR_VALUE(pSignalingClient->receiveCvar), STATUS_INVALID_OPERATION);
     pSignalingClient->receiveLock = MUTEX_CREATE(FALSE);
@@ -226,14 +223,6 @@ STATUS signalingFree(PSignalingClient* ppSignalingClient)
 
     if (IS_VALID_CVAR_VALUE(pSignalingClient->connectedCvar)) {
         CVAR_FREE(pSignalingClient->connectedCvar);
-    }
-
-    if (IS_VALID_MUTEX_VALUE(pSignalingClient->sendLock)) {
-        MUTEX_FREE(pSignalingClient->sendLock);
-    }
-
-    if (IS_VALID_CVAR_VALUE(pSignalingClient->sendCvar)) {
-        CVAR_FREE(pSignalingClient->sendCvar);
     }
 
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->receiveLock)) {
@@ -665,7 +654,7 @@ STATUS signalingRefreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduled
     // The ICE state will be called in any other states
     CHK_STATUS(getStateMachineCurrentState(pSignalingClient->pStateMachine, &pStateMachineState));
     CHK(pStateMachineState->state == SIGNALING_STATE_CONNECT || pStateMachineState->state == SIGNALING_STATE_CONNECTED ||
-            pStateMachineState->state == SIGNALING_STATE_DISCONNECTED || pStateMachineState->state == SIGNALING_STATE_READY,
+        pStateMachineState->state == SIGNALING_STATE_DISCONNECTED || pStateMachineState->state == SIGNALING_STATE_READY,
         retStatus);
 
     // Force the state machine to revert back to get ICE configuration without re-connection

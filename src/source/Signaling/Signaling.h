@@ -236,14 +236,6 @@ typedef struct {
     // wait for the lws to notify the connection is established or not.
     CVAR connectedCvar;
 
-    // Sync mutex for sending condition variable
-    // #wss #delete.
-    MUTEX sendLock;
-
-    // Conditional variable for sending interlock
-    // #wss #delete.
-    CVAR sendCvar; //!< the lock for protecting the process of sending the websocket message.
-
     // Sync mutex for receiving response to the message condition variable
 
     MUTEX receiveLock;
@@ -254,9 +246,6 @@ typedef struct {
     // Execute the state machine until this time
     UINT64 stepUntil;
 
-    // Ongoing listener call info
-    PLwsCallInfo pOngoingCallInfo;//!< setup by the lws api of connecting signaling channel.
-
     // Listener thread for the socket
     ThreadTracker listenerTracker;
 
@@ -265,6 +254,7 @@ typedef struct {
                                         //!< spin off one thread to re-connect.
 
     // LWS context to use for Restful API
+    // this context belongs to wss client.
     PVOID pWssContext;
 
     // List of the ongoing messages

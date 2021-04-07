@@ -222,7 +222,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         //                                    mbedtls_timing_get_delay );
         wssClientCreate(&wssClientCtx, pNetworkContext, pSignalingClient, wssReceiveMessage);
         // #YC_TBD !!!!!!!!! MUST
-        pSignalingClient->pOngoingCallInfo = MEMALLOC(SIZEOF(LwsCallInfo));
+        //pSignalingClient->pOngoingCallInfo = MEMALLOC(SIZEOF(LwsCallInfo));
         pSignalingClient->pWssContext = wssClientCtx;
 
         // Don't let the thread to start running initially
@@ -278,6 +278,7 @@ CleanUp:
         }
 
         if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) &&
+            pSignalingClient->pWssContext != NULL /*&&
             pSignalingClient->pOngoingCallInfo != NULL /*&&
             pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL*/) {
             wssTerminateConnectionWithStatus(pSignalingClient, serviceCallResult);
@@ -331,44 +332,26 @@ CleanUp:
  * 
  * @return
 */
-STATUS wssWriteData(PSignalingClient pSignalingClient, BOOL awaitForResponse)
+STATUS wssWriteData(PSignalingClient pSignalingClient, PBYTE pSendBuf, UINT32 bufLen, BOOL awaitForResponse)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL sendLocked = FALSE, receiveLocked = FALSE, iterate = TRUE;
+    BOOL receiveLocked = FALSE, iterate = TRUE;
     SIZE_T offset, size;
     SERVICE_CALL_RESULT result;
 
-    CHK(pSignalingClient != NULL && pSignalingClient->pOngoingCallInfo != NULL, STATUS_NULL_ARG);
+    //CHK(pSignalingClient != NULL && pSignalingClient->pOngoingCallInfo != NULL, STATUS_NULL_ARG);
+    CHK(pSignalingClient != NULL && pSignalingClient->pWssContext != NULL, STATUS_NULL_ARG);
 
-    // See if anything needs to be done
-    CHK(pSignalingClient->pOngoingCallInfo->sendBufferSize != pSignalingClient->pOngoingCallInfo->sendOffset, retStatus);
-
-    DLOGD("Sending data over web socket: %s", pSignalingClient->pOngoingCallInfo->sendBuffer);
+    DLOGD("Sending data over web socket: %s", pSendBuf);
 
     // Initialize the send result to none
     ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
-    MUTEX_LOCK(pSignalingClient->sendLock);
-    sendLocked = TRUE;
-    wssClientSendText(pSignalingClient->pWssContext,
-                      pSignalingClient->pOngoingCallInfo->sendBuffer,
-                      pSignalingClient->pOngoingCallInfo->sendBufferSize-pSignalingClient->pOngoingCallInfo->sendOffset);
-    //while (iterate) {
-    //    offset = ATOMIC_LOAD(&pSignalingClient->pOngoingCallInfo->sendOffset);
-    //    size = ATOMIC_LOAD(&pSignalingClient->pOngoingCallInfo->sendBufferSize);
+    CHK_STATUS(wssClientSendText(pSignalingClient->pWssContext,
+                                 pSendBuf,
+                                 bufLen));
 
-    //    result = (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->messageResult);
-
-    //    if (offset != size && result == SERVICE_CALL_RESULT_NOT_SET) {
-    //        CHK_STATUS(CVAR_WAIT(pSignalingClient->sendCvar, pSignalingClient->sendLock, SIGNALING_SEND_TIMEOUT));
-    //    } else {
-    //        iterate = FALSE;
-    //    }
-    //}
-
-    MUTEX_UNLOCK(pSignalingClient->sendLock);
-    sendLocked = FALSE;
 
     // Do not await for the response in case of correlation id not specified
     CHK(awaitForResponse, retStatus);
@@ -394,10 +377,6 @@ STATUS wssWriteData(PSignalingClient pSignalingClient, BOOL awaitForResponse)
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->messageResult) == SERVICE_CALL_RESULT_OK, STATUS_SIGNALING_MESSAGE_DELIVERY_FAILED);
 
 CleanUp:
-
-    if (sendLocked) {
-        MUTEX_UNLOCK(pSignalingClient->sendLock);
-    }
 
     if (receiveLocked) {
         MUTEX_UNLOCK(pSignalingClient->receiveLock);
@@ -432,13 +411,16 @@ STATUS wssSendMessage(PSignalingClient pSignalingClient,
     PCHAR pEncodedMessage = NULL;
     UINT32 size, writtenSize, correlationLen;
     BOOL awaitForResponse;
+    PBYTE pSendBuffer = NULL;
 
     // Ensure we are in a connected state
     CHK_STATUS(signalingFsmAccept(pSignalingClient, SIGNALING_STATE_CONNECTED));
 
-    CHK(pSignalingClient != NULL && pSignalingClient->pOngoingCallInfo != NULL, STATUS_NULL_ARG);
+    //CHK(pSignalingClient != NULL && pSignalingClient->pOngoingCallInfo != NULL, STATUS_NULL_ARG);
+    CHK(pSignalingClient != NULL && pSignalingClient->pWssContext != NULL, STATUS_NULL_ARG);
     // #YC_TBD, need to enhance, #heap.
     CHK(NULL != (pEncodedMessage = (PCHAR) MEMALLOC(MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1)), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pSendBuffer = (PBYTE) MEMALLOC(LWS_MESSAGE_BUFFER_SIZE)), STATUS_NOT_ENOUGH_MEMORY);
 
     // Calculate the lengths if not specified
     if (messageLen == 0) {
@@ -458,12 +440,12 @@ STATUS wssSendMessage(PSignalingClient pSignalingClient,
     CHK_STATUS(base64Encode(pMessage, size, pEncodedMessage, &writtenSize));
 
     // Account for the template expansion + Action string + max recipient id
-    size = SIZEOF(pSignalingClient->pOngoingCallInfo->sendBuffer);
+    size = LWS_MESSAGE_BUFFER_SIZE;
     CHK(writtenSize <= size, STATUS_SIGNALING_MAX_MESSAGE_LEN_AFTER_ENCODING);
 
     // Prepare json message
     if (correlationLen == 0) {
-        writtenSize = (UINT32) SNPRINTF((PCHAR)(pSignalingClient->pOngoingCallInfo->sendBuffer),
+        writtenSize = (UINT32) SNPRINTF((PCHAR)(pSendBuffer),
                                         size,
                                         SIGNALING_SEND_MESSAGE_TEMPLATE,
                                         pMessageType,
@@ -471,7 +453,7 @@ STATUS wssSendMessage(PSignalingClient pSignalingClient,
                                         peerClientId,
                                         pEncodedMessage);
     } else {
-        writtenSize = (UINT32) SNPRINTF((PCHAR)(pSignalingClient->pOngoingCallInfo->sendBuffer),
+        writtenSize = (UINT32) SNPRINTF((PCHAR)(pSendBuffer),
                                         size,
                                         SIGNALING_SEND_MESSAGE_TEMPLATE_WITH_CORRELATION_ID,
                                         pMessageType,
@@ -484,24 +466,15 @@ STATUS wssSendMessage(PSignalingClient pSignalingClient,
 
     // Validate against max
     CHK(writtenSize <= LWS_MESSAGE_BUFFER_SIZE, STATUS_SIGNALING_MAX_MESSAGE_LEN_AFTER_ENCODING);
-
     writtenSize *= SIZEOF(CHAR);
     CHK(writtenSize <= size, STATUS_INVALID_ARG);
-
-    // Store the data pointer
-    ATOMIC_STORE(&pSignalingClient->pOngoingCallInfo->sendBufferSize, writtenSize);
-    ATOMIC_STORE(&pSignalingClient->pOngoingCallInfo->sendOffset, 0);
-
     // Send the data to the web socket
     awaitForResponse = (correlationLen != 0) && BLOCK_ON_CORRELATION_ID;
-    CHK_STATUS(wssWriteData(pSignalingClient, awaitForResponse));
-
-    // Re-setting the buffer size and offset
-    ATOMIC_STORE(&pSignalingClient->pOngoingCallInfo->sendBufferSize, 0);
-    ATOMIC_STORE(&pSignalingClient->pOngoingCallInfo->sendOffset, 0);
+    CHK_STATUS(wssWriteData(pSignalingClient, pSendBuffer, writtenSize, awaitForResponse));
 
 CleanUp:
     SAFE_MEMFREE(pEncodedMessage);
+    SAFE_MEMFREE(pSendBuffer);
     WSS_API_EXIT();
     return retStatus;
 }
@@ -775,7 +748,7 @@ CleanUp:
 
 
 /**
- * @brief   terminate the websocket connection.
+ * @brief   terminate the websocket connection but will set the result of signaling client for the next step.
  * 
  * @param[in]
  * @param[in]
@@ -792,13 +765,12 @@ STATUS wssTerminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVI
     ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
     CVAR_BROADCAST(pSignalingClient->connectedCvar);
     CVAR_BROADCAST(pSignalingClient->receiveCvar);
-    CVAR_BROADCAST(pSignalingClient->sendCvar);
     ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_UNKNOWN);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) callResult);
 
-    if (pSignalingClient->pOngoingCallInfo != NULL) {
-        ATOMIC_STORE_BOOL(&pSignalingClient->pOngoingCallInfo->cancelService, TRUE);
-    }
+    //if (pSignalingClient->pOngoingCallInfo != NULL) {
+    //    ATOMIC_STORE_BOOL(&pSignalingClient->pOngoingCallInfo->cancelService, TRUE);
+    //}
 
     // Wake up the service event loop
     CHK_STATUS(wssWakeServiceEventLoop(pSignalingClient));
@@ -819,7 +791,8 @@ STATUS wssTerminateListenerLoop(PSignalingClient pSignalingClient)
 
     CHK(pSignalingClient != NULL, retStatus);
 
-    if (pSignalingClient->pOngoingCallInfo != NULL) {
+    //if (pSignalingClient->pOngoingCallInfo != NULL) {
+    if (pSignalingClient->pWssContext != NULL) {
         // Check if anything needs to be done
         CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated), retStatus);
 
