@@ -39,14 +39,14 @@ extern "C" {
 typedef STATUS (*MessageHandlerFunc)(PSignalingClient ,PCHAR,UINT32);
 
 typedef struct {
-    wslay_event_context_ptr event_ctx;
-    struct wslay_event_callbacks event_callbacks;
+    wslay_event_context_ptr event_ctx;//!< the event context of wslay.
+    struct wslay_event_callbacks event_callbacks;//!< the callback of event context.
     // socket related stuff.
     NetworkContext_t * pNetworkContext;
     // os related stuff.
     MUTEX client_lock;
-    PVOID pUserData;
-    MessageHandlerFunc messageHandler;
+    PVOID pUserData;//!< the arguments of the message handler.
+    MessageHandlerFunc messageHandler;//!< the handler of receive the non-ctrl messages.
 }WssClientContext, *PWssClientContext;
 
 STATUS wssClientGenerateRandomNumber(PCHAR num, UINT32 len);

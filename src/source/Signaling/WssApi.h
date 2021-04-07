@@ -79,6 +79,10 @@ STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 STATUS wssTerminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_CALL_RESULT callResult);
 STATUS wssTerminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_CALL_RESULT callResult);
 STATUS wssTerminateListenerLoop(PSignalingClient pSignalingClient);
+// json parser.
+STATUS wssApiRspReceivedMessage( const CHAR * pResponseStr, UINT32 resultLen, PSignalingMessageWrapper pSignalingMessageWrapper);
+
+
 #ifdef __cplusplus
 }
 #endif
