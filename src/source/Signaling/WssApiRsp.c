@@ -5,7 +5,13 @@
 #define WSS_RSP_EXIT() //DLOGD("exit")
 
 
-/*-----------------------------------------------------------*/
+
+/**
+ * @brief   https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis-7.html
+ *   
+ * @param[in]
+ * @return
+*/
 STATUS wssApiRspReceivedMessage( const CHAR * pMessage, UINT32 messageLen, PSignalingMessageWrapper pSignalingMessageWrapper)
 {
     WSS_RSP_ENTER();
@@ -94,7 +100,7 @@ STATUS wssApiRspReceivedMessage( const CHAR * pMessage, UINT32 messageLen, PSign
             }
         }
     }
-
+    // Message type is a mandatory field.
     CHK(parsedMessageType, STATUS_SIGNALING_INVALID_MESSAGE_TYPE);
 
 CleanUp:

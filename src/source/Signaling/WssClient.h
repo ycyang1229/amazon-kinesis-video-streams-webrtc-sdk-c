@@ -32,7 +32,7 @@ extern "C" {
 #define WSS_CLIENT_BASED64_RANDOM_SEED_LEN 24
 #define WSS_CLIENT_SHA1_RANDOM_SEED_W_UUID_LEN 20
 #define WSS_CLIENT_ACCEPT_KEY_LEN 28
-#define WSS_CLIENT_POLLING_INTERVAL 50 // unit:ms.
+#define WSS_CLIENT_POLLING_INTERVAL 100 // unit:ms.
 #define WSS_CLIENT_PING_PONG_INTERVAL 10 // unit:sec.
 #define WSS_CLIENT_PING_PONG_COUNTER (WSS_CLIENT_PING_PONG_INTERVAL*1000)/WSS_CLIENT_POLLING_INTERVAL
 
@@ -54,9 +54,9 @@ STATUS wssClientGenerateClientKey(PCHAR buf, UINT32 bufLen);
 STATUS wssClientValidateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR acceptKey, UINT32 acceptKeyLen);
 VOID wssClientCreate(WssClientContext** ppWssClientCtx, NetworkContext_t * pNetworkContext, PVOID arg, MessageHandlerFunc pFunc);
 INT32 wssClientStart(WssClientContext* pWssClientCtx);
-INT32 wssClientSendText(WssClientContext* pCtx, UINT8* buf, UINT32 len);
-INT32 wssClientSendBinary(WssClientContext* pCtx, UINT8* buf, UINT32 len);
-INT32 wssClientSendPing(WssClientContext* pCtx);
+STATUS wssClientSendText(WssClientContext* pCtx, UINT8* buf, UINT32 len);
+STATUS wssClientSendBinary(WssClientContext* pCtx, UINT8* buf, UINT32 len);
+STATUS wssClientSendPing(WssClientContext* pCtx);
 VOID wssClientClose(WssClientContext* pWssClientCtx);
 
 #ifdef __cplusplus

@@ -312,13 +312,13 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief   
+ * @brief   #non-thread-safe.
  *          https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis3.html
  *          https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis4.html
  *          https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis5.html
  * 
- * @param[]
- * @param[]
+ * @param[in] pSignalingClient
+ * @param[in] pSignalingMessage
  * 
  * @return
 */
@@ -349,17 +349,10 @@ STATUS signalingSendMessage(PSignalingClient pSignalingClient, PSignalingMessage
     }
 
     // Store the signaling message
+    // #YC_TBD, do we really need to check duplicated messages? 
     CHK_STATUS(signalingStoreOngoingMessage(pSignalingClient, pSignalingMessage));
     removeFromList = TRUE;
 
-    // Perform the call
-    //CHK_STATUS(lwsSendMessage(pSignalingClient,
-    //                            pOfferType,
-    //                            pSignalingMessage->peerClientId,
-    //                            pSignalingMessage->payload,
-    //                            pSignalingMessage->payloadLen,
-    //                            pSignalingMessage->correlationId,
-    //                            0));
     // #YC_TBD, #WSS.
     CHK_STATUS(wssSendMessage(pSignalingClient,
                                 pOfferType,

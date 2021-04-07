@@ -37,7 +37,7 @@
 
 #define CLIENT_LOCK(pCtx) MUTEX_LOCK(pCtx->client_lock)
 #define CLIENT_UNLOCK(pCtx) MUTEX_UNLOCK(pCtx->client_lock)
-
+#define WSLAY_SUCCESS 0
 /*-----------------------------------------------------------*/
 STATUS wssClientGenerateRandomNumber(PCHAR num, UINT32 len)
 {
@@ -277,17 +277,6 @@ INT32 wssClientWantRead(WssClientContext* pCtx)
     return retStatus;
 }
 
-INT32 wssClientWantWrite(WssClientContext* pCtx)
-{
-    WSS_CLIENT_ENTER();
-    INT32 retStatus = 0;
-    CLIENT_LOCK(pCtx);
-    retStatus = wslay_event_want_write(pCtx->event_ctx);
-    CLIENT_UNLOCK(pCtx);
-    WSS_CLIENT_EXIT();
-    return retStatus;
-}
-
 INT32 wssClientOnReadEvent(WssClientContext* pCtx)
 {
     WSS_CLIENT_ENTER();
@@ -299,32 +288,27 @@ INT32 wssClientOnReadEvent(WssClientContext* pCtx)
     return retStatus;
 }
 
-INT32 wssClientOnWriteEvent(WssClientContext* pCtx)
+static STATUS wssClientSend(WssClientContext* pCtx, struct wslay_event_msg* arg)
 {
     WSS_CLIENT_ENTER();
-    INT32 retStatus = 0;
+    STATUS retStatus = STATUS_SUCCESS;
     CLIENT_LOCK(pCtx);
-    //DLOGD("transmitted");
-    retStatus = wslay_event_send(pCtx->event_ctx);
-    //DLOGD("transmission handled");
+    // #YC_TBD, wslay will memcpy this message buffer, so we can release the message buffer.
+    // But this is a tradeoff. We can evaluate this design later.
+    if(wslay_event_want_write(pCtx->event_ctx) == 0)
+    {
+        // send the message out immediately.
+        CHK(wslay_event_queue_msg(pCtx->event_ctx, arg) == WSLAY_SUCCESS, STATUS_WSS_CLIENT_SEND_FAILED);
+        CHK(wslay_event_send(pCtx->event_ctx) == WSLAY_SUCCESS, STATUS_WSS_CLIENT_SEND_FAILED);
+    }
+
+CleanUp:
     CLIENT_UNLOCK(pCtx);
     WSS_CLIENT_EXIT();
     return retStatus;
 }
 
-static INT32 wssClientSend(WssClientContext* pCtx, struct wslay_event_msg* arg)
-{
-    WSS_CLIENT_ENTER();
-    INT32 retStatus = 0;
-    CLIENT_LOCK(pCtx);
-    
-    retStatus = wslay_event_queue_msg(pCtx->event_ctx, arg);
-    CLIENT_UNLOCK(pCtx);
-    WSS_CLIENT_EXIT();
-    return retStatus;
-}
-
-INT32 wssClientSendText(WssClientContext* pCtx, UINT8* buf, UINT32 len)
+STATUS wssClientSendText(WssClientContext* pCtx, UINT8* buf, UINT32 len)
 {
     struct wslay_event_msg arg;
     arg.opcode = WSLAY_TEXT_FRAME;
@@ -333,7 +317,7 @@ INT32 wssClientSendText(WssClientContext* pCtx, UINT8* buf, UINT32 len)
     return wssClientSend(pCtx, &arg);
 }
 
-INT32 wssClientSendBinary(WssClientContext* pCtx, UINT8* buf, UINT32 len)
+STATUS wssClientSendBinary(WssClientContext* pCtx, UINT8* buf, UINT32 len)
 {
     struct wslay_event_msg arg;
     arg.opcode = WSLAY_BINARY_FRAME;
@@ -342,7 +326,7 @@ INT32 wssClientSendBinary(WssClientContext* pCtx, UINT8* buf, UINT32 len)
     return wssClientSend(pCtx, &arg);
 }
 
-INT32 wssClientSendPing(WssClientContext* pCtx)
+STATUS wssClientSendPing(WssClientContext* pCtx)
 {
     struct wslay_event_msg arg;
     MEMSET(&arg, 0, sizeof(arg));
@@ -418,7 +402,7 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
 
     // check the wss client want to read or write or not.
     DLOGD("wss client start");
-    while (wssClientWantRead(pWssClientCtx) || wssClientWantWrite(pWssClientCtx)) {
+    while (wssClientWantRead(pWssClientCtx)) {
         // need to setup the timeout of epoll in order to let the wss cleint thread to write the buffer out.
 	    FD_SET(nfds, &rfds);
         // #YC_TBD, this may need to be modified.
@@ -441,8 +425,6 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
             wssClientSendPing(pWssClientCtx);
             counter = 0;
         }
-        
-        wssClientOnWriteEvent(pWssClientCtx);
     }
 
 

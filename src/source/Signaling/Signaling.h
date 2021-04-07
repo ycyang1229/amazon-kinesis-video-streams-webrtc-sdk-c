@@ -237,12 +237,15 @@ typedef struct {
     CVAR connectedCvar;
 
     // Sync mutex for sending condition variable
+    // #wss #delete.
     MUTEX sendLock;
 
     // Conditional variable for sending interlock
+    // #wss #delete.
     CVAR sendCvar; //!< the lock for protecting the process of sending the websocket message.
 
     // Sync mutex for receiving response to the message condition variable
+
     MUTEX receiveLock;
 
     // Conditional variable for receiving response to the sent message
@@ -271,6 +274,7 @@ typedef struct {
     MUTEX messageQueueLock;//!< the lock of signaling ongoing message queue.
 
     // LWS needs to be locked
+    // #YC_TBD, #delete.
     MUTEX lwsServiceLock;
 
     // Serialized access to LWS service call

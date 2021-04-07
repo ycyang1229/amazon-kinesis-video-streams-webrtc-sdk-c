@@ -294,10 +294,13 @@ CleanUp:
 
 /*-----------------------------------------------------------*/
 /**
- * @brief   #YC_TBD.
+ * @brief   libwebsockets provides one inteface to wake up the event loop which is the main thread handling the websocket client.
+ *          I left this interface here, since we currently use non-blocking io design on wslay. 
+ *          But we can change it to blocking io improve the efficiency. 
+ *          #YC_TBD.
  * 
- * @param[]
- * @param[]
+ * @param[in]
+ * @param[in]
  * 
  * @return
 */
@@ -345,9 +348,6 @@ STATUS wssWriteData(PSignalingClient pSignalingClient, BOOL awaitForResponse)
 
     // Initialize the send result to none
     ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
-
-    // Wake up the service event loop
-    CHK_STATUS(wssWakeServiceEventLoop(pSignalingClient));
 
     MUTEX_LOCK(pSignalingClient->sendLock);
     sendLocked = TRUE;
@@ -417,8 +417,13 @@ CleanUp:
  * 
  * @return 
 */
-STATUS wssSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCHAR peerClientId, PCHAR pMessage, UINT32 messageLen,
-                      PCHAR pCorrelationId, UINT32 correlationIdLen)
+STATUS wssSendMessage(PSignalingClient pSignalingClient,
+                      PCHAR pMessageType,
+                      PCHAR peerClientId,
+                      PCHAR pMessage,
+                      UINT32 messageLen,
+                      PCHAR pCorrelationId,
+                      UINT32 correlationIdLen)
 {
     
     WSS_API_ENTER();
@@ -641,7 +646,6 @@ STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 #if !defined(KVS_PLAT_ESP_FREERTOS) && !defined(KVS_PLAT_RTK_FREERTOS)
     TID receivedTid = INVALID_TID_VALUE;
 #endif
-    
     PSignalingMessage pOngoingMessage;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
@@ -667,8 +671,6 @@ STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 
     CHK_STATUS(wssApiRspReceivedMessage( pMessage, messageLen, pSignalingMessageWrapper));
 
-    // Message type is a mandatory field.
-    
     pSignalingMessageWrapper->pSignalingClient = pSignalingClient;
 
     switch (pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType) {
@@ -680,8 +682,8 @@ STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
                       pSignalingMessageWrapper->receivedSignalingMessage.description);
 
                 // Store the response
-                //ATOMIC_STORE(&pSignalingClient->messageResult,
-                //             (SIZE_T) getServiceCallResultFromHttpStatus(pSignalingMessageWrapper->receivedSignalingMessage.statusCode));
+                ATOMIC_STORE(&pSignalingClient->messageResult,
+                             (SIZE_T) getServiceCallResultFromHttpStatus(pSignalingMessageWrapper->receivedSignalingMessage.statusCode));
                 DLOGD("YC_TBD, need to be fixed.");
                 ATOMIC_STORE(&pSignalingClient->messageResult,
                              SERVICE_CALL_RESULT_OK);
