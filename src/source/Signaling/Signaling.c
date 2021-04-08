@@ -130,11 +130,11 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     pSignalingClient->messageQueueLock = MUTEX_CREATE(TRUE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->messageQueueLock), STATUS_INVALID_OPERATION);
 
-    pSignalingClient->lwsServiceLock = MUTEX_CREATE(TRUE);
-    CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->lwsServiceLock), STATUS_INVALID_OPERATION);
+    //pSignalingClient->lwsServiceLock = MUTEX_CREATE(TRUE);
+    //CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->lwsServiceLock), STATUS_INVALID_OPERATION);
 
-    pSignalingClient->lwsSerializerLock = MUTEX_CREATE(TRUE);
-    CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->lwsSerializerLock), STATUS_INVALID_OPERATION);
+    //pSignalingClient->lwsSerializerLock = MUTEX_CREATE(TRUE);
+    //CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->lwsSerializerLock), STATUS_INVALID_OPERATION);
 
     pSignalingClient->diagnosticsLock = MUTEX_CREATE(TRUE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->diagnosticsLock), STATUS_INVALID_OPERATION);
@@ -204,11 +204,11 @@ STATUS signalingFree(PSignalingClient* ppSignalingClient)
 
     // original design un-initilizes the lws context here. #YC_TBD.
     if (pSignalingClient->pWssContext != NULL) {
-        MUTEX_LOCK(pSignalingClient->lwsSerializerLock);
+        //MUTEX_LOCK(pSignalingClient->lwsSerializerLock);
         // #YC_TBD, MUST!!!!
         wssClientClose((PVOID)pSignalingClient->pWssContext);
         pSignalingClient->pWssContext = NULL;
-        MUTEX_UNLOCK(pSignalingClient->lwsSerializerLock);
+        //MUTEX_UNLOCK(pSignalingClient->lwsSerializerLock);
     }
 
     freeStateMachine(pSignalingClient->pStateMachine);
@@ -241,13 +241,13 @@ STATUS signalingFree(PSignalingClient* ppSignalingClient)
         MUTEX_FREE(pSignalingClient->messageQueueLock);
     }
 
-    if (IS_VALID_MUTEX_VALUE(pSignalingClient->lwsServiceLock)) {
-        MUTEX_FREE(pSignalingClient->lwsServiceLock);
-    }
+    //if (IS_VALID_MUTEX_VALUE(pSignalingClient->lwsServiceLock)) {
+    //    MUTEX_FREE(pSignalingClient->lwsServiceLock);
+    //}
 
-    if (IS_VALID_MUTEX_VALUE(pSignalingClient->lwsSerializerLock)) {
-        MUTEX_FREE(pSignalingClient->lwsSerializerLock);
-    }
+    //if (IS_VALID_MUTEX_VALUE(pSignalingClient->lwsSerializerLock)) {
+    //    MUTEX_FREE(pSignalingClient->lwsSerializerLock);
+    //}
 
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->diagnosticsLock)) {
         MUTEX_FREE(pSignalingClient->diagnosticsLock);

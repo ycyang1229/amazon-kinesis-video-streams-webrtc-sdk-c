@@ -313,9 +313,9 @@ STATUS wssWakeServiceEventLoop(PSignalingClient pSignalingClient)
     // Early exit in case we don't need to do anything
     CHK(pSignalingClient != NULL && pSignalingClient->pWssContext != NULL, retStatus);
 
-    MUTEX_LOCK(pSignalingClient->lwsServiceLock);
+    //MUTEX_LOCK(pSignalingClient->lwsServiceLock);
     //lws_callback_on_writable_all_protocol(pSignalingClient->pWssContext, &pSignalingClient->signalingProtocols[WSS_SIGNALING_PROTOCOL_INDEX]);
-    MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
+    //MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
 
 CleanUp:
 
@@ -773,7 +773,7 @@ STATUS wssTerminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVI
     //}
 
     // Wake up the service event loop
-    CHK_STATUS(wssWakeServiceEventLoop(pSignalingClient));
+    //CHK_STATUS(wssWakeServiceEventLoop(pSignalingClient));
     // waiting the termination of listener thread.
     CHK_STATUS(signalingAwaitForThreadTermination(&pSignalingClient->listenerTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT));
 

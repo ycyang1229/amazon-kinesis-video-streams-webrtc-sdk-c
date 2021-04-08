@@ -35,8 +35,11 @@
 //#include <pthread.h>
 // time
 
-#define CLIENT_LOCK(pCtx) MUTEX_LOCK(pCtx->client_lock)
-#define CLIENT_UNLOCK(pCtx) MUTEX_UNLOCK(pCtx->client_lock)
+#define CLIENT_LOCK(pCtx)     MUTEX_LOCK(pCtx->clientLock)
+#define CLIENT_UNLOCK(pCtx)   MUTEX_UNLOCK(pCtx->clientLock)
+#define LISTENER_LOCK(pCtx)   MUTEX_LOCK(pCtx->listenerLock)
+#define LISTENER_UNLOCK(pCtx) MUTEX_UNLOCK(pCtx->listenerLock)
+
 #define WSLAY_SUCCESS 0
 /*-----------------------------------------------------------*/
 STATUS wssClientGenerateRandomNumber(PCHAR num, UINT32 len)
@@ -282,7 +285,10 @@ INT32 wssClientOnReadEvent(WssClientContext* pCtx)
     WSS_CLIENT_ENTER();
     INT32 retStatus = 0;
     CLIENT_LOCK(pCtx);
-    retStatus = wslay_event_recv(pCtx->event_ctx);
+    if(wslay_event_get_read_enabled(pCtx->event_ctx) == 1)
+    {
+        retStatus = wslay_event_recv(pCtx->event_ctx);
+    }
     CLIENT_UNLOCK(pCtx);
     WSS_CLIENT_EXIT();
     return retStatus;
@@ -295,7 +301,7 @@ static STATUS wssClientSend(WssClientContext* pCtx, struct wslay_event_msg* arg)
     CLIENT_LOCK(pCtx);
     // #YC_TBD, wslay will memcpy this message buffer, so we can release the message buffer.
     // But this is a tradeoff. We can evaluate this design later.
-    if(wslay_event_want_write(pCtx->event_ctx) == 0)
+    if(wslay_event_get_write_enabled(pCtx->event_ctx) == 1)
     {
         // send the message out immediately.
         CHK(wslay_event_queue_msg(pCtx->event_ctx, arg) == WSLAY_SUCCESS, STATUS_WSS_CLIENT_SEND_FAILED);
@@ -349,10 +355,8 @@ STATUS wssClientSendPing(WssClientContext* pCtx)
 VOID wssClientCreate(WssClientContext** ppWssClientCtx, NetworkContext_t * pNetworkContext, PVOID arg, MessageHandlerFunc pFunc)
 {
     WSS_CLIENT_ENTER();
-    INT32 retStatus = 0;
-    WssClientContext* pCtx = malloc(sizeof(WssClientContext));
-    MEMSET(pCtx, 0, sizeof(WssClientContext));
-
+    STATUS retStatus = STATUS_SUCCESS;
+    WssClientContext* pCtx = NULL;
     struct wslay_event_callbacks callbacks = {
                                     wslay_recv_callback, /* wslay_event_recv_callback */
                                     wslay_send_callback, /* wslay_event_send_callback */
@@ -363,15 +367,23 @@ VOID wssClientCreate(WssClientContext** ppWssClientCtx, NetworkContext_t * pNetw
                                     wslay_msg_recv_callback /* wslay_event_on_msg_recv_callback */
                                     };
 
+    *ppWssClientCtx = NULL;
+    CHK(NULL != (pCtx = (WssClientContext*) MEMCALLOC(1, SIZEOF(WssClientContext))), STATUS_NOT_ENOUGH_MEMORY);
+
     pCtx->event_callbacks = callbacks;
     pCtx->pNetworkContext = pNetworkContext;
     pCtx->pUserData = arg;
     pCtx->messageHandler = pFunc;
 
     // the initialization of the mutex 
-    pCtx->client_lock = MUTEX_CREATE(FALSE);
+    pCtx->clientLock = MUTEX_CREATE(FALSE);
+    CHK(IS_VALID_MUTEX_VALUE(pCtx->clientLock), STATUS_INVALID_OPERATION);
+    pCtx->listenerLock = MUTEX_CREATE(FALSE);
+    CHK(IS_VALID_MUTEX_VALUE(pCtx->listenerLock), STATUS_INVALID_OPERATION);
+    
     wslay_event_context_client_init(&pCtx->event_ctx, &pCtx->event_callbacks, pCtx);;
     *ppWssClientCtx = pCtx;
+CleanUp:
     WSS_CLIENT_EXIT();
     return;
 }
@@ -393,6 +405,8 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
     struct timeval tv;
     // for ping-pong.
     UINT32 counter = 0;
+    
+    LISTENER_LOCK(pWssClientCtx);
 
     wslay_event_config_set_callbacks(pWssClientCtx->event_ctx, &pWssClientCtx->event_callbacks);
     mbedtls_ssl_conf_read_timeout(&(pWssClientCtx->pNetworkContext->conf), WSS_CLIENT_POLLING_INTERVAL);
@@ -401,7 +415,6 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
     FD_ZERO(&rfds);
 
     // check the wss client want to read or write or not.
-    DLOGD("wss client start");
     while (wssClientWantRead(pWssClientCtx)) {
         // need to setup the timeout of epoll in order to let the wss cleint thread to write the buffer out.
 	    FD_SET(nfds, &rfds);
@@ -409,11 +422,12 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
         tv.tv_sec = 0;
         tv.tv_usec = WSS_CLIENT_POLLING_INTERVAL*1000;
         retval = select(nfds+1, &rfds, NULL, NULL, &tv);
-        
+
         if (retval == -1) {
             DLOGE("select() failed with errno %s", getErrorString(getErrorCode()));
             continue;
         }
+
         if(FD_ISSET(nfds, &rfds))
         {
             wssClientOnReadEvent(pWssClientCtx);
@@ -426,9 +440,7 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
             counter = 0;
         }
     }
-
-
-    DLOGD("wss client end");
+    LISTENER_UNLOCK(pWssClientCtx);
     WSS_CLIENT_EXIT();
     return ok ? 0 : -1;
 }
@@ -437,14 +449,23 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
 VOID wssClientClose(WssClientContext* pWssClientCtx)
 {
     INT32 retStatus = 0;
-    CLIENT_LOCK(pWssClientCtx);
-    wslay_event_shutdown_read(pWssClientCtx->event_ctx);
-    wslay_event_shutdown_write(pWssClientCtx->event_ctx);
 
-    if (IS_VALID_MUTEX_VALUE(pWssClientCtx->client_lock)) {
-        MUTEX_FREE(pWssClientCtx->client_lock);
+    if (IS_VALID_MUTEX_VALUE(pWssClientCtx->clientLock)) {
+        CLIENT_LOCK(pWssClientCtx);
+        wslay_event_shutdown_read(pWssClientCtx->event_ctx);
+        wslay_event_shutdown_write(pWssClientCtx->event_ctx);
+        CLIENT_UNLOCK(pWssClientCtx);
     }
-    free(pWssClientCtx);
+
+    if (IS_VALID_MUTEX_VALUE(pWssClientCtx->listenerLock)) {
+        LISTENER_LOCK(pWssClientCtx);
+        MUTEX_FREE(pWssClientCtx->listenerLock);
+    }
+    if (IS_VALID_MUTEX_VALUE(pWssClientCtx->clientLock)) {
+        MUTEX_FREE(pWssClientCtx->clientLock);
+    }
+
+    MEMFREE(pWssClientCtx);
     return;
 }
 /*-----------------------------------------------------------*/

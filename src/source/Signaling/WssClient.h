@@ -44,7 +44,8 @@ typedef struct {
     // socket related stuff.
     NetworkContext_t * pNetworkContext;
     // os related stuff.
-    MUTEX client_lock;
+    MUTEX clientLock;
+    MUTEX listenerLock;
     PVOID pUserData;//!< the arguments of the message handler.
     MessageHandlerFunc messageHandler;//!< the handler of receive the non-ctrl messages.
 }WssClientContext, *PWssClientContext;

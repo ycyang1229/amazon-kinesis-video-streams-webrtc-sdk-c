@@ -265,10 +265,10 @@ typedef struct {
 
     // LWS needs to be locked
     // #YC_TBD, #delete.
-    MUTEX lwsServiceLock;
+    ///MUTEX lwsServiceLock;
 
     // Serialized access to LWS service call
-    MUTEX lwsSerializerLock;//!< the lock of lws service call.
+    //MUTEX lwsSerializerLock;//!< the lock of lws service call.
 
     // Re-entrant lock for diagnostics/stats
     MUTEX diagnosticsLock;
