@@ -394,10 +394,11 @@ CleanUp:
  * 
  * @return
 */
-INT32 wssClientStart(WssClientContext* pWssClientCtx)
+PVOID wssClientStart(WssClientContext* pWssClientCtx)
 {
     WSS_CLIENT_ENTER();
-    BOOL ok = TRUE;
+    STATUS retStatus = STATUS_SUCCESS;
+    PSignalingClient pSignalingClient = NULL;
     // for the inteface of socket.
     INT32 nfds = 0;
     INT32 retval;
@@ -405,7 +406,10 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
     struct timeval tv;
     // for ping-pong.
     UINT32 counter = 0;
-    
+
+    // Mark as started
+    pSignalingClient = (PSignalingClient)pWssClientCtx->pUserData;
+        
     LISTENER_LOCK(pWssClientCtx);
 
     wslay_event_config_set_callbacks(pWssClientCtx->event_ctx, &pWssClientCtx->event_callbacks);
@@ -440,9 +444,18 @@ INT32 wssClientStart(WssClientContext* pWssClientCtx)
             counter = 0;
         }
     }
+    
+    
+
+CleanUp:
+
+    if (STATUS_FAILED(retStatus) && pSignalingClient != NULL) {
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+    }
+
     LISTENER_UNLOCK(pWssClientCtx);
     WSS_CLIENT_EXIT();
-    return ok ? 0 : -1;
+    return (PVOID)(ULONG_PTR) retStatus;
 }
 
 
@@ -454,6 +467,7 @@ VOID wssClientClose(WssClientContext* pWssClientCtx)
         CLIENT_LOCK(pWssClientCtx);
         wslay_event_shutdown_read(pWssClientCtx->event_ctx);
         wslay_event_shutdown_write(pWssClientCtx->event_ctx);
+        wslay_event_context_free(pWssClientCtx->event_ctx);
         CLIENT_UNLOCK(pWssClientCtx);
     }
 
@@ -463,6 +477,13 @@ VOID wssClientClose(WssClientContext* pWssClientCtx)
     }
     if (IS_VALID_MUTEX_VALUE(pWssClientCtx->clientLock)) {
         MUTEX_FREE(pWssClientCtx->clientLock);
+    }
+
+    if( pWssClientCtx->pNetworkContext != NULL )
+    {
+        disconnectFromServer( pWssClientCtx->pNetworkContext );
+        terminateNetworkContext(pWssClientCtx->pNetworkContext);
+        MEMFREE( pWssClientCtx->pNetworkContext );
     }
 
     MEMFREE(pWssClientCtx);

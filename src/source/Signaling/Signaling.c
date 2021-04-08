@@ -42,7 +42,6 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     CHK(NULL != (pSignalingClient = (PSignalingClient) MEMCALLOC(1, SIZEOF(SignalingClient))), STATUS_NOT_ENOUGH_MEMORY);
     
     // Initialize the listener and restarter thread trackers
-    CHK_STATUS(signalingInitThreadTracker(&pSignalingClient->listenerTracker));
     CHK_STATUS(signalingInitThreadTracker(&pSignalingClient->reconnecterTracker));
 
     // Validate and store the input
@@ -102,8 +101,6 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     // for the https connection.
     // for the websocket connection.
     // original design initilizes the lws context here. #YC_TBD.
-
-    ATOMIC_STORE_BOOL(&pSignalingClient->clientReady, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->shutdown, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
     ATOMIC_STORE_BOOL(&pSignalingClient->deleting, FALSE);
@@ -114,10 +111,10 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     // signal(SIGINT, lwsSignalHandler);
 
     // Create the sync primitives
-    pSignalingClient->connectedCvar = CVAR_CREATE();
-    CHK(IS_VALID_CVAR_VALUE(pSignalingClient->connectedCvar), STATUS_INVALID_OPERATION);
-    pSignalingClient->connectedLock = MUTEX_CREATE(FALSE);
-    CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->connectedLock), STATUS_INVALID_OPERATION);
+    //pSignalingClient->connectedCvar = CVAR_CREATE();
+    //CHK(IS_VALID_CVAR_VALUE(pSignalingClient->connectedCvar), STATUS_INVALID_OPERATION);
+    //pSignalingClient->connectedLock = MUTEX_CREATE(FALSE);
+    //CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->connectedLock), STATUS_INVALID_OPERATION);
 
     pSignalingClient->receiveCvar = CVAR_CREATE();
     CHK(IS_VALID_CVAR_VALUE(pSignalingClient->receiveCvar), STATUS_INVALID_OPERATION);
@@ -217,13 +214,13 @@ STATUS signalingFree(PSignalingClient* ppSignalingClient)
 
     stackQueueFree(pSignalingClient->pMessageQueue);
 
-    if (IS_VALID_MUTEX_VALUE(pSignalingClient->connectedLock)) {
-        MUTEX_FREE(pSignalingClient->connectedLock);
-    }
+    //if (IS_VALID_MUTEX_VALUE(pSignalingClient->connectedLock)) {
+    //    MUTEX_FREE(pSignalingClient->connectedLock);
+    //}
 
-    if (IS_VALID_CVAR_VALUE(pSignalingClient->connectedCvar)) {
-        CVAR_FREE(pSignalingClient->connectedCvar);
-    }
+    //if (IS_VALID_CVAR_VALUE(pSignalingClient->connectedCvar)) {
+    //    CVAR_FREE(pSignalingClient->connectedCvar);
+    //}
 
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->receiveLock)) {
         MUTEX_FREE(pSignalingClient->receiveLock);
@@ -254,7 +251,6 @@ STATUS signalingFree(PSignalingClient* ppSignalingClient)
     }
 
     signalingUninitThreadTracker(&pSignalingClient->reconnecterTracker);
-    signalingUninitThreadTracker(&pSignalingClient->listenerTracker);
 
     MEMFREE(pSignalingClient);
 
@@ -266,10 +262,10 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief  
+ * @brief   
  *  
- * @param[]
- * @param[]
+ * @param[in] pSignalingClient the context of the signaling client.
+ * @param[in] freeTimerQueue free the timer queue in this signaling client.
  * 
  * @return
 */

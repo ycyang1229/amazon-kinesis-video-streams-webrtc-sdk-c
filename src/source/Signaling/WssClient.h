@@ -1,18 +1,3 @@
-/*
- * Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
- *  http://aws.amazon.com/apache2.0
- *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
- */
-
 #ifndef __KINESIS_VIDEO_WEBRTC_WSS_CLIENT_H__
 #define __KINESIS_VIDEO_WEBRTC_WSS_CLIENT_H__
 
@@ -41,12 +26,10 @@ typedef STATUS (*MessageHandlerFunc)(PSignalingClient ,PCHAR,UINT32);
 typedef struct {
     wslay_event_context_ptr event_ctx;//!< the event context of wslay.
     struct wslay_event_callbacks event_callbacks;//!< the callback of event context.
-    // socket related stuff.
     NetworkContext_t * pNetworkContext;
-    // os related stuff.
-    MUTEX clientLock;
-    MUTEX listenerLock;
-    PVOID pUserData;//!< the arguments of the message handler.
+    MUTEX clientLock;//!< the lock for the control of the whole wss client api.
+    MUTEX listenerLock;//!< the lock for the listener thread.
+    PVOID pUserData;//!< the arguments of the message handler. ref: PSignalingClient
     MessageHandlerFunc messageHandler;//!< the handler of receive the non-ctrl messages.
 }WssClientContext, *PWssClientContext;
 
@@ -54,7 +37,7 @@ STATUS wssClientGenerateRandomNumber(PCHAR num, UINT32 len);
 STATUS wssClientGenerateClientKey(PCHAR buf, UINT32 bufLen);
 STATUS wssClientValidateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR acceptKey, UINT32 acceptKeyLen);
 VOID wssClientCreate(WssClientContext** ppWssClientCtx, NetworkContext_t * pNetworkContext, PVOID arg, MessageHandlerFunc pFunc);
-INT32 wssClientStart(WssClientContext* pWssClientCtx);
+PVOID wssClientStart(WssClientContext* pWssClientCtx);
 STATUS wssClientSendText(WssClientContext* pCtx, UINT8* buf, UINT32 len);
 STATUS wssClientSendBinary(WssClientContext* pCtx, UINT8* buf, UINT32 len);
 STATUS wssClientSendPing(WssClientContext* pCtx);

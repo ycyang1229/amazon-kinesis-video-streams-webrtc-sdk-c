@@ -145,10 +145,8 @@ typedef struct {
 typedef struct {
     volatile SIZE_T result;//!< Current service call result
     // Sent message result
+    // #YC_TBD, need to remove this one.
     volatile SIZE_T messageResult;//!< the message result of websocket service. SERVICE_CALL_RESULT.
-
-    // Client is ready to connect to signaling channel
-    volatile ATOMIC_BOOL clientReady;//!< Inidicate the singaling fsm is ready.
 
     // Shutting down the entire client
     volatile ATOMIC_BOOL shutdown;//!< Indicate the signaling is freed.
@@ -218,7 +216,7 @@ typedef struct {
     PAwsCredentials pAwsCredentials;
 
     // Service call context
-    ServiceCallContext serviceCallContext;
+    //ServiceCallContext serviceCallContext;
 
     // Indicates whether to self-prime on Ready or not
     BOOL continueOnReady;//!< Indicate connect to signaling channel or not.
@@ -230,24 +228,19 @@ typedef struct {
     /**
      * used for the synchronization between the thread of calling connectSignalingChannel and the thread of lwsListenerHandler.
     */
-    MUTEX connectedLock;
+    //MUTEX connectedLock;
 
     // Conditional variable for Connected state
     // wait for the lws to notify the connection is established or not.
-    CVAR connectedCvar;
+    //CVAR connectedCvar;
 
     // Sync mutex for receiving response to the message condition variable
-
     MUTEX receiveLock;
-
     // Conditional variable for receiving response to the sent message
     CVAR receiveCvar;
 
     // Execute the state machine until this time
     UINT64 stepUntil;
-
-    // Listener thread for the socket
-    ThreadTracker listenerTracker;
 
     // Restarted thread handler
     ThreadTracker reconnecterTracker;//!< receive the connection error msg or closed msg from lws.
@@ -274,7 +267,7 @@ typedef struct {
     MUTEX diagnosticsLock;
 
     // Timer queue to handle stale ICE configuration
-    TIMER_QUEUE_HANDLE timerQueueHandle;
+    TIMER_QUEUE_HANDLE timerQueueHandle;//!< right now, only be used in getting ice configuration.
 
     // Internal diagnostics object
     SignalingDiagnostics diagnostics;

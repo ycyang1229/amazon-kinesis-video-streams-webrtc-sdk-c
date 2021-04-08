@@ -1,18 +1,3 @@
-/*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
- *  http://aws.amazon.com/apache2.0
- *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
- */
-
 #define LOG_CLASS "WssApi"
 #include "../Include_i.h"
 
@@ -209,10 +194,10 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
     /* Check HTTP results */
     if( uHttpStatusCode == 101 )
     {
+        TID threadId;
         /**
          * switch to wss client.
         */
-        SERVICE_CALL_RESULT callResult = SERVICE_CALL_RESULT_NOT_SET;
         /* We got a success response here. */
         WssClientContext* wssClientCtx = NULL;
         // #YC_TBD.
@@ -226,31 +211,27 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         pSignalingClient->pWssContext = wssClientCtx;
 
         // Don't let the thread to start running initially
-        MUTEX_LOCK(pSignalingClient->connectedLock);
-        locked = TRUE;
-
-        // Set the state to not connected
-        ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
-        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) callResult);
+        //MUTEX_LOCK(pSignalingClient->connectedLock);
+        //locked = TRUE;
 
         // The actual connection will be handled in a separate thread
         // Start the request/response thread
-        CHK_STATUS(THREAD_CREATE(&pSignalingClient->listenerTracker.threadId, wssClientStart, (PVOID) wssClientCtx));
-        CHK_STATUS(THREAD_DETACH(pSignalingClient->listenerTracker.threadId));
+        CHK_STATUS(THREAD_CREATE(&threadId, wssClientStart, (PVOID) wssClientCtx));
+        CHK_STATUS(THREAD_DETACH(threadId));
 
         // Set the call result to succeeded
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
         ATOMIC_STORE_BOOL(&pSignalingClient->connected, TRUE);
 
         // Notify the listener thread
-        CVAR_BROADCAST(pSignalingClient->connectedCvar);
+        //CVAR_BROADCAST(pSignalingClient->connectedCvar);
         // Check whether we are connected and reset the result
         if (ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
         }
 
-        MUTEX_UNLOCK(pSignalingClient->connectedLock);
-        locked = FALSE;
+        //MUTEX_UNLOCK(pSignalingClient->connectedLock);
+        //locked = FALSE;
     }
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK, retStatus);
 
@@ -271,16 +252,12 @@ CleanUp:
         // Trigger termination
         if( pNetworkContext != NULL )
         {
-            //disconnectFromServer( pNetworkContext );
-            //terminateNetworkContext(pNetworkContext);
-            //MEMFREE( pNetworkContext );
-            //AwsSignerV4_terminateContext(&signerContext);
+            disconnectFromServer( pNetworkContext );
+            terminateNetworkContext(pNetworkContext);
+            MEMFREE( pNetworkContext );
         }
 
-        if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) &&
-            pSignalingClient->pWssContext != NULL /*&&
-            pSignalingClient->pOngoingCallInfo != NULL /*&&
-            pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL*/) {
+        if (pSignalingClient->pWssContext != NULL) {
             wssTerminateConnectionWithStatus(pSignalingClient, serviceCallResult);
         }
 
@@ -292,37 +269,6 @@ CleanUp:
     WSS_API_EXIT();
     return retStatus;
 }
-
-/*-----------------------------------------------------------*/
-/**
- * @brief   libwebsockets provides one inteface to wake up the event loop which is the main thread handling the websocket client.
- *          I left this interface here, since we currently use non-blocking io design on wslay. 
- *          But we can change it to blocking io improve the efficiency. 
- *          #YC_TBD.
- * 
- * @param[in]
- * @param[in]
- * 
- * @return
-*/
-STATUS wssWakeServiceEventLoop(PSignalingClient pSignalingClient)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-
-    // Early exit in case we don't need to do anything
-    CHK(pSignalingClient != NULL && pSignalingClient->pWssContext != NULL, retStatus);
-
-    //MUTEX_LOCK(pSignalingClient->lwsServiceLock);
-    //lws_callback_on_writable_all_protocol(pSignalingClient->pWssContext, &pSignalingClient->signalingProtocols[WSS_SIGNALING_PROTOCOL_INDEX]);
-    //MUTEX_UNLOCK(pSignalingClient->lwsServiceLock);
-
-CleanUp:
-
-    LEAVES();
-    return retStatus;
-}
-
 
 /**
  * @brief   
@@ -648,24 +594,14 @@ STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 
     switch (pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_STATUS_RESPONSE:
+            ATOMIC_STORE(&pSignalingClient->messageResult,
+                             (SIZE_T) getServiceCallResultFromHttpStatus(pSignalingMessageWrapper->receivedSignalingMessage.statusCode));
             if (pSignalingMessageWrapper->receivedSignalingMessage.statusCode != SERVICE_CALL_RESULT_OK) {
                 DLOGW("Failed to deliver message. Correlation ID: %s, Error Type: %s, Error Code: %u, Description: %s",
                       pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.correlationId,
                       pSignalingMessageWrapper->receivedSignalingMessage.errorType, pSignalingMessageWrapper->receivedSignalingMessage.statusCode,
-                      pSignalingMessageWrapper->receivedSignalingMessage.description);
-
-                // Store the response
-                ATOMIC_STORE(&pSignalingClient->messageResult,
-                             (SIZE_T) getServiceCallResultFromHttpStatus(pSignalingMessageWrapper->receivedSignalingMessage.statusCode));
-                DLOGD("YC_TBD, need to be fixed.");
-                ATOMIC_STORE(&pSignalingClient->messageResult,
-                             SERVICE_CALL_RESULT_OK);
-                             
-            } else {
-                // Success
-                ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_RESULT_OK);
+                      pSignalingMessageWrapper->receivedSignalingMessage.description);                 
             }
-
             // Notify the awaiting send
             CVAR_BROADCAST(pSignalingClient->receiveCvar);
             // Delete the message wrapper and exit
@@ -763,19 +699,13 @@ STATUS wssTerminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVI
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
-    CVAR_BROADCAST(pSignalingClient->connectedCvar);
     CVAR_BROADCAST(pSignalingClient->receiveCvar);
     ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_UNKNOWN);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) callResult);
 
-    //if (pSignalingClient->pOngoingCallInfo != NULL) {
-    //    ATOMIC_STORE_BOOL(&pSignalingClient->pOngoingCallInfo->cancelService, TRUE);
-    //}
-
-    // Wake up the service event loop
-    //CHK_STATUS(wssWakeServiceEventLoop(pSignalingClient));
     // waiting the termination of listener thread.
-    CHK_STATUS(signalingAwaitForThreadTermination(&pSignalingClient->listenerTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT));
+    wssClientClose(pSignalingClient->pWssContext);
+    pSignalingClient->pWssContext = NULL;
 
 CleanUp:
 
@@ -791,12 +721,7 @@ STATUS wssTerminateListenerLoop(PSignalingClient pSignalingClient)
 
     CHK(pSignalingClient != NULL, retStatus);
 
-    //if (pSignalingClient->pOngoingCallInfo != NULL) {
     if (pSignalingClient->pWssContext != NULL) {
-        // Check if anything needs to be done
-        CHK(!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated), retStatus);
-
-        // Terminate the listener
         wssTerminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_OK);
     }
 
