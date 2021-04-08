@@ -42,7 +42,7 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     CHK(NULL != (pSignalingClient = (PSignalingClient) MEMCALLOC(1, SIZEOF(SignalingClient))), STATUS_NOT_ENOUGH_MEMORY);
     
     // Initialize the listener and restarter thread trackers
-    CHK_STATUS(signalingInitThreadTracker(&pSignalingClient->reconnecterTracker));
+    //CHK_STATUS(signalingInitThreadTracker(&pSignalingClient->reconnecterTracker));
 
     // Validate and store the input
     CHK_STATUS(createValidateChannelInfo(pChannelInfo, &pSignalingClient->pChannelInfo));
@@ -250,7 +250,7 @@ STATUS signalingFree(PSignalingClient* ppSignalingClient)
         MUTEX_FREE(pSignalingClient->diagnosticsLock);
     }
 
-    signalingUninitThreadTracker(&pSignalingClient->reconnecterTracker);
+    //signalingUninitThreadTracker(&pSignalingClient->reconnecterTracker);
 
     MEMFREE(pSignalingClient);
 
@@ -287,7 +287,7 @@ STATUS signalingTerminateOngoingOperations(PSignalingClient pSignalingClient, BO
     
 
     // Await for the reconnect thread to exit
-    signalingAwaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
+    //signalingAwaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);
 
 CleanUp:
 

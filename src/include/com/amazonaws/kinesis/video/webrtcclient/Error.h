@@ -384,7 +384,7 @@ extern "C" {
 
 /*! \addtogroup RollingBufferStatusCodes
  * WEBRTC Rolling Buffer related codes. Values are derived from STATUS_ROLLING_BUFFER_BASE
- * (0x70000000)
+ * (0x61000000)
  *  @{
  */
 #define STATUS_ROLLING_BUFFER_BASE         STATUS_RTCP_BASE + 0x01000000
@@ -397,7 +397,7 @@ extern "C" {
 /////////////////////////////////////////////////////
 
 /*! \addtogroup AWSSignerV4StatusCodes
- * WEBRTC AWSSignerV4 related codes. Values are derived from STATUS_AWS_SIGNER_BASE (0x80000000)
+ * WEBRTC AWSSignerV4 related codes. Values are derived from STATUS_AWS_SIGNER_BASE (0x62000000)
  *  @{
  */
 #define STATUS_AWS_SIGNER_BASE                         STATUS_ROLLING_BUFFER_BASE + 0x01000000
@@ -411,7 +411,7 @@ extern "C" {
 /////////////////////////////////////////////////////
 
 /*! \addtogroup JsonStatusCodes
- * WEBRTC json related codes. Values are derived from STATUS_JSON_BASE (0x90000000)
+ * WEBRTC json related codes. Values are derived from STATUS_JSON_BASE (0x63000000)
  *  @{
  */
 #define STATUS_JSON_BASE                         STATUS_AWS_SIGNER_BASE + 0x01000000
@@ -424,7 +424,7 @@ extern "C" {
 /////////////////////////////////////////////////////
 
 /*! \addtogroup httpStatusCodes
- * WEBRTC http related codes. Values are derived from STATUS_JSON_BASE (0xA0000000)
+ * WEBRTC http related codes. Values are derived from STATUS_JSON_BASE (0x64000000)
  *  @{
  */
 #define STATUS_HTTP_BASE                         STATUS_JSON_BASE + 0x01000000
@@ -440,7 +440,7 @@ extern "C" {
 /////////////////////////////////////////////////////
 
 /*! \addtogroup wssStatusCodes
- * WEBRTC wss related codes. Values are derived from STATUS_JSON_BASE (0xB0000000)
+ * WEBRTC wss related codes. Values are derived from STATUS_JSON_BASE (0x65000000)
  *  @{
  */
 #define STATUS_WSS_BASE                         STATUS_HTTP_BASE + 0x01000000

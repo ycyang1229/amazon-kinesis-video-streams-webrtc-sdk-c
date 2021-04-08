@@ -243,7 +243,7 @@ typedef struct {
     UINT64 stepUntil;
 
     // Restarted thread handler
-    ThreadTracker reconnecterTracker;//!< receive the connection error msg or closed msg from lws.
+    //ThreadTracker reconnecterTracker;//!< receive the connection error msg or closed msg from lws.
                                         //!< spin off one thread to re-connect.
 
     // LWS context to use for Restful API
