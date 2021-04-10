@@ -282,52 +282,18 @@ STATUS wssWriteData(PSignalingClient pSignalingClient, PBYTE pSendBuf, UINT32 bu
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-    BOOL receiveLocked = FALSE, iterate = TRUE;
-    SIZE_T offset, size;
-    SERVICE_CALL_RESULT result;
 
     //CHK(pSignalingClient != NULL && pSignalingClient->pOngoingCallInfo != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient != NULL && pSignalingClient->pWssContext != NULL, STATUS_NULL_ARG);
 
     DLOGD("Sending data over web socket: %s", pSendBuf);
 
-    // Initialize the send result to none
-    ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
 
     CHK_STATUS(wssClientSendText(pSignalingClient->pWssContext,
                                  pSendBuf,
                                  bufLen));
 
-
-    // Do not await for the response in case of correlation id not specified
-    CHK(awaitForResponse, retStatus);
-
-    // Await for the response
-    MUTEX_LOCK(pSignalingClient->receiveLock);
-    receiveLocked = TRUE;
-
-    iterate = TRUE;
-    while (iterate) {
-        result = (SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->messageResult);
-
-        if (result == SERVICE_CALL_RESULT_NOT_SET) {
-            CHK_STATUS(CVAR_WAIT(pSignalingClient->receiveCvar, pSignalingClient->receiveLock, SIGNALING_SEND_TIMEOUT));
-        } else {
-            iterate = FALSE;
-        }
-    }
-
-    MUTEX_UNLOCK(pSignalingClient->receiveLock);
-    receiveLocked = FALSE;
-
-    CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->messageResult) == SERVICE_CALL_RESULT_OK, STATUS_SIGNALING_MESSAGE_DELIVERY_FAILED);
-
 CleanUp:
-
-    if (receiveLocked) {
-        MUTEX_UNLOCK(pSignalingClient->receiveLock);
-    }
-
     LEAVES();
     return retStatus;
 }
@@ -415,8 +381,7 @@ STATUS wssSendMessage(PSignalingClient pSignalingClient,
     writtenSize *= SIZEOF(CHAR);
     CHK(writtenSize <= size, STATUS_INVALID_ARG);
     // Send the data to the web socket
-    awaitForResponse = (correlationLen != 0) && BLOCK_ON_CORRELATION_ID;
-    CHK_STATUS(wssWriteData(pSignalingClient, pSendBuffer, writtenSize, awaitForResponse));
+    CHK_STATUS(wssWriteData(pSignalingClient, pSendBuffer, writtenSize, FALSE));
 
 CleanUp:
     SAFE_MEMFREE(pEncodedMessage);
@@ -571,17 +536,6 @@ STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 
     // If we have a signalingMessage and if there is a correlation id specified then the response should be non-empty
     if (pMessage == NULL || messageLen == 0) {
-        if (BLOCK_ON_CORRELATION_ID) {
-            // Get empty correlation id message from the ongoing if exists
-            CHK_STATUS(signalingGetOngoingMessage(pSignalingClient, EMPTY_STRING, EMPTY_STRING, &pOngoingMessage));
-            if (pOngoingMessage == NULL) {
-                DLOGW("Received an empty body for a message with no correlation id which has been already removed from the queue. Warning 0x%08x",
-                      STATUS_SIGNALING_RECEIVE_EMPTY_DATA_NOT_SUPPORTED);
-            } else {
-                CHK_STATUS(signalingRemoveOngoingMessage(pSignalingClient, EMPTY_STRING));
-            }
-        }
-
         // Check if anything needs to be done
         CHK_WARN(pMessage != NULL && messageLen != 0, retStatus, "Signaling received an empty message");
     }
@@ -594,8 +548,8 @@ STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 
     switch (pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType) {
         case SIGNALING_MESSAGE_TYPE_STATUS_RESPONSE:
-            ATOMIC_STORE(&pSignalingClient->messageResult,
-                             (SIZE_T) getServiceCallResultFromHttpStatus(pSignalingMessageWrapper->receivedSignalingMessage.statusCode));
+            //ATOMIC_STORE(&pSignalingClient->messageResult,
+            //                 (SIZE_T) getServiceCallResultFromHttpStatus(pSignalingMessageWrapper->receivedSignalingMessage.statusCode));
             if (pSignalingMessageWrapper->receivedSignalingMessage.statusCode != SERVICE_CALL_RESULT_OK) {
                 DLOGW("Failed to deliver message. Correlation ID: %s, Error Type: %s, Error Code: %u, Description: %s",
                       pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.correlationId,
@@ -603,7 +557,7 @@ STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
                       pSignalingMessageWrapper->receivedSignalingMessage.description);                 
             }
             // Notify the awaiting send
-            CVAR_BROADCAST(pSignalingClient->receiveCvar);
+            //CVAR_BROADCAST(pSignalingClient->receiveCvar);
             // Delete the message wrapper and exit
             SAFE_MEMFREE(pSignalingMessageWrapper);
             CHK(FALSE, retStatus);
@@ -699,8 +653,7 @@ STATUS wssTerminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVI
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
-    CVAR_BROADCAST(pSignalingClient->receiveCvar);
-    ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_UNKNOWN);
+    //CVAR_BROADCAST(pSignalingClient->receiveCvar);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) callResult);
 
     // waiting the termination of listener thread.

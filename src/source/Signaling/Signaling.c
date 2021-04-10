@@ -116,10 +116,10 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     //pSignalingClient->connectedLock = MUTEX_CREATE(FALSE);
     //CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->connectedLock), STATUS_INVALID_OPERATION);
 
-    pSignalingClient->receiveCvar = CVAR_CREATE();
-    CHK(IS_VALID_CVAR_VALUE(pSignalingClient->receiveCvar), STATUS_INVALID_OPERATION);
-    pSignalingClient->receiveLock = MUTEX_CREATE(FALSE);
-    CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->receiveLock), STATUS_INVALID_OPERATION);
+    //pSignalingClient->receiveCvar = CVAR_CREATE();
+    //CHK(IS_VALID_CVAR_VALUE(pSignalingClient->receiveCvar), STATUS_INVALID_OPERATION);
+    //pSignalingClient->receiveLock = MUTEX_CREATE(FALSE);
+    //CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->receiveLock), STATUS_INVALID_OPERATION);
 
     pSignalingClient->stateLock = MUTEX_CREATE(TRUE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->stateLock), STATUS_INVALID_OPERATION);
@@ -222,13 +222,13 @@ STATUS signalingFree(PSignalingClient* ppSignalingClient)
     //    CVAR_FREE(pSignalingClient->connectedCvar);
     //}
 
-    if (IS_VALID_MUTEX_VALUE(pSignalingClient->receiveLock)) {
-        MUTEX_FREE(pSignalingClient->receiveLock);
-    }
+    //if (IS_VALID_MUTEX_VALUE(pSignalingClient->receiveLock)) {
+    //    MUTEX_FREE(pSignalingClient->receiveLock);
+    //}
 
-    if (IS_VALID_CVAR_VALUE(pSignalingClient->receiveCvar)) {
-        CVAR_FREE(pSignalingClient->receiveCvar);
-    }
+    //if (IS_VALID_CVAR_VALUE(pSignalingClient->receiveCvar)) {
+    //    CVAR_FREE(pSignalingClient->receiveCvar);
+    //}
 
     if (IS_VALID_MUTEX_VALUE(pSignalingClient->stateLock)) {
         MUTEX_FREE(pSignalingClient->stateLock);

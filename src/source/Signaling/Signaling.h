@@ -146,7 +146,7 @@ typedef struct {
     volatile SIZE_T result;//!< Current service call result
     // Sent message result
     // #YC_TBD, need to remove this one.
-    volatile SIZE_T messageResult;//!< the message result of websocket service. SERVICE_CALL_RESULT.
+    //volatile SIZE_T messageResult;//!< the message result of websocket service. SERVICE_CALL_RESULT.
 
     // Shutting down the entire client
     volatile ATOMIC_BOOL shutdown;//!< Indicate the signaling is freed.
@@ -235,9 +235,9 @@ typedef struct {
     //CVAR connectedCvar;
 
     // Sync mutex for receiving response to the message condition variable
-    MUTEX receiveLock;
+    //MUTEX receiveLock;
     // Conditional variable for receiving response to the sent message
-    CVAR receiveCvar;
+    //CVAR receiveCvar;
 
     // Execute the state machine until this time
     UINT64 stepUntil;
