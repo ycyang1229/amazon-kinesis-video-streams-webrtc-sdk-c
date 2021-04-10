@@ -250,11 +250,8 @@ typedef struct {
     // this context belongs to wss client.
     PVOID pWssContext;
 
-    // List of the ongoing messages
-    PStackQueue pMessageQueue;//!< the queue of singaling ongoing messsages.
-
     // Message queue lock
-    MUTEX messageQueueLock;//!< the lock of signaling ongoing message queue.
+    //MUTEX messageQueueLock;//!< the lock of signaling ongoing message queue.
 
     // LWS needs to be locked
     // #YC_TBD, #delete.
@@ -311,12 +308,7 @@ STATUS signalingValidateCallbacks(PSignalingClient, PSignalingClientCallbacks);
 STATUS signalingValidateClientInfo(PSignalingClient, PSignalingClientInfoInternal);
 STATUS signalingValidateIceConfiguration(PSignalingClient);
 
-STATUS signalingStoreOngoingMessage(PSignalingClient, PSignalingMessage);
-STATUS signalingRemoveOngoingMessage(PSignalingClient, PCHAR);
-STATUS signalingGetOngoingMessage(PSignalingClient, PCHAR, PCHAR, PSignalingMessage*);
-
 STATUS signalingRefreshIceConfigurationCallback(UINT32, UINT64, UINT64);
-
 UINT64 signalingGetCurrentTime(UINT64);
 
 STATUS signalingAwaitForThreadTermination(PThreadTracker, UINT64);

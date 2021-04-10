@@ -124,8 +124,8 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     pSignalingClient->stateLock = MUTEX_CREATE(TRUE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->stateLock), STATUS_INVALID_OPERATION);
 
-    pSignalingClient->messageQueueLock = MUTEX_CREATE(TRUE);
-    CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->messageQueueLock), STATUS_INVALID_OPERATION);
+    //pSignalingClient->messageQueueLock = MUTEX_CREATE(TRUE);
+    //CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->messageQueueLock), STATUS_INVALID_OPERATION);
 
     //pSignalingClient->lwsServiceLock = MUTEX_CREATE(TRUE);
     //CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->lwsServiceLock), STATUS_INVALID_OPERATION);
@@ -136,8 +136,6 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     pSignalingClient->diagnosticsLock = MUTEX_CREATE(TRUE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->diagnosticsLock), STATUS_INVALID_OPERATION);
 
-    // Create the ongoing message list
-    CHK_STATUS(stackQueueCreate(&pSignalingClient->pMessageQueue));
 
     // Create the timer queue for handling stale ICE configuration
     pSignalingClient->timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
@@ -212,8 +210,6 @@ STATUS signalingFree(PSignalingClient* ppSignalingClient)
 
     freeChannelInfo(&pSignalingClient->pChannelInfo);
 
-    stackQueueFree(pSignalingClient->pMessageQueue);
-
     //if (IS_VALID_MUTEX_VALUE(pSignalingClient->connectedLock)) {
     //    MUTEX_FREE(pSignalingClient->connectedLock);
     //}
@@ -234,9 +230,9 @@ STATUS signalingFree(PSignalingClient* ppSignalingClient)
         MUTEX_FREE(pSignalingClient->stateLock);
     }
 
-    if (IS_VALID_MUTEX_VALUE(pSignalingClient->messageQueueLock)) {
-        MUTEX_FREE(pSignalingClient->messageQueueLock);
-    }
+    //if (IS_VALID_MUTEX_VALUE(pSignalingClient->messageQueueLock)) {
+    //    MUTEX_FREE(pSignalingClient->messageQueueLock);
+    //}
 
     //if (IS_VALID_MUTEX_VALUE(pSignalingClient->lwsServiceLock)) {
     //    MUTEX_FREE(pSignalingClient->lwsServiceLock);
@@ -312,7 +308,6 @@ STATUS signalingSendMessage(PSignalingClient pSignalingClient, PSignalingMessage
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR pOfferType = NULL;
-    BOOL removeFromList = FALSE;
 
     CHK(pSignalingClient != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
     CHK(pSignalingMessage->peerClientId != NULL && pSignalingMessage->payload != NULL, STATUS_INVALID_ARG);
@@ -333,11 +328,6 @@ STATUS signalingSendMessage(PSignalingClient pSignalingClient, PSignalingMessage
             CHK(FALSE, STATUS_INVALID_ARG);
     }
 
-    // Store the signaling message
-    // #YC_TBD, do we really need to check duplicated messages? 
-    CHK_STATUS(signalingStoreOngoingMessage(pSignalingClient, pSignalingMessage));
-    removeFromList = TRUE;
-
     // #YC_TBD, #WSS.
     CHK_STATUS(wssSendMessage(pSignalingClient,
                                 pOfferType,
@@ -353,11 +343,6 @@ STATUS signalingSendMessage(PSignalingClient pSignalingClient, PSignalingMessage
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
-
-    // Remove from the list if previously added
-    if (removeFromList) {
-        signalingRemoveOngoingMessage(pSignalingClient, pSignalingMessage->correlationId);
-    }
 
     LEAVES();
     return retStatus;
@@ -691,143 +676,9 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-/**
- * @brief   store the singaling ongoing message, and also check the duplicated messages.
- * 
- * @param[in] pSignalingClient the context of signaling client.
- * @param[in] pSignalingMessage the signaling message.
- * 
- * @return status
-*/
-STATUS signalingStoreOngoingMessage(PSignalingClient pSignalingClient, PSignalingMessage pSignalingMessage)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE;
-    PSignalingMessage pExistingMessage = NULL;
 
-    CHK(pSignalingClient != NULL && pSignalingMessage != NULL, STATUS_NULL_ARG);
-    MUTEX_LOCK(pSignalingClient->messageQueueLock);
-    locked = TRUE;
-    // check the duplicated signaling messages.
-    CHK_STATUS(signalingGetOngoingMessage(pSignalingClient, pSignalingMessage->correlationId, pSignalingMessage->peerClientId, &pExistingMessage));
-    CHK(pExistingMessage == NULL, STATUS_SIGNALING_DUPLICATE_MESSAGE_BEING_SENT);
-    // push it into signaling message queue.
-    CHK_STATUS(stackQueueEnqueue(pSignalingClient->pMessageQueue, (UINT64) pSignalingMessage));
 
-CleanUp:
 
-    if (locked) {
-        MUTEX_UNLOCK(pSignalingClient->messageQueueLock);
-    }
-
-    LEAVES();
-    return retStatus;
-}
-
-STATUS signalingRemoveOngoingMessage(PSignalingClient pSignalingClient, PCHAR correlationId)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE;
-    PSignalingMessage pExistingMessage;
-    StackQueueIterator iterator;
-    UINT64 data;
-
-    CHK(pSignalingClient != NULL && correlationId != NULL, STATUS_NULL_ARG);
-    MUTEX_LOCK(pSignalingClient->messageQueueLock);
-    locked = TRUE;
-
-    CHK_STATUS(stackQueueGetIterator(pSignalingClient->pMessageQueue, &iterator));
-    while (IS_VALID_ITERATOR(iterator)) {
-        CHK_STATUS(stackQueueIteratorGetItem(iterator, &data));
-
-        pExistingMessage = (PSignalingMessage) data;
-        CHK(pExistingMessage != NULL, STATUS_INTERNAL_ERROR);
-
-        if ((correlationId[0] == '\0' && pExistingMessage->correlationId[0] == '\0') || 0 == STRCMP(pExistingMessage->correlationId, correlationId)) {
-            // Remove the match
-            CHK_STATUS(stackQueueRemoveItem(pSignalingClient->pMessageQueue, data));
-
-            // Early return
-            CHK(FALSE, retStatus);
-        }
-
-        CHK_STATUS(stackQueueIteratorNext(&iterator));
-    }
-
-    // Didn't find a match
-    CHK(FALSE, STATUS_NOT_FOUND);
-
-CleanUp:
-
-    if (locked) {
-        MUTEX_UNLOCK(pSignalingClient->messageQueueLock);
-    }
-
-    LEAVES();
-    return retStatus;
-}
-/**
- * @brief   Get the corresponding message with correction id and peer client id.
- * 
- * @param[in] pSignalingClient
- * @param[in] correlationId A unique identifier for the message.
- *                          Type: String. Length constraints: Minimum length of 1. Maximum length of 256. Pattern: [a-zA-Z0-9_.-]+. Required: No
- * @param[in] peerClientId A unique identifier for the recipient.
- * @param[in, out] ppSignalingMessage
- * 
- * @return
-*/
-STATUS signalingGetOngoingMessage(PSignalingClient pSignalingClient, PCHAR correlationId, PCHAR peerClientId, PSignalingMessage* ppSignalingMessage)
-{
-    ENTERS();
-    STATUS retStatus = STATUS_SUCCESS;
-    BOOL locked = FALSE, checkPeerClientId = TRUE;
-    PSignalingMessage pExistingMessage = NULL;
-    StackQueueIterator iterator;
-    UINT64 data;
-
-    CHK(pSignalingClient != NULL && correlationId != NULL && ppSignalingMessage != NULL, STATUS_NULL_ARG);
-    if (peerClientId == NULL || IS_EMPTY_STRING(peerClientId)) {
-        checkPeerClientId = FALSE;
-    }
-
-    MUTEX_LOCK(pSignalingClient->messageQueueLock);
-    locked = TRUE;
-
-    CHK_STATUS(stackQueueGetIterator(pSignalingClient->pMessageQueue, &iterator));
-    while (IS_VALID_ITERATOR(iterator)) {
-        CHK_STATUS(stackQueueIteratorGetItem(iterator, &data));
-
-        pExistingMessage = (PSignalingMessage) data;
-        CHK(pExistingMessage != NULL, STATUS_INTERNAL_ERROR);
-
-        if (((correlationId[0] == '\0' && pExistingMessage->correlationId[0] == '\0') ||
-                0 == STRCMP(pExistingMessage->correlationId, correlationId)) &&
-            (!checkPeerClientId || 0 == STRCMP(pExistingMessage->peerClientId, peerClientId))) {
-            *ppSignalingMessage = pExistingMessage;
-
-            // Early return
-            CHK(FALSE, retStatus);
-        }
-
-        CHK_STATUS(stackQueueIteratorNext(&iterator));
-    }
-
-CleanUp:
-
-    if (ppSignalingMessage != NULL) {
-        *ppSignalingMessage = pExistingMessage;
-    }
-
-    if (locked) {
-        MUTEX_UNLOCK(pSignalingClient->messageQueueLock);
-    }
-
-    LEAVES();
-    return retStatus;
-}
 /**
  * @brief   The initialization of thread context not including the creation of thread.
  * 
