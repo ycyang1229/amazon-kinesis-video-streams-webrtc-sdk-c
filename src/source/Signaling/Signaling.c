@@ -136,7 +136,6 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     pSignalingClient->diagnosticsLock = MUTEX_CREATE(TRUE);
     CHK(IS_VALID_MUTEX_VALUE(pSignalingClient->diagnosticsLock), STATUS_INVALID_OPERATION);
 
-
     // Create the timer queue for handling stale ICE configuration
     pSignalingClient->timerQueueHandle = INVALID_TIMER_QUEUE_HANDLE_VALUE;
     CHK_STATUS(timerQueueCreate(&pSignalingClient->timerQueueHandle));
@@ -276,11 +275,9 @@ STATUS signalingTerminateOngoingOperations(PSignalingClient pSignalingClient, BO
         timerQueueFree(&pSignalingClient->timerQueueHandle);
     }
 
-    // Terminate the listener thread if alive
-    //lwsTerminateListenerLoop(pSignalingClient);
-    // #YC_TBD, #WSS
-    wssTerminateListenerLoop(pSignalingClient);
-    
+    if (pSignalingClient->pWssContext != NULL) {
+        wssTerminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_OK);
+    }
 
     // Await for the reconnect thread to exit
     //signalingAwaitForThreadTermination(&pSignalingClient->reconnecterTracker, SIGNALING_CLIENT_SHUTDOWN_TIMEOUT);

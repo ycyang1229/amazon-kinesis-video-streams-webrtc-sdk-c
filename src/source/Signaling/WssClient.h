@@ -21,7 +21,7 @@ extern "C" {
 #define WSS_CLIENT_PING_PONG_INTERVAL 10 // unit:sec.
 #define WSS_CLIENT_PING_PONG_COUNTER (WSS_CLIENT_PING_PONG_INTERVAL*1000)/WSS_CLIENT_POLLING_INTERVAL
 
-typedef STATUS (*MessageHandlerFunc)(PSignalingClient ,PCHAR,UINT32);
+typedef STATUS (*MessageHandlerFunc)(PSignalingClient, PCHAR, UINT32);
 
 typedef struct {
     wslay_event_context_ptr event_ctx;//!< the event context of wslay.

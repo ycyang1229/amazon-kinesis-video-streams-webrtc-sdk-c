@@ -310,7 +310,7 @@ STATUS signalingValidateIceConfiguration(PSignalingClient);
 
 STATUS signalingRefreshIceConfigurationCallback(UINT32, UINT64, UINT64);
 UINT64 signalingGetCurrentTime(UINT64);
-
+// thread related.
 STATUS signalingAwaitForThreadTermination(PThreadTracker, UINT64);
 STATUS signalingInitThreadTracker(PThreadTracker);
 STATUS signalingUninitThreadTracker(PThreadTracker);
