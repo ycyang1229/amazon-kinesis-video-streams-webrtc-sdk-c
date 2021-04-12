@@ -236,20 +236,11 @@ VOID wslay_msg_recv_callback(wslay_event_context_ptr ctx,
 {
     WssClientContext *ws = (WssClientContext *)user_data;
     if (!wslay_is_ctrl_frame(arg->opcode)) {
-        //struct wslay_event_msg msgarg = {arg->opcode, arg->msg, arg->msg_length};
-        //wslay_event_queue_msg(ctx, &msgarg);
-        //DLOGD("<== (%d): %s", arg->opcode, arg->msg);
-        // #YC_TBD, 
         ws->messageHandler(ws->pUserData, arg->msg, arg->msg_length);
     }else{
-        if(arg->opcode==WSLAY_PONG){
-            DLOGD("<== pong, len: %ld", arg->msg_length);
-        }else if(arg->opcode==WSLAY_PING){
-            DLOGD("<== ping, len: %ld", arg->msg_length);
-        }else if(arg->opcode==WSLAY_CONNECTION_CLOSE){
-            DLOGD("<== connection close, len: %ld, reason:%s", arg->msg_length, arg->msg);
-        }else{
-            DLOGD("<== ctrl msg(%d), len: %ld", arg->opcode, arg->msg_length);
+        ws->ctrlMessageHandler(ws->pUserData, arg->opcode, arg->msg, arg->msg_length);
+        if(arg->opcode == WSLAY_PONG){
+            ws->pingCounter = 0;
         }
     }
 }
@@ -352,7 +343,8 @@ STATUS wssClientSendPing(WssClientContext* pCtx)
  * 
  * @return
 */
-VOID wssClientCreate(WssClientContext** ppWssClientCtx, NetworkContext_t * pNetworkContext, PVOID arg, MessageHandlerFunc pFunc)
+VOID wssClientCreate(WssClientContext** ppWssClientCtx, NetworkContext_t * pNetworkContext, PVOID arg, MessageHandlerFunc pFunc,
+                     CtrlMessageHandlerFunc pCtrlFunc)
 {
     WSS_CLIENT_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
@@ -374,14 +366,17 @@ VOID wssClientCreate(WssClientContext** ppWssClientCtx, NetworkContext_t * pNetw
     pCtx->pNetworkContext = pNetworkContext;
     pCtx->pUserData = arg;
     pCtx->messageHandler = pFunc;
+    pCtx->ctrlMessageHandler = pCtrlFunc;
 
     // the initialization of the mutex 
     pCtx->clientLock = MUTEX_CREATE(FALSE);
     CHK(IS_VALID_MUTEX_VALUE(pCtx->clientLock), STATUS_INVALID_OPERATION);
     pCtx->listenerLock = MUTEX_CREATE(FALSE);
     CHK(IS_VALID_MUTEX_VALUE(pCtx->listenerLock), STATUS_INVALID_OPERATION);
+
+    pCtx->pingCounter = 0;
     
-    wslay_event_context_client_init(&pCtx->event_ctx, &pCtx->event_callbacks, pCtx);;
+    wslay_event_context_client_init(&pCtx->event_ctx, &pCtx->event_callbacks, pCtx);
     *ppWssClientCtx = pCtx;
 CleanUp:
     WSS_CLIENT_EXIT();
@@ -437,10 +432,17 @@ PVOID wssClientStart(WssClientContext* pWssClientCtx)
             wssClientOnReadEvent(pWssClientCtx);
         }
         // for ping-pong
+        if(pWssClientCtx->pingCounter > WSS_CLIENT_PING_MAX_ACC_NUM)
+        {
+            DLOGD("need to cancel this wss connection");
+            pWssClientCtx->ctrlMessageHandler(pWssClientCtx->pUserData, WSLAY_CONNECTION_CLOSE, "connection lost", STRLEN("connection lost"));
+        }
+        
         counter++;
         if(counter == WSS_CLIENT_PING_PONG_COUNTER)
         {  
             wssClientSendPing(pWssClientCtx);
+            pWssClientCtx->pingCounter++;
             counter = 0;
         }
     }

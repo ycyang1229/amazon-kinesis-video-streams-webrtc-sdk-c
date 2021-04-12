@@ -20,23 +20,34 @@ extern "C" {
 #define WSS_CLIENT_POLLING_INTERVAL 100 // unit:ms.
 #define WSS_CLIENT_PING_PONG_INTERVAL 10 // unit:sec.
 #define WSS_CLIENT_PING_PONG_COUNTER (WSS_CLIENT_PING_PONG_INTERVAL*1000)/WSS_CLIENT_POLLING_INTERVAL
+#define WSS_CLIENT_PING_MAX_ACC_NUM 1
 
 typedef STATUS (*MessageHandlerFunc)(PSignalingClient, PCHAR, UINT32);
+typedef STATUS (*CtrlMessageHandlerFunc)(PSignalingClient, UINT8, PCHAR, UINT32);
+
+
+
 
 typedef struct {
     wslay_event_context_ptr event_ctx;//!< the event context of wslay.
     struct wslay_event_callbacks event_callbacks;//!< the callback of event context.
     NetworkContext_t * pNetworkContext;
+    UINT64 pingCounter;
     MUTEX clientLock;//!< the lock for the control of the whole wss client api.
     MUTEX listenerLock;//!< the lock for the listener thread.
     PVOID pUserData;//!< the arguments of the message handler. ref: PSignalingClient
     MessageHandlerFunc messageHandler;//!< the handler of receive the non-ctrl messages.
+    CtrlMessageHandlerFunc ctrlMessageHandler;//!< the handler of receive the ctrl messages.
 }WssClientContext, *PWssClientContext;
 
 STATUS wssClientGenerateRandomNumber(PCHAR num, UINT32 len);
 STATUS wssClientGenerateClientKey(PCHAR buf, UINT32 bufLen);
 STATUS wssClientValidateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR acceptKey, UINT32 acceptKeyLen);
-VOID wssClientCreate(WssClientContext** ppWssClientCtx, NetworkContext_t * pNetworkContext, PVOID arg, MessageHandlerFunc pFunc);
+VOID wssClientCreate(WssClientContext** ppWssClientCtx,
+                     NetworkContext_t *pNetworkContext,
+                     PVOID arg,
+                     MessageHandlerFunc pFunc,
+                     CtrlMessageHandlerFunc pCtrlFunc);
 PVOID wssClientStart(WssClientContext* pWssClientCtx);
 STATUS wssClientSendText(WssClientContext* pCtx, UINT8* buf, UINT32 len);
 STATUS wssClientSendBinary(WssClientContext* pCtx, UINT8* buf, UINT32 len);

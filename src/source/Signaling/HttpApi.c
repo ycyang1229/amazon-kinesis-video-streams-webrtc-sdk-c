@@ -241,7 +241,7 @@ STATUS httpApiCreateChannl(PSignalingClient pSignalingClient, UINT64 time)
         {
             break;
         }
-        sleepInMs( CONNECTION_RETRY_INTERVAL_IN_MS );
+        THREAD_SLEEP( CONNECTION_RETRY_INTERVAL_IN_MS*HUNDREDS_OF_NANOS_IN_A_MILLISECOND );
     }
 
 
@@ -361,7 +361,7 @@ STATUS httpApiDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
         {
             break;
         }
-        sleepInMs( CONNECTION_RETRY_INTERVAL_IN_MS );
+        THREAD_SLEEP( CONNECTION_RETRY_INTERVAL_IN_MS*HUNDREDS_OF_NANOS_IN_A_MILLISECOND );
     }
 
     uBytesToSend = STRLEN((PCHAR)pNetworkContext->pHttpSendBuffer);
@@ -470,7 +470,7 @@ STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time
         {
             break;
         }
-        sleepInMs( CONNECTION_RETRY_INTERVAL_IN_MS );
+        THREAD_SLEEP( CONNECTION_RETRY_INTERVAL_IN_MS*HUNDREDS_OF_NANOS_IN_A_MILLISECOND );
     }
 
     uBytesToSend = STRLEN((PCHAR)pNetworkContext->pHttpSendBuffer);
@@ -582,7 +582,7 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
         {
             break;
         }
-        sleepInMs( CONNECTION_RETRY_INTERVAL_IN_MS );
+        THREAD_SLEEP( CONNECTION_RETRY_INTERVAL_IN_MS*HUNDREDS_OF_NANOS_IN_A_MILLISECOND );
     }
 
     uBytesToSend = STRLEN((PCHAR)pNetworkContext->pHttpSendBuffer);

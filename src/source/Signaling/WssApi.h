@@ -40,9 +40,9 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
 STATUS wssSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCHAR peerClientId, PCHAR pMessage, UINT32 messageLen,
                       PCHAR pCorrelationId, UINT32 correlationIdLen);
 STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT32 messageLen);
+STATUS wssHandleCtrlMsg(PSignalingClient pSignalingClient, UINT8 opcode, PCHAR pMessage, UINT32 messageLen);
 // #YC_TBD.
 STATUS wssTerminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_CALL_RESULT callResult);
-STATUS wssTerminateListenerLoop(PSignalingClient pSignalingClient);
 // json parser.
 STATUS wssApiRspReceivedMessage( const CHAR * pResponseStr, UINT32 resultLen, PSignalingMessageWrapper pSignalingMessageWrapper);
 

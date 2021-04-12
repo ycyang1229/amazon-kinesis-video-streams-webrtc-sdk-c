@@ -148,7 +148,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
             DLOGD("%s(%d) connect successfully", __func__, __LINE__);
             break;
         }
-        sleepInMs( CONNECTION_RETRY_INTERVAL_IN_MS );
+        THREAD_SLEEP( CONNECTION_RETRY_INTERVAL_IN_MS*HUNDREDS_OF_NANOS_IN_A_MILLISECOND );
     }
 
     uBytesToSend = STRLEN((PCHAR)pNetworkContext->pHttpSendBuffer);
@@ -205,7 +205,7 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         //setNonBlocking(pNetworkContext);
         //mbedtls_ssl_set_timer_cb( &ssl, &timer, mbedtls_timing_set_delay,
         //                                    mbedtls_timing_get_delay );
-        wssClientCreate(&wssClientCtx, pNetworkContext, pSignalingClient, wssReceiveMessage);
+        wssClientCreate(&wssClientCtx, pNetworkContext, pSignalingClient, wssReceiveMessage, wssHandleCtrlMsg);
         // #YC_TBD !!!!!!!!! MUST
         //pSignalingClient->pOngoingCallInfo = MEMALLOC(SIZEOF(LwsCallInfo));
         pSignalingClient->pWssContext = wssClientCtx;
@@ -636,6 +636,55 @@ CleanUp:
     return retStatus;
 }
 
+STATUS wssHandleCtrlMsg(PSignalingClient pSignalingClient, UINT8 opcode, PCHAR pMessage, UINT32 messageLen)
+{
+    WSS_API_ENTER();
+    STATUS retStatus = STATUS_SUCCESS;
+    BOOL connected;
+    PCHAR pCurPtr;
+
+    CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
+    
+    if(opcode==WSLAY_PONG){
+        DLOGD("<== pong, len: %ld", messageLen);
+    }else if(opcode==WSLAY_PING){
+        DLOGD("<== ping, len: %ld", messageLen);
+    }else if(opcode==WSLAY_CONNECTION_CLOSE){
+        DLOGD("<== connection close, len: %ld, reason:%s", messageLen, pMessage);
+        pCurPtr = pMessage == NULL ? "(None)" : (PCHAR) pMessage;
+        DLOGW("Client connection failed. Connection error string: %s", pCurPtr);
+
+        connected = ATOMIC_EXCHANGE_BOOL(&pSignalingClient->connected, FALSE);
+        ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+        CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
+        if (pSignalingClient != NULL) {
+        // Call the error handler in case of an error
+        if (STATUS_FAILED(retStatus)) {
+            // Update the diagnostics before calling the error callback
+            ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfRuntimeErrors);
+            if (pSignalingClient->signalingClientCallbacks.errorReportFn != NULL) {
+                //reconnectErrLen = SNPRINTF(pReconnectErrMsg, SIGNALING_MAX_ERROR_MESSAGE_LEN, SIGNALING_RECONNECT_ERROR_MSG, retStatus);
+                //pReconnectErrMsg[SIGNALING_MAX_ERROR_MESSAGE_LEN] = '\0';
+                //pSignalingClient->signalingClientCallbacks.errorReportFn(pSignalingClient->signalingClientCallbacks.customData,
+                //                                                         STATUS_SIGNALING_RECONNECT_FAILED, pReconnectErrMsg, reconnectErrLen);
+            }
+        }
+    }
+    }else{
+        DLOGD("<== ctrl msg(%d), len: %ld", opcode, messageLen);
+    }
+    //if (connected && !ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
+    //    // Handle re-connection in a reconnect handler thread
+    //    CHK_STATUS(THREAD_CREATE(&pSignalingClient->reconnecterTracker.threadId, lwsReconnectHandler, (PVOID) pSignalingClient));
+    //    CHK_STATUS(THREAD_DETACH(pSignalingClient->reconnecterTracker.threadId));
+    //}
+
+CleanUp:
+
+    WSS_API_EXIT();
+    return retStatus;
+}
+
 
 /**
  * @brief   terminate the websocket connection but will set the result of signaling client for the next step.
@@ -653,7 +702,6 @@ STATUS wssTerminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVI
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
 
     ATOMIC_STORE_BOOL(&pSignalingClient->connected, FALSE);
-    //CVAR_BROADCAST(pSignalingClient->receiveCvar);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) callResult);
 
     // waiting the termination of listener thread.
@@ -667,19 +715,3 @@ CleanUp:
 }
 
 
-STATUS wssTerminateListenerLoop(PSignalingClient pSignalingClient)
-{
-    WSS_API_ENTER();
-    STATUS retStatus = STATUS_SUCCESS;
-
-    CHK(pSignalingClient != NULL, retStatus);
-
-    if (pSignalingClient->pWssContext != NULL) {
-        wssTerminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_OK);
-    }
-
-CleanUp:
-
-    WSS_API_EXIT();
-    return retStatus;
-}
