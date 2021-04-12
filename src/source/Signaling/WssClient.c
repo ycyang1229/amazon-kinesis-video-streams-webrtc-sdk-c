@@ -440,14 +440,12 @@ PVOID wssClientStart(WssClientContext* pWssClientCtx)
         
         counter++;
         if(counter == WSS_CLIENT_PING_PONG_COUNTER)
-        {  
-            wssClientSendPing(pWssClientCtx);
+        {
+            CHK_STATUS(wssClientSendPing(pWssClientCtx));
             pWssClientCtx->pingCounter++;
             counter = 0;
         }
     }
-    
-    
 
 CleanUp:
 

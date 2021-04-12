@@ -41,6 +41,7 @@ STATUS wssSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCH
                       PCHAR pCorrelationId, UINT32 correlationIdLen);
 STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT32 messageLen);
 STATUS wssHandleCtrlMsg(PSignalingClient pSignalingClient, UINT8 opcode, PCHAR pMessage, UINT32 messageLen);
+STATUS wssGetMessageTypeFromString(PCHAR typeStr, UINT32 typeLen, SIGNALING_MESSAGE_TYPE* pMessageType);
 // #YC_TBD.
 STATUS wssTerminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_CALL_RESULT callResult);
 // json parser.
