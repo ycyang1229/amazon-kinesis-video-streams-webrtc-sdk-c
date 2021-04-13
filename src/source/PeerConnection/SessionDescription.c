@@ -139,7 +139,7 @@ CleanUp:
     return retStatus;
 }
 //#ifdef ENABLE_STREAMING
-#if 1//def ENABLE_STREAMING
+#if 1 // def ENABLE_STREAMING
 /*
  * Populate map with PayloadTypes if we are offering
  */
@@ -163,11 +163,11 @@ CleanUp:
  */
 /**
  * @brief latch the value of rtp codec.
- * 
+ *
  * @param[in] codecTable the codec table of transimission.
  * @param[in] rtxTable the codec table of retransmission.
  * @param[in] pSessionDescription the sdp of the offer.
-*/
+ */
 STATUS setPayloadTypesFromOffer(PHashTable codecTable, PHashTable rtxTable, PSessionDescription pSessionDescription)
 {
     ENTERS();
@@ -271,13 +271,13 @@ CleanUp:
 }
 /**
  * @brief   create rtp rolling buffer and re-transmission buffer.
- * 
+ *
  * @param[in] codecTable the context of the codec table.
  * @param[in] rtxTable the context of the re-transmission table.
  * @param[in] pTransceivers the context of transceiver.
- * 
+ *
  * @return
-*/
+ */
 STATUS setTransceiverPayloadTypes(PHashTable codecTable, PHashTable rtxTable, PDoubleList pTransceivers)
 {
     ENTERS();
@@ -320,7 +320,7 @@ CleanUp:
 #endif
 /**
  * @brief   setup the payload into fmtp attribute.
-*/
+ */
 PCHAR fmtpForPayloadType(UINT64 payloadType, PSessionDescription pSessionDescription)
 {
     UINT32 currentMedia, currentAttribute;
@@ -343,21 +343,17 @@ PCHAR fmtpForPayloadType(UINT64 payloadType, PSessionDescription pSessionDescrip
     return NULL;
 }
 
-// 
+//
 /**
  * @brief   Populate a single media section from a PKvsRtpTransceiver. (local session decription)
- * 
+ *
  * @param[in]
- * 
+ *
  * @return
-*/
-STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection,
-                                  PKvsRtpTransceiver pKvsRtpTransceiver,
-                                  PSdpMediaDescription pSdpMediaDescription,
-                                  PSessionDescription pRemoteSessionDescription,
-                                  PCHAR pCertificateFingerprint,
-                                  UINT32 mediaSectionId,
-                                  PCHAR pDtlsRole)
+ */
+STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection, PKvsRtpTransceiver pKvsRtpTransceiver,
+                                  PSdpMediaDescription pSdpMediaDescription, PSessionDescription pRemoteSessionDescription,
+                                  PCHAR pCertificateFingerprint, UINT32 mediaSectionId, PCHAR pDtlsRole)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -390,9 +386,8 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection,
         } else {
             SPRINTF(pSdpMediaDescription->mediaName, "video 9 UDP/TLS/RTP/SAVPF %" PRId64, payloadType);
         }
-    // audio
-    } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_OPUS ||
-               pRtcMediaStreamTrack->codec == RTC_CODEC_MULAW ||
+        // audio
+    } else if (pRtcMediaStreamTrack->codec == RTC_CODEC_OPUS || pRtcMediaStreamTrack->codec == RTC_CODEC_MULAW ||
                pRtcMediaStreamTrack->codec == RTC_CODEC_ALAW) {
         SPRINTF(pSdpMediaDescription->mediaName, "audio 9 UDP/TLS/RTP/SAVPF %" PRId64, payloadType);
     }
@@ -410,7 +405,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection,
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "FID %u %u", pKvsRtpTransceiver->sender.ssrc,
                 pKvsRtpTransceiver->sender.rtxSsrc);
         attributeCount++;
-    // no rtx.
+        // no rtx.
     } else {
         STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "msid");
         SPRINTF(pSdpMediaDescription->sdpAttributes[attributeCount].attributeValue, "%s %s", pRtcMediaStreamTrack->streamId,
@@ -505,7 +500,7 @@ STATUS populateSingleMediaSection(PKvsPeerConnection pKvsPeerConnection,
                 DLOGW("Incorrect/no transceiver direction set...this attribute will be set to inactive");
                 STRCPY(pSdpMediaDescription->sdpAttributes[attributeCount].attributeName, "inactive");
         }
-    // setup the direction of answer.
+        // setup the direction of answer.
     } else {
         pSdpMediaDescriptionRemote = &pRemoteSessionDescription->mediaDescriptions[mediaSectionId];
         remoteAttributeCount = pSdpMediaDescriptionRemote->mediaAttributesCount;
@@ -608,16 +603,13 @@ CleanUp:
  * @brief   "m=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\n"
  *          UDP/DTLS/SCTP indicates “allow the usage of SCTP on top of the Datagram Transport Layer Security (DTLS) protocol”,
  *          https://tools.ietf.org/html/draft-ietf-mmusic-sctp-sdp-03#section-1.
- * 
+ *
  * @param[in]
- * 
+ *
  * @return
-*/
-STATUS populateSessionDescriptionDataChannel(PKvsPeerConnection pKvsPeerConnection,
-                                             PSdpMediaDescription pSdpMediaDescription,
-                                             PCHAR pCertificateFingerprint,
-                                             UINT32 mediaSectionId,
-                                             PCHAR pDtlsRole)
+ */
+STATUS populateSessionDescriptionDataChannel(PKvsPeerConnection pKvsPeerConnection, PSdpMediaDescription pSdpMediaDescription,
+                                             PCHAR pCertificateFingerprint, UINT32 mediaSectionId, PCHAR pDtlsRole)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -706,14 +698,13 @@ BOOL isPresentInRemote(PKvsRtpTransceiver pKvsRtpTransceiver, PSessionDescriptio
 
 /**
  * @brief   Populate the media sections of a SessionDescription with the current state of the KvsPeerConnection
- * 
+ *
  * @param[in]
  * @param[in]
- * 
+ *
  * @return
-*/
-STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection,
-                                       PSessionDescription pRemoteSessionDescription,
+ */
+STATUS populateSessionDescriptionMedia(PKvsPeerConnection pKvsPeerConnection, PSessionDescription pRemoteSessionDescription,
                                        PSessionDescription pLocalSessionDescription)
 {
     ENTERS();
@@ -770,15 +761,14 @@ CleanUp:
 
 /**
  * @brief   fill the parameters into  a SessionDescription with the current state of the KvsPeerConnection
- * 
+ *
  * @param[in] pKvsPeerConnection
  * @param[in] pRemoteSessionDescription
  * @param[in, out] pLocalSessionDescription
- * 
+ *
  * @return
-*/
-STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection,
-                                  PSessionDescription pRemoteSessionDescription,
+ */
+STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection, PSessionDescription pRemoteSessionDescription,
                                   PSessionDescription pLocalSessionDescription)
 {
     ENTERS();
@@ -796,7 +786,7 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection,
     /**
      * https://tools.ietf.org/html/rfc4566#section-5.2
      * Origin ==> o=<username> <sess-id> <sess-version> <nettype> <addrtype> <unicast-address>
-    */
+     */
     STRCPY(pLocalSessionDescription->sdpOrigin.userName, "-");
     pLocalSessionDescription->sdpOrigin.sessionId = RAND();
     pLocalSessionDescription->sdpOrigin.sessionVersion = 2;
@@ -806,7 +796,7 @@ STATUS populateSessionDescription(PKvsPeerConnection pKvsPeerConnection,
     /**
      * https://tools.ietf.org/html/rfc4566#section-5.3
      * Session Name ==> s=<session name>
-    */
+     */
     STRCPY(pLocalSessionDescription->sessionName, "-");
 
     pLocalSessionDescription->timeDescriptionCount = 1;
@@ -873,13 +863,13 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief   
- * 
+ * @brief
+ *
  * @param[in]
  * @param[in]
- * 
+ *
  * @return
-*/
+ */
 STATUS reorderTransceiverByRemoteDescription(PKvsPeerConnection pKvsPeerConnection, PSessionDescription pRemoteSessionDescription)
 {
     ENTERS();
@@ -999,13 +989,13 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief 
- * 
+ * @brief
+ *
  * @param[in]
  * @param[in]
- * 
+ *
  * @return
-*/
+ */
 STATUS setReceiversSsrc(PSessionDescription pRemoteSessionDescription, PDoubleList pTransceivers)
 {
     STATUS retStatus = STATUS_SUCCESS;

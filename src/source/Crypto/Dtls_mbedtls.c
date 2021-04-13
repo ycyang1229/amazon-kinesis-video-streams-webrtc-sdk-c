@@ -7,7 +7,6 @@ mbedtls_ssl_srtp_profile DTLS_SRTP_SUPPORTED_PROFILES[] = {
     MBEDTLS_SRTP_AES128_CM_HMAC_SHA1_32,
 };
 
-
 /**
  * Create DTLS session. Not thread safe.
  * @param[in] PDtlsSessionCallbacks - callbacks
@@ -19,12 +18,8 @@ mbedtls_ssl_srtp_profile DTLS_SRTP_SUPPORTED_PROFILES[] = {
  *
  * @return STATUS - status of operation
  */
-STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks,
-                         TIMER_QUEUE_HANDLE timerQueueHandle,
-                         INT32 certificateBits,
-                         BOOL generateRSACertificate,
-                         PRtcCertificate pRtcCertificates,
-                         PDtlsSession* ppDtlsSession)
+STATUS createDtlsSession(PDtlsSessionCallbacks pDtlsSessionCallbacks, TIMER_QUEUE_HANDLE timerQueueHandle, INT32 certificateBits,
+                         BOOL generateRSACertificate, PRtcCertificate pRtcCertificates, PDtlsSession* ppDtlsSession)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -124,13 +119,13 @@ CleanUp:
 }
 /**
  * @brief   the callback of outboud for ssl library.
- * 
+ *
  * @param[in] customData
  * @param[in] pBuf
  * @param[in] len
- * 
- * @return 
-*/
+ *
+ * @return
+ */
 INT32 dtlsSessionSendCallback(PVOID customData, const unsigned char* pBuf, ULONG len)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -271,19 +266,19 @@ INT32 dtlsSessionKeyDerivationCallback(PVOID customData, const unsigned char* pM
 }
 
 /**
- * 
+ *
  * @param PDtlsSession - DtlsSession object
  * @param BOOL - is server
  * @return STATUS - status of operation
  */
 /**
  * @brief   Start DTLS handshake. Not thread safe. Basically, we start dtls session after the state of the ice agent is connected.
- * 
+ *
  * @param[in]
  * @param[in]
- * 
+ *
  * @return
-*/
+ */
 STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
 {
     ENTERS();
@@ -319,21 +314,19 @@ STATUS dtlsSessionStart(PDtlsSession pDtlsSession, BOOL isServer)
     CHK(mbedtls_ssl_conf_dtls_srtp_protection_profiles(&pDtlsSession->sslCtxConfig, DTLS_SRTP_SUPPORTED_PROFILES,
                                                        ARRAY_SIZE(DTLS_SRTP_SUPPORTED_PROFILES)) == 0,
         STATUS_CREATE_SSL_FAILED);
-    mbedtls_ssl_conf_export_keys_ext_cb(&pDtlsSession->sslCtxConfig, (mbedtls_ssl_export_keys_ext_t*)dtlsSessionKeyDerivationCallback, pDtlsSession);
+    mbedtls_ssl_conf_export_keys_ext_cb(&pDtlsSession->sslCtxConfig, (mbedtls_ssl_export_keys_ext_t*) dtlsSessionKeyDerivationCallback, pDtlsSession);
 
     CHK(mbedtls_ssl_setup(&pDtlsSession->sslCtx, &pDtlsSession->sslCtxConfig) == 0, STATUS_SSL_CTX_CREATION_FAILED);
     mbedtls_ssl_set_mtu(&pDtlsSession->sslCtx, DEFAULT_MTU_SIZE);
-    mbedtls_ssl_set_bio(&pDtlsSession->sslCtx, pDtlsSession, (mbedtls_ssl_send_t*)dtlsSessionSendCallback, (mbedtls_ssl_recv_t*)dtlsSessionReceiveCallback, NULL);
-    mbedtls_ssl_set_timer_cb(&pDtlsSession->sslCtx, &pDtlsSession->transmissionTimer, (mbedtls_ssl_set_timer_t*)dtlsSessionSetTimerCallback, (mbedtls_ssl_get_timer_t*)dtlsSessionGetTimerCallback);
+    mbedtls_ssl_set_bio(&pDtlsSession->sslCtx, pDtlsSession, (mbedtls_ssl_send_t*) dtlsSessionSendCallback,
+                        (mbedtls_ssl_recv_t*) dtlsSessionReceiveCallback, NULL);
+    mbedtls_ssl_set_timer_cb(&pDtlsSession->sslCtx, &pDtlsSession->transmissionTimer, (mbedtls_ssl_set_timer_t*) dtlsSessionSetTimerCallback,
+                             (mbedtls_ssl_get_timer_t*) dtlsSessionGetTimerCallback);
 
     // Start non-blocking handshaking
     pDtlsSession->dtlsSessionStartTime = GETTIME();
-    CHK_STATUS(timerQueueAddTimer(pDtlsSession->timerQueueHandle,
-                                    DTLS_SESSION_TIMER_START_DELAY,
-                                    DTLS_TRANSMISSION_INTERVAL,
-                                    dtlsTransmissionTimerCallback,
-                                    (UINT64) pDtlsSession,
-                                    &pDtlsSession->timerId));
+    CHK_STATUS(timerQueueAddTimer(pDtlsSession->timerQueueHandle, DTLS_SESSION_TIMER_START_DELAY, DTLS_TRANSMISSION_INTERVAL,
+                                  dtlsTransmissionTimerCallback, (UINT64) pDtlsSession, &pDtlsSession->timerId));
 
 CleanUp:
     if (locked) {
@@ -416,11 +409,11 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief  it is used for the outbound packet of sctp session. 
- * 
+ * @brief  it is used for the outbound packet of sctp session.
+ *
  * @param[in]
  * @param[in]
-*/
+ */
 STATUS dtlsSessionPutApplicationData(PDtlsSession pDtlsSession, PBYTE pData, INT32 dataLen)
 {
     ENTERS();
@@ -460,13 +453,13 @@ CleanUp:
 }
 /**
  * @brief   return the buffer of the certificate, and need to pass the address of the buffer.
- * 
+ *
  * @param[in] pDtlsSession the context of the dtls session.
  * @param[in, out] pBuff the buffer of the certificate.
  * @param[in] buffLen the size of certificate.
- * 
+ *
  * @return
-*/
+ */
 STATUS dtlsSessionGetLocalCertificateFingerprint(PDtlsSession pDtlsSession, PCHAR pBuff, UINT32 buffLen)
 {
     ENTERS();

@@ -4,10 +4,9 @@
 #define LOG_CLASS "ConnectionListener"
 #include "../Include_i.h"
 
-
 /**
  * allocate the ConnectionListener struct
- * Must create connection listener before creating the ice agent. 
+ * Must create connection listener before creating the ice agent.
  *
  * @param[in/out] - PConnectionListener* - IN/OUT - pointer to PConnectionListener being allocated
  *
@@ -175,10 +174,8 @@ STATUS connectionListenerRemoveConnection(PConnectionListener pConnectionListene
 
     /* make sure connectionListenerRemoveConnection return after connectionListenerReceiveDataRoutine has picked up
      * the change. */
-    while ( ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted) && 
-            !ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) &&
-            ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged) && 
-            STATUS_SUCCEEDED(cvarWaitStatus)) {
+    while (ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted) && !ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) &&
+           ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged) && STATUS_SUCCEEDED(cvarWaitStatus)) {
         cvarWaitStatus =
             CVAR_WAIT(pConnectionListener->removeConnectionComplete, pConnectionListener->lock, CONNECTION_AWAIT_CONNECTION_REMOVAL_TIMEOUT);
         /* CVAR_WAIT should never time out */
@@ -228,10 +225,8 @@ STATUS connectionListenerRemoveAllConnection(PConnectionListener pConnectionList
 
     /* make sure connectionListenerRemoveAllConnection return after connectionListenerReceiveDataRoutine has picked up
      * the change. */
-    while ( ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted) && 
-            !ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) &&
-            ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged) && 
-            STATUS_SUCCEEDED(cvarWaitStatus)) {
+    while (ATOMIC_LOAD_BOOL(&pConnectionListener->listenerRoutineStarted) && !ATOMIC_LOAD_BOOL(&pConnectionListener->terminate) &&
+           ATOMIC_LOAD_BOOL(&pConnectionListener->connectionListChanged) && STATUS_SUCCEEDED(cvarWaitStatus)) {
         cvarWaitStatus =
             CVAR_WAIT(pConnectionListener->removeConnectionComplete, pConnectionListener->lock, CONNECTION_AWAIT_CONNECTION_REMOVAL_TIMEOUT);
         /* CVAR_WAIT should never time out */
@@ -272,10 +267,10 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief 
- * 
+ * @brief
+ *
  * @param[in]
-*/
+ */
 PVOID connectionListenerReceiveDataRoutine(PVOID arg)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -388,13 +383,9 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                 updateSocketList = TRUE;
             } else if (FD_ISSET(pSocketConnection->localSocket, &rfds)) {
                 // #YC_TBD, #socket.
-                readLen = recvfrom( pSocketConnection->localSocket,
-                                    pConnectionListener->pBuffer,
-                                    pConnectionListener->bufferLen,
-                                    0,
-                                    (struct sockaddr*) &srcAddrBuff,
-                                    &srcAddrBuffLen);
-                //DLOGD("receive :%lld", readLen);
+                readLen = recvfrom(pSocketConnection->localSocket, pConnectionListener->pBuffer, pConnectionListener->bufferLen, 0,
+                                   (struct sockaddr*) &srcAddrBuff, &srcAddrBuffLen);
+                // DLOGD("receive :%lld", readLen);
                 if (readLen < 0) {
                     switch (getErrorCode()) {
                         case EWOULDBLOCK:
@@ -402,20 +393,17 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                         default:
                             /* on any other error, close connection */
                             CHK_STATUS(socketConnectionClosed(pSocketConnection));
-                            DLOGD("recvfrom() failed with errno %s for socket %d", getErrorString(getErrorCode()),
-                                  pSocketConnection->localSocket);
+                            DLOGD("recvfrom() failed with errno %s for socket %d", getErrorString(getErrorCode()), pSocketConnection->localSocket);
                             break;
                     }
                 } else if (readLen == 0) {
                     CHK_STATUS(socketConnectionClosed(pSocketConnection));
                 } else if (/* readLen > 0 */
-                           ATOMIC_LOAD_BOOL(&pSocketConnection->receiveData) && 
-                           pSocketConnection->dataAvailableCallbackFn != NULL &&
+                           ATOMIC_LOAD_BOOL(&pSocketConnection->receiveData) && pSocketConnection->dataAvailableCallbackFn != NULL &&
                            /* data could be encrypted so they need to be decrypted through socketConnectionReadData
                             * and get the decrypted data length. */
-                           STATUS_SUCCEEDED(socketConnectionReadData(pSocketConnection, pConnectionListener->pBuffer,
-                                                                     pConnectionListener->bufferLen, (PUINT32) &readLen))) {
-
+                           STATUS_SUCCEEDED(socketConnectionReadData(pSocketConnection, pConnectionListener->pBuffer, pConnectionListener->bufferLen,
+                                                                     (PUINT32) &readLen))) {
                     if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_UDP) {
                         if (srcAddrBuff.ss_family == AF_INET) {
                             srcAddr.family = KVS_IP_FAMILY_TYPE_IPV4;
@@ -437,12 +425,9 @@ PVOID connectionListenerReceiveDataRoutine(PVOID arg)
                     // readLen may be 0 if SSL does not emit any application data.
                     // in that case, no need to call dataAvailable callback
                     if (readLen > 0) {
-                        pSocketConnection->dataAvailableCallbackFn( pSocketConnection->dataAvailableCallbackCustomData,
-                                                                    pSocketConnection,
-                                                                    pConnectionListener->pBuffer,
-                                                                    (UINT32) readLen,
-                                                                    pSrcAddr,
-                                                                    NULL); // no dest information available right now.
+                        pSocketConnection->dataAvailableCallbackFn(pSocketConnection->dataAvailableCallbackCustomData, pSocketConnection,
+                                                                   pConnectionListener->pBuffer, (UINT32) readLen, pSrcAddr,
+                                                                   NULL); // no dest information available right now.
                     }
                 }
 

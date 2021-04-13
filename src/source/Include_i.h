@@ -85,8 +85,8 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include <net/if.h>//////////////////////////
-#include <arpa/inet.h>/////////////////////////
+#include <net/if.h>    //////////////////////////
+#include <arpa/inet.h> /////////////////////////
 #include <fcntl.h>
 #ifdef KVSWEBRTC_HAVE_NETINET_TCP_H
 #include <netinet/tcp.h>
@@ -193,8 +193,6 @@ STATUS generateJSONSafeString(PCHAR, UINT32);
 #include "Signaling/WssClient.h"
 #include "Signaling/StateMachine.h"
 #include "Metrics/Metrics.h"
-
-
 
 ////////////////////////////////////////////////////
 // Project internal defines

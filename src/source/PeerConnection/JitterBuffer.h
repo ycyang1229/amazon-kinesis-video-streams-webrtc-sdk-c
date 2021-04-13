@@ -18,9 +18,9 @@ typedef STATUS (*FrameDroppedFunc)(UINT64, UINT16, UINT16, UINT32);
 #define JITTER_BUFFER_HASH_TABLE_BUCKET_LENGTH 2
 
 typedef struct {
-    FrameReadyFunc onFrameReadyFn;//!< the callback of onFrameReady.
-    FrameDroppedFunc onFrameDroppedFn;//!< the callback of onFrameDropped.
-    DepayRtpPayloadFunc depayPayloadFn;//!< the callback of rtp depay.
+    FrameReadyFunc onFrameReadyFn;      //!< the callback of onFrameReady.
+    FrameDroppedFunc onFrameDroppedFn;  //!< the callback of onFrameDropped.
+    DepayRtpPayloadFunc depayPayloadFn; //!< the callback of rtp depay.
 
     // used for calculating interarrival jitter https://tools.ietf.org/html/rfc3550#section-6.4.1
     // https://tools.ietf.org/html/rfc3550#appendix-A.8

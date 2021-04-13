@@ -44,21 +44,21 @@ typedef enum {
 } RTX_CODEC;
 /**
  * @brief internal structure for peer connection.
-*/
+ */
 typedef struct {
     RtcPeerConnection peerConnection;
     PIceAgent pIceAgent;
     PDtlsSession pDtlsSession;
-    BOOL dtlsIsServer;//!< indicate the role of dtls session.
+    BOOL dtlsIsServer; //!< indicate the role of dtls session.
 
-    MUTEX pSrtpSessionLock;//!< the lock for srtp session.
+    MUTEX pSrtpSessionLock; //!< the lock for srtp session.
     PSrtpSession pSrtpSession;
 #ifdef ENABLE_DATA_CHANNEL
     PSctpSession pSctpSession;
 #endif
-    SessionDescription remoteSessionDescription;//!< the session desciption of the remote peer.
-    PDoubleList pTransceivers;//!< the transceivers.
-    BOOL sctpIsEnabled;//!< enable the data channel or not. indicate that support sctp or not.
+    SessionDescription remoteSessionDescription; //!< the session desciption of the remote peer.
+    PDoubleList pTransceivers;                   //!< the transceivers.
+    BOOL sctpIsEnabled;                          //!< enable the data channel or not. indicate that support sctp or not.
 
     CHAR localIceUfrag[LOCAL_ICE_UFRAG_LEN + 1];
     CHAR localIcePwd[LOCAL_ICE_PWD_LEN + 1];
@@ -72,7 +72,7 @@ typedef struct {
 
     MUTEX peerConnectionObjLock;
 
-    BOOL isOffer;//!< the one creates the offer. 
+    BOOL isOffer; //!< the one creates the offer.
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
 
@@ -96,12 +96,12 @@ typedef struct {
     RtcOnIceCandidate onIceCandidate;
 
     UINT64 onConnectionStateChangeCustomData;
-    RtcOnConnectionStateChange onConnectionStateChange;//!< the callback of peer connection change.
+    RtcOnConnectionStateChange onConnectionStateChange; //!< the callback of peer connection change.
     RTC_PEER_CONNECTION_STATE connectionState;
 
     UINT16 MTU;
 
-    NullableBool canTrickleIce;//!< indicate the behavior of ice, trickle ice or non-trickle ice.
+    NullableBool canTrickleIce; //!< indicate the behavior of ice, trickle ice or non-trickle ice.
                                 ///!< https://tools.ietf.org/html/rfc8838
 } KvsPeerConnection, *PKvsPeerConnection;
 #ifdef ENABLE_DATA_CHANNEL

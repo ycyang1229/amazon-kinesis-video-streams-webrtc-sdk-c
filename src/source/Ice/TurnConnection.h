@@ -25,9 +25,9 @@ extern "C" {
 // turn state timeouts
 #define DEFAULT_TURN_SOCKET_CONNECT_TIMEOUT    (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define DEFAULT_TURN_GET_CREDENTIAL_TIMEOUT    (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define DEFAULT_TURN_ALLOCATION_TIMEOUT        (5 * HUNDREDS_OF_NANOS_IN_A_SECOND) //!< 5 sec
-#define DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT (2 * HUNDREDS_OF_NANOS_IN_A_SECOND) //!< 2 sec
-#define DEFAULT_TURN_BIND_CHANNEL_TIMEOUT      (3 * HUNDREDS_OF_NANOS_IN_A_SECOND) //!< 3 sec
+#define DEFAULT_TURN_ALLOCATION_TIMEOUT        (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)  //!< 5 sec
+#define DEFAULT_TURN_CREATE_PERMISSION_TIMEOUT (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)  //!< 2 sec
+#define DEFAULT_TURN_BIND_CHANNEL_TIMEOUT      (3 * HUNDREDS_OF_NANOS_IN_A_SECOND)  //!< 3 sec
 #define DEFAULT_TURN_CLEAN_UP_TIMEOUT          (10 * HUNDREDS_OF_NANOS_IN_A_SECOND) //!< 10 sec
 
 // #YC_TBD, It is suggested that the client refresh the allocation roughly 1 minute before it expires.
@@ -39,7 +39,7 @@ extern "C" {
 #define DEFAULT_TURN_MESSAGE_SEND_CHANNEL_DATA_BUFFER_LEN MAX_TURN_CHANNEL_DATA_MESSAGE_SIZE
 #define DEFAULT_TURN_MESSAGE_RECV_CHANNEL_DATA_BUFFER_LEN MAX_TURN_CHANNEL_DATA_MESSAGE_SIZE
 #define DEFAULT_TURN_CHANNEL_DATA_BUFFER_SIZE             512
-#define DEFAULT_TURN_MAX_PEER_COUNT                       32 //!< 
+#define DEFAULT_TURN_MAX_PEER_COUNT                       32 //!<
 
 // all turn channel numbers must be greater than 0x4000 and less than 0x7FFF
 // 0x0000 through 0x3FFF: These values can never be used for channel numbers.
@@ -66,12 +66,12 @@ extern "C" {
 typedef STATUS (*RelayAddressAvailableFunc)(UINT64, PKvsIpAddress, PSocketConnection);
 /**
  * @brief   the state of local turn connection.
-*/
+ */
 typedef enum {
     TURN_STATE_NEW,
     TURN_STATE_CHECK_SOCKET_CONNECTION,
     TURN_STATE_GET_CREDENTIALS,
-    TURN_STATE_ALLOCATION,//!< https://tools.ietf.org/html/rfc5766#section-5
+    TURN_STATE_ALLOCATION, //!< https://tools.ietf.org/html/rfc5766#section-5
     TURN_STATE_CREATE_PERMISSION,
     TURN_STATE_BIND_CHANNEL,
     TURN_STATE_READY,
@@ -81,7 +81,7 @@ typedef enum {
 
 /**
  * @brief   the state of remote candidates.
-*/
+ */
 typedef enum {
     TURN_PEER_CONN_STATE_CREATE_PERMISSION,
     TURN_PEER_CONN_STATE_BIND_CHANNEL,
@@ -90,13 +90,13 @@ typedef enum {
 } TURN_PEER_CONNECTION_STATE;
 
 typedef enum {
-    TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION,//!< https://tools.ietf.org/html/rfc5766#section-2.4
-    TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL,//!< https://tools.ietf.org/html/rfc5766#section-2.5
+    TURN_CONNECTION_DATA_TRANSFER_MODE_SEND_INDIDATION, //!< https://tools.ietf.org/html/rfc5766#section-2.4
+    TURN_CONNECTION_DATA_TRANSFER_MODE_DATA_CHANNEL,    //!< https://tools.ietf.org/html/rfc5766#section-2.5
 } TURN_CONNECTION_DATA_TRANSFER_MODE;
 // 4+4+24=32
 typedef struct {
-    PBYTE data;//!< the pointer of the buffer.
-    UINT32 size;//!< 
+    PBYTE data;  //!< the pointer of the buffer.
+    UINT32 size; //!<
     KvsIpAddress senderAddr;
 } TurnChannelData, *PTurnChannelData;
 
@@ -126,21 +126,21 @@ struct __TurnConnection {
     volatile ATOMIC_BOOL stopTurnConnection;
     /* shutdown is complete when turn socket is closed */
     volatile ATOMIC_BOOL shutdownComplete;
-    volatile ATOMIC_BOOL hasAllocation;//!< get the allocation response of turn connection. It means we have the turn relay address.
-    volatile SIZE_T timerCallbackId;//!< the timer callback id.
+    volatile ATOMIC_BOOL hasAllocation; //!< get the allocation response of turn connection. It means we have the turn relay address.
+    volatile SIZE_T timerCallbackId;    //!< the timer callback id.
 
     // realm attribute in Allocation response
     CHAR turnRealm[STUN_MAX_REALM_LEN + 1];
     BYTE turnNonce[STUN_MAX_NONCE_LEN];
     UINT16 nonceLen;
     BYTE longTermKey[KVS_MD5_DIGEST_LENGTH];
-    BOOL credentialObtained;//!< get the nonce and realm from 401 response. true: got the information.
-    BOOL relayAddressReported;//!< get the xor relay address.
+    BOOL credentialObtained;   //!< get the nonce and realm from 401 response. true: got the information.
+    BOOL relayAddressReported; //!< get the xor relay address.
 
-    PSocketConnection pControlChannel;//!< the socket hanlder between local and ice server.
+    PSocketConnection pControlChannel; //!< the socket hanlder between local and ice server.
 
-    TurnPeer turnPeerList[DEFAULT_TURN_MAX_PEER_COUNT];//!< #YC_TBD, need to review this. it should be reduced.
-    UINT32 turnPeerCount;//!< the number of remote candidates for this turn connection.
+    TurnPeer turnPeerList[DEFAULT_TURN_MAX_PEER_COUNT]; //!< #YC_TBD, need to review this. it should be reduced.
+    UINT32 turnPeerCount;                               //!< the number of remote candidates for this turn connection.
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
 
@@ -150,18 +150,18 @@ struct __TurnConnection {
     MUTEX sendLock;
     CVAR freeAllocationCvar;
 
-    TURN_CONNECTION_STATE state;//!< the state of turn fsm.
+    TURN_CONNECTION_STATE state; //!< the state of turn fsm.
 
     UINT64 stateTimeoutTime;
 
     STATUS errorStatus;
     // #YC_TBD, need to review this is necessary or not, since turn does not send this packet frequently.
     PStunPacket pTurnPacket;
-    PStunPacket pTurnCreatePermissionPacket;//!< the packet of turn create-permission.
-    PStunPacket pTurnChannelBindPacket;//!< the packet of turn bind-channel.
-    PStunPacket pTurnAllocationRefreshPacket;//!< the packet of refresh-allocation.
+    PStunPacket pTurnCreatePermissionPacket;  //!< the packet of turn create-permission.
+    PStunPacket pTurnChannelBindPacket;       //!< the packet of turn bind-channel.
+    PStunPacket pTurnAllocationRefreshPacket; //!< the packet of refresh-allocation.
 
-    KvsIpAddress hostAddress;//!< the host address, but it seems to be null now. #YC_TBD, need to check the spec.
+    KvsIpAddress hostAddress; //!< the host address, but it seems to be null now. #YC_TBD, need to check the spec.
 
     KvsIpAddress relayAddress;
 
@@ -182,7 +182,7 @@ struct __TurnConnection {
     // to make room for subsequent partial channel data.
     PBYTE completeChannelDataBuffer;
 
-    UINT64 allocationExpirationTime;//!< the expiration time of this turn allocation. unit: nano.
+    UINT64 allocationExpirationTime; //!< the expiration time of this turn allocation. unit: nano.
     UINT64 nextAllocationRefreshTime;
 
     UINT64 currentTimerCallingPeriod;

@@ -165,12 +165,12 @@ typedef struct {
     /**
      * https://tools.ietf.org/html/rfc4566#section-5.2
      * Origin ==> o=<username> <sess-id> <sess-version> <nettype> <addrtype> <unicast-address>
-    */
+     */
     SdpOrigin sdpOrigin;
     /**
      * https://tools.ietf.org/html/rfc4566#section-5.3
      * Session Name ==> s=<session name>
-    */
+     */
     CHAR sessionName[MAX_SDP_SESSION_NAME_LENGTH + 1];
 
     // i=<session description>
@@ -205,7 +205,7 @@ typedef struct {
 
     UINT8 sessionAttributesCount;
 
-    UINT8 mediaCount;//!< the number of media name.
+    UINT8 mediaCount; //!< the number of media name.
 
     UINT8 timezoneCount;
 

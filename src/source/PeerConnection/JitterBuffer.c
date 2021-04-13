@@ -4,7 +4,7 @@
 #include "../Include_i.h"
 /**
  * @brief   create the context of the jitter buffer.
- * 
+ *
  * @param[in] onFrameReadyFunc
  * @param[in] onFrameDroppedFunc
  * @param[in] depayRtpPayloadFunc
@@ -12,16 +12,11 @@
  * @param[in] clockRate
  * @param[in] customData
  * @param[in, out] ppJitterBuffer the context of jitter buffer.
- * 
+ *
  * @return
-*/
-STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc,
-                          FrameDroppedFunc onFrameDroppedFunc,
-                          DepayRtpPayloadFunc depayRtpPayloadFunc,
-                          UINT32 maxLatency,
-                          UINT32 clockRate,
-                          UINT64 customData,
-                          PJitterBuffer* ppJitterBuffer)
+ */
+STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc, FrameDroppedFunc onFrameDroppedFunc, DepayRtpPayloadFunc depayRtpPayloadFunc,
+                          UINT32 maxLatency, UINT32 clockRate, UINT64 customData, PJitterBuffer* ppJitterBuffer)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -50,8 +45,7 @@ STATUS createJitterBuffer(FrameReadyFunc onFrameReadyFunc,
     pJitterBuffer->started = FALSE;
 
     pJitterBuffer->customData = customData;
-    CHK_STATUS(hashTableCreateWithParams(JITTER_BUFFER_HASH_TABLE_BUCKET_COUNT,
-                                         JITTER_BUFFER_HASH_TABLE_BUCKET_LENGTH,
+    CHK_STATUS(hashTableCreateWithParams(JITTER_BUFFER_HASH_TABLE_BUCKET_COUNT, JITTER_BUFFER_HASH_TABLE_BUCKET_LENGTH,
                                          &pJitterBuffer->pPkgBufferHashTable));
 
 CleanUp:
@@ -69,10 +63,10 @@ CleanUp:
 }
 /**
  * @brief   free the related buffers of jitter butter.
- * 
+ *
  * @param[in] ppJitterBuffer
- * 
-*/
+ *
+ */
 STATUS freeJitterBuffer(PJitterBuffer* ppJitterBuffer)
 {
     ENTERS();
@@ -100,13 +94,13 @@ CleanUp:
 }
 /**
  * @brief   push the rtp packet into pPkgBufferHashTable, and pop the jitter buffer.
- * 
+ *
  * @param[in] pJitterBuffer
  * @param[in] pRtpPacket the context of rtp packet.
  * @param[in] pPacketDiscarded
- * 
+ *
  * @return
-*/
+ */
 STATUS jitterBufferPush(PJitterBuffer pJitterBuffer, PRtpPacket pRtpPacket, PBOOL pPacketDiscarded)
 {
     ENTERS();
@@ -160,12 +154,12 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief   
- * 
+ * @brief
+ *
  * @param[in]
- * 
+ *
  * @return
-*/
+ */
 STATUS jitterBufferPop(PJitterBuffer pJitterBuffer, BOOL bufferClosed)
 {
     ENTERS();

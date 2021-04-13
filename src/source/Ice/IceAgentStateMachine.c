@@ -4,8 +4,8 @@
 #define LOG_CLASS "IceAgentState"
 #include "../Include_i.h"
 
-#define ICE_FSM_ENTER() //ENTERS()
-#define ICE_FSM_LEAVE() //LEAVES()
+#define ICE_FSM_ENTER() // ENTERS()
+#define ICE_FSM_LEAVE() // LEAVES()
 
 PCHAR iceAgentFsmToString(UINT64 state)
 {
@@ -42,8 +42,8 @@ PCHAR iceAgentFsmToString(UINT64 state)
 
 /**
  * @brief advance the fsm of the ice agent.
- * 
-*/
+ *
+ */
 STATUS iceAgentFsmStep(PIceAgent pIceAgent)
 {
     ICE_FSM_ENTER();
@@ -81,8 +81,8 @@ CleanUp:
 }
 /**
  * @brief check the transition of fsm is valid or not.
- * 
-*/
+ *
+ */
 STATUS iceAgentFsmAccept(PIceAgent pIceAgent, UINT64 state)
 {
     ICE_FSM_ENTER();
@@ -112,9 +112,9 @@ CleanUp:
  */
 /**
  * @brief   check the timeout of connection. right now, the interval of timer is 2*(the interval of keeping alive).
- * 
+ *
  * @param[]
-*/
+ */
 STATUS iceAgentFsmCheckDisconnection(PIceAgent pIceAgent, PUINT64 pNextState)
 {
     ICE_FSM_ENTER();
@@ -125,11 +125,10 @@ STATUS iceAgentFsmCheckDisconnection(PIceAgent pIceAgent, PUINT64 pNextState)
 
     currentTime = GETTIME();
     // check the timeout of connection.
-    if (!pIceAgent->detectedDisconnection && 
-        IS_VALID_TIMESTAMP(pIceAgent->lastDataReceivedTime) &&
+    if (!pIceAgent->detectedDisconnection && IS_VALID_TIMESTAMP(pIceAgent->lastDataReceivedTime) &&
         pIceAgent->lastDataReceivedTime + KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD <= currentTime) {
         *pNextState = ICE_AGENT_STATE_DISCONNECTED;
-    // back to ready from disconnected.
+        // back to ready from disconnected.
     } else if (pIceAgent->detectedDisconnection) {
         if (IS_VALID_TIMESTAMP(pIceAgent->lastDataReceivedTime) &&
             pIceAgent->lastDataReceivedTime + KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD > currentTime) {
@@ -193,8 +192,8 @@ CleanUp:
 }
 
 /**
- * @brief 
-*/
+ * @brief
+ */
 STATUS iceAgentFsmCheckConnection(UINT64 customData, UINT64 time)
 {
     ICE_FSM_ENTER();
@@ -204,7 +203,7 @@ STATUS iceAgentFsmCheckConnection(UINT64 customData, UINT64 time)
 
     CHK(pIceAgent != NULL, STATUS_NULL_ARG);
     // #YC_TBD, why this happen. basically leaving from new will set the state as check-connection.
-    // 
+    //
     if (pIceAgent->iceAgentState != ICE_AGENT_STATE_CHECK_CONNECTION) {
         CHK_STATUS(iceAgentSetupFsmCheckConnection(pIceAgent));
         pIceAgent->iceAgentState = ICE_AGENT_STATE_CHECK_CONNECTION;
@@ -286,7 +285,7 @@ CleanUp:
 
 /**
  * @brief the handler of fsm when ice agent is at connected state.
-*/
+ */
 STATUS iceAgentFsmConnected(UINT64 customData, UINT64 time)
 {
     ICE_FSM_ENTER();
@@ -315,7 +314,7 @@ CleanUp:
 
 /**
  * @brief the handler of fsm when exiting from the connected state.
-*/
+ */
 STATUS iceAgentFsmFromConnected(UINT64 customData, PUINT64 pState)
 {
     ICE_FSM_ENTER();
@@ -333,10 +332,10 @@ STATUS iceAgentFsmFromConnected(UINT64 customData, PUINT64 pState)
     CHK_STATUS(pIceAgent->iceAgentStatus);
 
     // return early if changing to disconnected state
-    //CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
+    // CHK(state != ICE_AGENT_STATE_DISCONNECTED, retStatus);
 
     // Go directly to nominating state from connected state.
-    //state = ICE_AGENT_STATE_NOMINATING;
+    // state = ICE_AGENT_STATE_NOMINATING;
 
 CleanUp:
 
@@ -361,8 +360,8 @@ CleanUp:
 
 /**
  * @brief the handler of state machine when ice agent is at nominating state.
- * 
-*/
+ *
+ */
 STATUS iceAgentFsmNominating(UINT64 customData, UINT64 time)
 {
     ICE_FSM_ENTER();
@@ -399,13 +398,12 @@ CleanUp:
     return retStatus;
 }
 
-
 /**
  * @brief the handler of fsm when exiting from nominating state.
- * 
+ *
  * @param[in] customData the context.
  * @param[out] pState the next state.
-*/
+ */
 STATUS iceAgentFsmFromNominating(UINT64 customData, PUINT64 pState)
 {
     ICE_FSM_ENTER();
@@ -560,8 +558,8 @@ STATUS iceAgentFsmDisconnected(UINT64 customData, UINT64 time)
 
     // not stopping timer task from previous state as we want it to continue and perhaps recover.
     // not setting pIceAgent->iceAgentState as it stores the previous state and we want to step back into it to continue retry
-    DLOGD("Ice agent detected disconnection. current state %s. Last data received time %" PRIu64 " s",
-          iceAgentFsmToString(pIceAgent->iceAgentState), pIceAgent->lastDataReceivedTime / HUNDREDS_OF_NANOS_IN_A_SECOND);
+    DLOGD("Ice agent detected disconnection. current state %s. Last data received time %" PRIu64 " s", iceAgentFsmToString(pIceAgent->iceAgentState),
+          pIceAgent->lastDataReceivedTime / HUNDREDS_OF_NANOS_IN_A_SECOND);
     pIceAgent->detectedDisconnection = TRUE;
 
     // after detecting disconnection, store disconnectionGracePeriodEndTime and when it is reached and ice still hasnt recover
@@ -587,7 +585,6 @@ CleanUp:
     ICE_FSM_LEAVE();
     return retStatus;
 }
-
 
 STATUS iceAgentFsmFromDisconnected(UINT64 customData, PUINT64 pState)
 {
@@ -626,7 +623,6 @@ CleanUp:
     return retStatus;
 }
 
-
 STATUS iceAgentFsmFailed(UINT64 customData, UINT64 time)
 {
     ICE_FSM_ENTER();
@@ -656,7 +652,6 @@ CleanUp:
     return retStatus;
 }
 
-
 STATUS iceAgentFsmFomFailed(UINT64 customData, PUINT64 pState)
 {
     ICE_FSM_ENTER();
@@ -674,7 +669,6 @@ CleanUp:
     return retStatus;
 }
 
-
 /**
  * Static definitions of the states
  */
@@ -691,14 +685,13 @@ CleanUp:
      ICE_AGENT_STATE_DISCONNECTED | ICE_AGENT_STATE_FAILED)
 
 StateMachineState ICE_AGENT_STATE_MACHINE_STATES[] = {
-    {ICE_AGENT_STATE_NEW, ICE_AGENT_STATE_NEW_REQUIRED, iceAgentFsmFromNew, iceAgentFsmNew, ICE_AGENT_STATE_UNLIMIT_RETRY,
-     STATUS_ICE_INVALID_STATE},
+    {ICE_AGENT_STATE_NEW, ICE_AGENT_STATE_NEW_REQUIRED, iceAgentFsmFromNew, iceAgentFsmNew, ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
     {ICE_AGENT_STATE_CHECK_CONNECTION, ICE_AGENT_STATE_CHECK_CONN_REQUIRED, iceAgentFsmFromCheckConnection, iceAgentFsmCheckConnection,
      ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
-    {ICE_AGENT_STATE_CONNECTED, ICE_AGENT_STATE_CONNECTED_REQUIRED, iceAgentFsmFromConnected, iceAgentFsmConnected,
-     ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
-    {ICE_AGENT_STATE_NOMINATING, ICE_AGENT_STATE_NOMINATING_REQUIRED, iceAgentFsmFromNominating, iceAgentFsmNominating,
-     ICE_AGENT_STATE_UNLIMIT_RETRY, STATUS_ICE_INVALID_STATE},
+    {ICE_AGENT_STATE_CONNECTED, ICE_AGENT_STATE_CONNECTED_REQUIRED, iceAgentFsmFromConnected, iceAgentFsmConnected, ICE_AGENT_STATE_UNLIMIT_RETRY,
+     STATUS_ICE_INVALID_STATE},
+    {ICE_AGENT_STATE_NOMINATING, ICE_AGENT_STATE_NOMINATING_REQUIRED, iceAgentFsmFromNominating, iceAgentFsmNominating, ICE_AGENT_STATE_UNLIMIT_RETRY,
+     STATUS_ICE_INVALID_STATE},
     {ICE_AGENT_STATE_READY, ICE_AGENT_STATE_READY_REQUIRED, iceAgentFsmFromReady, iceAgentFsmReady, ICE_AGENT_STATE_UNLIMIT_RETRY,
      STATUS_ICE_INVALID_STATE},
     {ICE_AGENT_STATE_DISCONNECTED, ICE_AGENT_STATE_DISCONNECTED_REQUIRED, iceAgentFsmFromDisconnected, iceAgentFsmDisconnected,

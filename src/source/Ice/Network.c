@@ -4,7 +4,6 @@
 #define LOG_CLASS "Network"
 #include "../Include_i.h"
 
-
 STATUS getLocalhostIpAddresses(PKvsIpAddress destIpList, PUINT32 pDestIpListLen, IceSetInterfaceFilterFunc filter, UINT64 customData)
 {
     ENTERS();
@@ -182,7 +181,7 @@ STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol,
         DLOGW("socket() failed to create socket with errno %s", getErrorString(getErrorCode()));
         CHK(FALSE, STATUS_CREATE_UDP_SOCKET_FAILED);
     }
-    
+
     optionValue = 1;
     if (setsockopt(sockfd, SOL_SOCKET, NO_SIGNAL, &optionValue, SIZEOF(optionValue)) < 0) {
         DLOGD("setsockopt() failed with errno %s", "NO_SIGNAL failed");
@@ -192,20 +191,20 @@ STATUS createSocket(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol,
         DLOGW("setsockopt() failed with errno %s", "SO_SNDBUF failed");
         CHK(FALSE, STATUS_SOCKET_SET_SEND_BUFFER_SIZE_FAILED);
     }
-    
+
     *pOutSockFd = (INT32) sockfd;
 
 #ifdef _WIN32
     UINT32 nonblock = 1;
     ioctlsocket(sockfd, FIONBIO, &nonblock);
 #else
-    #if 0
+#if 0
     // Set the non-blocking mode for the socket
     flags = fcntl(sockfd, F_GETFL, 0);
     CHK_ERR(flags >= 0, STATUS_GET_SOCKET_FLAG_FAILED, "Failed to get the socket flags with system error %s", strerror(errno));
     CHK_ERR(0 <= fcntl(sockfd, F_SETFL, flags | O_NONBLOCK), STATUS_SET_SOCKET_FLAG_FAILED, "Failed to Set the socket flags with system error %s",
             strerror(errno));
-    #endif
+#endif
 #endif
 
     // done at this point for UDP
@@ -237,8 +236,8 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief   
- * 
+ * @brief
+ *
  * @param[in] pHostIpAddress address for the socket to bind. PKvsIpAddress->port will be changed to the actual port number
  * @param[in] sockfd valid socket fd
  *
@@ -335,18 +334,18 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
     STATUS retStatus = STATUS_SUCCESS;
     INT32 errCode;
     PCHAR errStr;
-//    /////////////////////////////////////
-//    struct addrinfo {
-//               int              ai_flags;
-//               int              ai_family;
-//               int              ai_socktype;
-//               int              ai_protocol;
-//               socklen_t        ai_addrlen;
-//               struct sockaddr *ai_addr;
-//               char            *ai_canonname;
-//               struct addrinfo *ai_next;
-//           };
-//    ///////////////////////////////
+    //    /////////////////////////////////////
+    //    struct addrinfo {
+    //               int              ai_flags;
+    //               int              ai_family;
+    //               int              ai_socktype;
+    //               int              ai_protocol;
+    //               socklen_t        ai_addrlen;
+    //               struct sockaddr *ai_addr;
+    //               char            *ai_canonname;
+    //               struct addrinfo *ai_next;
+    //           };
+    //    ///////////////////////////////
     struct addrinfo *res, *rp;
     BOOL resolved = FALSE;
     struct sockaddr_in* ipv4Addr;
@@ -355,7 +354,7 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
     CHK(hostname != NULL, STATUS_NULL_ARG);
 
     errCode = getaddrinfo(hostname, NULL, NULL, &res);
-    //errCode = lwip_getaddrinfo(hostname, NULL, NULL, &res);
+    // errCode = lwip_getaddrinfo(hostname, NULL, NULL, &res);
 
     if (errCode != 0) {
 #if defined(KVS_PLAT_ESP_FREERTOS) || defined(KVS_PLAT_RTK_FREERTOS)
@@ -380,7 +379,7 @@ STATUS getIpWithHostName(PCHAR hostname, PKvsIpAddress destIp)
         }
     }
 
-    //lwip_freeaddrinfo(res);
+    // lwip_freeaddrinfo(res);
     freeaddrinfo(res);
 
     CHK_ERR(resolved, STATUS_HOSTNAME_NOT_FOUND, "could not find network address of %s", hostname);
@@ -392,14 +391,14 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief   get the string of this ip. 
- * 
+ * @brief   get the string of this ip.
+ *
  * @param[in] pKvsIpAddress
  * @param[in] pBuffer
  * @param[in] bufferLen
- * 
- * @return 
-*/
+ *
+ * @return
+ */
 STATUS getIpAddrStr(PKvsIpAddress pKvsIpAddress, PCHAR pBuffer, UINT32 bufferLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -428,14 +427,14 @@ CleanUp:
 }
 /**
  * @brief   compare the addr1 with addr2.
- * 
+ *
  * @param[in] pAddr1
  * @param[in] pAddr2
  * @param[in] checkPort check the port or not.
- * 
- * @return 
- * 
-*/
+ *
+ * @return
+ *
+ */
 BOOL isSameIpAddress(PKvsIpAddress pAddr1, PKvsIpAddress pAddr2, BOOL checkPort)
 {
     BOOL ret;

@@ -264,12 +264,12 @@ CleanUp:
 #endif
 /**
  * @brief   set the state machine of peer connection, and invoke the callback for user layer.
- * 
+ *
  * @param[]
  * @param[]
- * 
+ *
  * @return
-*/
+ */
 STATUS changePeerConnectionState(PKvsPeerConnection pKvsPeerConnection, RTC_PEER_CONNECTION_STATE newState)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -280,9 +280,9 @@ STATUS changePeerConnectionState(PKvsPeerConnection pKvsPeerConnection, RTC_PEER
     locked = TRUE;
 
     /* new and closed state are terminal*/
-    CHK(pKvsPeerConnection->connectionState != newState &&
-        pKvsPeerConnection->connectionState != RTC_PEER_CONNECTION_STATE_FAILED &&
-        pKvsPeerConnection->connectionState != RTC_PEER_CONNECTION_STATE_CLOSED, retStatus);
+    CHK(pKvsPeerConnection->connectionState != newState && pKvsPeerConnection->connectionState != RTC_PEER_CONNECTION_STATE_FAILED &&
+            pKvsPeerConnection->connectionState != RTC_PEER_CONNECTION_STATE_CLOSED,
+        retStatus);
 
     pKvsPeerConnection->connectionState = newState;
     MUTEX_UNLOCK(pKvsPeerConnection->peerConnectionObjLock);
@@ -305,12 +305,12 @@ CleanUp:
 #ifdef ENABLE_STREAMING
 /**
  * @brief   the calback for the wrapper of jitter buffer.
- * 
+ *
  * @param[in] customData the context of KvsRtpTransceiver
- * 
- * 
+ *
+ *
  * @return
-*/
+ */
 STATUS onFrameReadyFunc(UINT64 customData, UINT16 startIndex, UINT16 endIndex, UINT32 frameSize)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -399,11 +399,11 @@ CleanUp:
 #endif
 /**
  * @brief   the callback for the ice agent.
- * 
+ *
  * @param[in]
- * 
+ *
  * @return
-*/
+ */
 VOID onIceConnectionStateChange(UINT64 customData, UINT64 connectionState)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -614,16 +614,16 @@ CleanUp:
 }
 
 //#ifdef ENABLE_STREAMING
-#if 1//def ENABLE_STREAMING
+#if 1 // def ENABLE_STREAMING
 /**
- * @brief   
- * 
+ * @brief
+ *
  * @param[in]
  * @param[in]
  * @param[in]
- * 
+ *
  * @return
-*/
+ */
 STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData)
 {
     UNUSED_PARAM(timerId);
@@ -679,11 +679,8 @@ STATUS rtcpReportsCallback(UINT32 timerId, UINT64 currentTime, UINT64 customData
     delay = 100 + (RAND() % 200);
     DLOGS("next sender report %u in %" PRIu64 " msec", ssrc, delay);
     // reschedule timer with 200msec +- 100ms
-    CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle,
-                                  delay * HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
-                                  TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
-                                  rtcpReportsCallback,
-                                  (UINT64) pKvsRtpTransceiver,
+    CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle, delay * HUNDREDS_OF_NANOS_IN_A_MILLISECOND,
+                                  TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, rtcpReportsCallback, (UINT64) pKvsRtpTransceiver,
                                   &pKvsRtpTransceiver->rtcpReportsTimerId));
 
 CleanUp:
@@ -727,12 +724,9 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIcePwd, LOCAL_ICE_PWD_LEN));
     CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localCNAME, LOCAL_CNAME_LEN));
     // #dlts session.
-    CHK_STATUS(createDtlsSession(&dtlsSessionCallbacks,
-                                    pKvsPeerConnection->timerQueueHandle,
-                                    pConfiguration->kvsRtcConfiguration.generatedCertificateBits,
-                                    pConfiguration->kvsRtcConfiguration.generateRSACertificate,
-                                    pConfiguration->certificates,
-                                    &pKvsPeerConnection->pDtlsSession));
+    CHK_STATUS(createDtlsSession(
+        &dtlsSessionCallbacks, pKvsPeerConnection->timerQueueHandle, pConfiguration->kvsRtcConfiguration.generatedCertificateBits,
+        pConfiguration->kvsRtcConfiguration.generateRSACertificate, pConfiguration->certificates, &pKvsPeerConnection->pDtlsSession));
     CHK_STATUS(dtlsSessionOnOutBoundData(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsOutboundPacket));
     CHK_STATUS(dtlsSessionOnStateChange(pKvsPeerConnection->pDtlsSession, (UINT64) pKvsPeerConnection, onDtlsStateChange));
     // #codec.
@@ -755,13 +749,8 @@ STATUS createPeerConnection(PRtcConfiguration pConfiguration, PRtcPeerConnection
     iceAgentCallbacks.newLocalCandidateFn = onNewIceLocalCandidate;
     CHK_STATUS(createConnectionListener(&pConnectionListener));
     // IceAgent will own the lifecycle of pConnectionListener;
-    CHK_STATUS(createIceAgent(  pKvsPeerConnection->localIceUfrag,
-                                pKvsPeerConnection->localIcePwd,
-                                &iceAgentCallbacks,
-                                pConfiguration,
-                                pKvsPeerConnection->timerQueueHandle,
-                                pConnectionListener,
-                                &pKvsPeerConnection->pIceAgent));
+    CHK_STATUS(createIceAgent(pKvsPeerConnection->localIceUfrag, pKvsPeerConnection->localIcePwd, &iceAgentCallbacks, pConfiguration,
+                              pKvsPeerConnection->timerQueueHandle, pConnectionListener, &pKvsPeerConnection->pIceAgent));
 
     NULLABLE_SET_EMPTY(pKvsPeerConnection->canTrickleIce);
 
@@ -843,7 +832,7 @@ STATUS freePeerConnection(PRtcPeerConnection* ppPeerConnection)
 
     CHK_LOG_ERR(freeDtlsSession(&pKvsPeerConnection->pDtlsSession));
 //#ifdef ENABLE_STREAMING
-#if 1//def ENABLE_STREAMING
+#if 1 // def ENABLE_STREAMING
     CHK_LOG_ERR(doubleListFree(pKvsPeerConnection->pTransceivers));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pCodecTable));
     CHK_LOG_ERR(hashTableFree(pKvsPeerConnection->pRtxTable));
@@ -960,7 +949,8 @@ CleanUp:
  * Load the sdp field of PRtcSessionDescriptionInit with pending or current local session description
  *
  * @param[in] PRtcPeerConnection Initialized RtcPeerConnection
- * @param[in,out] PRtcSessionDescriptionInit the buffer of session description init.This api will modify the content. IN/PRtcSessionDescriptionInit whose sdp field will be modified.
+ * @param[in,out] PRtcSessionDescriptionInit the buffer of session description init.This api will modify the content. IN/PRtcSessionDescriptionInit
+ * whose sdp field will be modified.
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
@@ -1067,7 +1057,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
         if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "fingerprint") == 0) {
             STRNCPY(pKvsPeerConnection->remoteCertificateFingerprint, pSessionDescription->sdpAttributes[i].attributeValue + 8,
                     CERTIFICATE_FINGERPRINT_LENGTH);
-        // #YC_TBD, need to be fixed.
+            // #YC_TBD, need to be fixed.
         } else if (STRCMP(pSessionDescription->sdpAttributes[i].attributeName, "ice-options") == 0 &&
                    STRCMP(pSessionDescription->sdpAttributes[i].attributeValue, "trickle") == 0) {
             NULLABLE_SET_VALUE(pKvsPeerConnection->canTrickleIce, TRUE);
@@ -1112,8 +1102,7 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     CHK(remoteIceUfrag != NULL && remoteIcePwd != NULL, STATUS_SESSION_DESCRIPTION_MISSING_ICE_VALUES);
     CHK(pKvsPeerConnection->remoteCertificateFingerprint[0] != '\0', STATUS_SESSION_DESCRIPTION_MISSING_CERTIFICATE_FINGERPRINT);
 
-    if (!IS_EMPTY_STRING(pKvsPeerConnection->remoteIceUfrag) && 
-        !IS_EMPTY_STRING(pKvsPeerConnection->remoteIcePwd) &&
+    if (!IS_EMPTY_STRING(pKvsPeerConnection->remoteIceUfrag) && !IS_EMPTY_STRING(pKvsPeerConnection->remoteIcePwd) &&
         STRNCMP(pKvsPeerConnection->remoteIceUfrag, remoteIceUfrag, MAX_ICE_UFRAG_LEN) != 0 &&
         STRNCMP(pKvsPeerConnection->remoteIcePwd, remoteIcePwd, MAX_ICE_PWD_LEN) != 0) {
         CHK_STATUS(generateJSONSafeString(pKvsPeerConnection->localIceUfrag, LOCAL_ICE_UFRAG_LEN));
@@ -1126,12 +1115,10 @@ STATUS setRemoteDescription(PRtcPeerConnection pPeerConnection, PRtcSessionDescr
     STRNCPY(pKvsPeerConnection->remoteIceUfrag, remoteIceUfrag, MAX_ICE_UFRAG_LEN);
     STRNCPY(pKvsPeerConnection->remoteIcePwd, remoteIcePwd, MAX_ICE_PWD_LEN);
 
-    CHK_STATUS(iceAgentStartAgent(pKvsPeerConnection->pIceAgent,
-                                  pKvsPeerConnection->remoteIceUfrag,
-                                  pKvsPeerConnection->remoteIcePwd,
+    CHK_STATUS(iceAgentStartAgent(pKvsPeerConnection->pIceAgent, pKvsPeerConnection->remoteIceUfrag, pKvsPeerConnection->remoteIcePwd,
                                   pKvsPeerConnection->isOffer));
 //#ifdef ENABLE_STREAMING
-#if 1//def ENABLE_STREAMING
+#if 1 // def ENABLE_STREAMING
     if (!pKvsPeerConnection->isOffer) {
         CHK_STATUS(setPayloadTypesFromOffer(pKvsPeerConnection->pCodecTable, pKvsPeerConnection->pRtxTable, pSessionDescription));
     }
@@ -1228,7 +1215,7 @@ CleanUp:
 }
 
 //#ifdef ENABLE_STREAMING
-#if 1//def ENABLE_STREAMING
+#if 1 // def ENABLE_STREAMING
 /**
  * @brief Create a new RtcRtpTransceiver and add it to the set of transceivers.
  *
@@ -1241,10 +1228,8 @@ CleanUp:
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
-STATUS addTransceiver(  PRtcPeerConnection pPeerConnection,
-                        PRtcMediaStreamTrack pRtcMediaStreamTrack,
-                        PRtcRtpTransceiverInit pRtcRtpTransceiverInit,
-                        PRtcRtpTransceiver* ppRtcRtpTransceiver)
+STATUS addTransceiver(PRtcPeerConnection pPeerConnection, PRtcMediaStreamTrack pRtcMediaStreamTrack, PRtcRtpTransceiverInit pRtcRtpTransceiverInit,
+                      PRtcRtpTransceiver* ppRtcRtpTransceiver)
 {
     UNUSED_PARAM(pRtcRtpTransceiverInit);
     ENTERS();
@@ -1255,7 +1240,7 @@ STATUS addTransceiver(  PRtcPeerConnection pPeerConnection,
     DepayRtpPayloadFunc depayFunc;
     UINT32 clockRate = 0;
     UINT32 ssrc = (UINT32) RAND(), rtxSsrc = (UINT32) RAND();
-    RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;//!< #YC_TBD. need to be exported.
+    RTC_RTP_TRANSCEIVER_DIRECTION direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV; //!< #YC_TBD. need to be exported.
 
     if (pRtcRtpTransceiverInit != NULL) {
         direction = pRtcRtpTransceiverInit->direction;
@@ -1290,22 +1275,11 @@ STATUS addTransceiver(  PRtcPeerConnection pPeerConnection,
     }
 
     // TODO: Add ssrc duplicate detection here not only relying on RAND()
-    CHK_STATUS(createKvsRtpTransceiver(direction,
-                                       pKvsPeerConnection,
-                                       ssrc,
-                                       rtxSsrc,
-                                       pRtcMediaStreamTrack,
-                                       NULL,
-                                       pRtcMediaStreamTrack->codec,
+    CHK_STATUS(createKvsRtpTransceiver(direction, pKvsPeerConnection, ssrc, rtxSsrc, pRtcMediaStreamTrack, NULL, pRtcMediaStreamTrack->codec,
                                        &pKvsRtpTransceiver));
     // create the context of jitter buffer.
-    CHK_STATUS(createJitterBuffer(onFrameReadyFunc,
-                                  onFrameDroppedFunc,
-                                  depayFunc,
-                                  DEFAULT_JITTER_BUFFER_MAX_LATENCY,
-                                  clockRate,
-                                  (UINT64) pKvsRtpTransceiver,
-                                  &pJitterBuffer));
+    CHK_STATUS(createJitterBuffer(onFrameReadyFunc, onFrameDroppedFunc, depayFunc, DEFAULT_JITTER_BUFFER_MAX_LATENCY, clockRate,
+                                  (UINT64) pKvsRtpTransceiver, &pJitterBuffer));
     CHK_STATUS(kvsRtpTransceiverSetJitterBuffer(pKvsRtpTransceiver, pJitterBuffer));
 
     // after pKvsRtpTransceiver is successfully created, jitterBuffer will be freed by pKvsRtpTransceiver.
@@ -1314,12 +1288,8 @@ STATUS addTransceiver(  PRtcPeerConnection pPeerConnection,
     CHK_STATUS(doubleListInsertItemHead(pKvsPeerConnection->pTransceivers, (UINT64) pKvsRtpTransceiver));
     *ppRtcRtpTransceiver = (PRtcRtpTransceiver) pKvsRtpTransceiver;
     // schedule the rtcp send report callback.
-    CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle,
-                                  RTCP_FIRST_REPORT_DELAY,
-                                  TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
-                                  rtcpReportsCallback,
-                                  (UINT64) pKvsRtpTransceiver,
-                                  &pKvsRtpTransceiver->rtcpReportsTimerId));
+    CHK_STATUS(timerQueueAddTimer(pKvsPeerConnection->timerQueueHandle, RTCP_FIRST_REPORT_DELAY, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
+                                  rtcpReportsCallback, (UINT64) pKvsRtpTransceiver, &pKvsRtpTransceiver->rtcpReportsTimerId));
 
     pKvsRtpTransceiver = NULL;
 

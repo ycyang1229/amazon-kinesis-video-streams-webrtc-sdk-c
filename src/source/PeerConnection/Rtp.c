@@ -1,5 +1,5 @@
 //#ifdef ENABLE_STREAMING
-#if 1//def ENABLE_STREAMING
+#if 1 // def ENABLE_STREAMING
 #define LOG_CLASS "RtcRtp"
 
 #include "../Include_i.h"
@@ -7,7 +7,7 @@
 typedef STATUS (*RtpPayloadFunc)(UINT32, PBYTE, UINT32, PBYTE, PUINT32, PUINT32, PUINT32);
 /**
  * @brief   create the context of rtp transceiver.
- * 
+ *
  * @param[in]
  * @param[in]
  * @param[in]
@@ -16,17 +16,12 @@ typedef STATUS (*RtpPayloadFunc)(UINT32, PBYTE, UINT32, PBYTE, PUINT32, PUINT32,
  * @param[in]
  * @param[in]
  * @param[in, out] ppKvsRtpTransceiver the context of KvsRtpTransceiver
- * 
+ *
  * @return
- * 
-*/
-STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction,
-                               PKvsPeerConnection pKvsPeerConnection,
-                               UINT32 ssrc,
-                               UINT32 rtxSsrc,
-                               PRtcMediaStreamTrack pRtcMediaStreamTrack,
-                               PJitterBuffer pJitterBuffer,
-                               RTC_CODEC rtcCodec,
+ *
+ */
+STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction, PKvsPeerConnection pKvsPeerConnection, UINT32 ssrc, UINT32 rtxSsrc,
+                               PRtcMediaStreamTrack pRtcMediaStreamTrack, PJitterBuffer pJitterBuffer, RTC_CODEC rtcCodec,
                                PKvsRtpTransceiver* ppKvsRtpTransceiver)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -38,8 +33,8 @@ STATUS createKvsRtpTransceiver(RTC_RTP_TRANSCEIVER_DIRECTION direction,
     CHK(pKvsRtpTransceiver != NULL, STATUS_NOT_ENOUGH_MEMORY);
     /**
      * @YC_TBD, this needs to be alloocated dynamically.
-    */
-    pKvsRtpTransceiver->peerFrameBufferSize = DEFAULT_PEER_FRAME_BUFFER_SIZE;//!< #YC_TBD, 5k bytes, need to confirm this size.
+     */
+    pKvsRtpTransceiver->peerFrameBufferSize = DEFAULT_PEER_FRAME_BUFFER_SIZE; //!< #YC_TBD, 5k bytes, need to confirm this size.
     pKvsRtpTransceiver->peerFrameBuffer = (PBYTE) MEMALLOC(pKvsRtpTransceiver->peerFrameBufferSize);
     CHK(pKvsRtpTransceiver->peerFrameBuffer != NULL, STATUS_NOT_ENOUGH_MEMORY);
     pKvsRtpTransceiver->pKvsPeerConnection = pKvsPeerConnection;
@@ -118,13 +113,13 @@ CleanUp:
 }
 /**
  * @brief   setup the context of jitter buffer.
- * 
+ *
  * @param[in]
  * @param[in]
- * 
+ *
  * @return
- * 
-*/
+ *
+ */
 STATUS kvsRtpTransceiverSetJitterBuffer(PKvsRtpTransceiver pKvsRtpTransceiver, PJitterBuffer pJitterBuffer)
 {
     STATUS retStatus = STATUS_SUCCESS;

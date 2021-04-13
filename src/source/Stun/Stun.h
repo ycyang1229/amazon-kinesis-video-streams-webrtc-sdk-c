@@ -136,7 +136,7 @@ extern "C" {
 /**
  * @brief   STUN packet types
  *          https://tools.ietf.org/html/rfc5389#appendix-A
-*/
+ */
 typedef enum {
     // #define IS_REQUEST(msg_type) (((msg_type) & 0x0110) == 0x0000)
     STUN_PACKET_TYPE_BINDING_REQUEST = (UINT16) 0x0001,
@@ -156,10 +156,10 @@ typedef enum {
     //#define IS_SUCCESS_RESP(msg_type) (((msg_type) & 0x0110) == 0x0100)
     STUN_PACKET_TYPE_BINDING_RESPONSE_SUCCESS = (UINT16) 0x0101,
     STUN_PACKET_TYPE_SHARED_SECRET_RESPONSE = (UINT16) 0x0102,
-    STUN_PACKET_TYPE_ALLOCATE_SUCCESS_RESPONSE = (UINT16) 0x0103, //!< turn connection.
-    STUN_PACKET_TYPE_REFRESH_SUCCESS_RESPONSE = (UINT16) 0x0104, //!< turn connection.
+    STUN_PACKET_TYPE_ALLOCATE_SUCCESS_RESPONSE = (UINT16) 0x0103,          //!< turn connection.
+    STUN_PACKET_TYPE_REFRESH_SUCCESS_RESPONSE = (UINT16) 0x0104,           //!< turn connection.
     STUN_PACKET_TYPE_CREATE_PERMISSION_SUCCESS_RESPONSE = (UINT16) 0x0108, //!< turn connection.
-    STUN_PACKET_TYPE_CHANNEL_BIND_SUCCESS_RESPONSE = (UINT16) 0x0109, //!< turn connection.
+    STUN_PACKET_TYPE_CHANNEL_BIND_SUCCESS_RESPONSE = (UINT16) 0x0109,      //!< turn connection.
 
     //#define IS_ERR_RESP(msg_type) (((msg_type) & 0x0110) == 0x0110)
     STUN_PACKET_TYPE_BINDING_RESPONSE_ERROR = (UINT16) 0x0111,

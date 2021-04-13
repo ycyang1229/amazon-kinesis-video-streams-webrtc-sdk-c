@@ -45,7 +45,7 @@ extern "C" {
  * a=rtpmap:0 PCMU/8000\r\n
  * a=rtpmap:8 PCMA/8000\r\n
  * a=rtpmap:111 opus/48000/2\r\n
-*/
+ */
 #define DEFAULT_PAYLOAD_MULAW_STR (PCHAR) "0"
 #define DEFAULT_PAYLOAD_ALAW_STR  (PCHAR) "8"
 

@@ -4,15 +4,13 @@
 #define LOG_CLASS "IceUtils"
 #include "../Include_i.h"
 
-
-
 /**
- * @brief create the buffer recording the transaction id. 
+ * @brief create the buffer recording the transaction id.
  *          For current design, ice agent, ice candidate pair, and turn will create one transaction id buffer.
- * 
+ *
  * @param[in] maxIdCount the maximum number of transaction id.
  * @param[out] ppTransactionIdStore the pointer of buffer.
-*/
+ */
 STATUS createTransactionIdStore(UINT32 maxIdCount, PTransactionIdStore* ppTransactionIdStore)
 {
     ENTERS();
@@ -44,9 +42,9 @@ CleanUp:
 }
 /**
  * @brief free the buffer of transaction id.
- * 
+ *
  * @param[in]
-*/
+ */
 STATUS freeTransactionIdStore(PTransactionIdStore* ppTransactionIdStore)
 {
     ENTERS();
@@ -68,10 +66,10 @@ CleanUp:
 }
 /**
  * @brief insert the transaction id into the database. #YC_TBD, this needs to be enhanced.
- * 
+ *
  * @param[in]
  * @param[in]
-*/
+ */
 VOID transactionIdStoreInsert(PTransactionIdStore pTransactionIdStore, PBYTE transactionId)
 {
     PBYTE storeLocation = NULL;
@@ -94,10 +92,10 @@ VOID transactionIdStoreInsert(PTransactionIdStore pTransactionIdStore, PBYTE tra
 }
 /**
  * @brief
- * 
+ *
  * @param[]
  * @param[]
-*/
+ */
 BOOL transactionIdStoreHasId(PTransactionIdStore pTransactionIdStore, PBYTE transactionId)
 {
     BOOL idFound = FALSE;
@@ -117,9 +115,9 @@ BOOL transactionIdStoreHasId(PTransactionIdStore pTransactionIdStore, PBYTE tran
 }
 /**
  * @brief reset the buffer of transaction id.
- * 
+ *
  * @param[in]
-*/
+ */
 VOID transactionIdStoreReset(PTransactionIdStore pTransactionIdStore)
 {
     CHECK(pTransactionIdStore != NULL);
@@ -129,13 +127,13 @@ VOID transactionIdStoreReset(PTransactionIdStore pTransactionIdStore)
     pTransactionIdStore->transactionIdCount = 0;
 }
 /**
- * @brief generate the transaction id. 
- * 
- * #YC_TBD, this should be take care. According to rfc5389, 
- * As such, the transaction ID MUST be uniformlyand randomly chosen from the interval 0 .. 2**96-1, 
+ * @brief generate the transaction id.
+ *
+ * #YC_TBD, this should be take care. According to rfc5389,
+ * As such, the transaction ID MUST be uniformlyand randomly chosen from the interval 0 .. 2**96-1,
  * and SHOULD be cryptographically random.
- * 
-*/
+ *
+ */
 STATUS iceUtilsGenerateTransactionId(PBYTE pBuffer, UINT32 bufferLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -154,15 +152,15 @@ CleanUp:
 }
 /**
  * @brief   serialize the stun packet.
- * 
+ *
  * @param[in] pStunPacket the buffer of human-readable stun packet.
  * @param[in] password the key for the message integrity of the stun packet.
  * @param[in] passwordLen the length of password.
  * @param[in, out] pBuffer the pointer of this raw stun packet.
  * @param[in, out] pBufferLen the length of this raw stun packet.
- * 
- * @return 
-*/
+ *
+ * @return
+ */
 STATUS iceUtilsPackageStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen, PBYTE pBuffer, PUINT32 pBufferLen)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -189,7 +187,7 @@ CleanUp:
 }
 /**
  * @brief   pack the stun packet and send the stun packet.
- * 
+ *
  * @param[in] pStunPacket
  * @param[in] password
  * @param[in] passwordLen
@@ -197,16 +195,11 @@ CleanUp:
  * @param[in] pSocketConnection
  * @param[in] pTurnConnection the context of the turn connection.
  * @param[in] useTurn use the turn connection.
- * 
- * @return 
-*/
-STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket,
-                              PBYTE password,
-                              UINT32 passwordLen,
-                              PKvsIpAddress pDest,
-                              PSocketConnection pSocketConnection,
-                              PTurnConnection pTurnConnection,
-                              BOOL useTurn)
+ *
+ * @return
+ */
+STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket, PBYTE password, UINT32 passwordLen, PKvsIpAddress pDest, PSocketConnection pSocketConnection,
+                              PTurnConnection pTurnConnection, BOOL useTurn)
 {
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 stunPacketSize = STUN_PACKET_ALLOCATION_SIZE;
@@ -214,7 +207,7 @@ STATUS iceUtilsSendStunPacket(PStunPacket pStunPacket,
     // #memory, #heap. #YC_TBD.
     // allocate the buffer of raw stun packet.
     CHK(NULL != (stunPacketBuffer = (PBYTE) MEMALLOC(STUN_PACKET_ALLOCATION_SIZE)), STATUS_NOT_ENOUGH_MEMORY);
-    //DLOGD("%s, ip: %d.%d.%d.%d", useTurn == TRUE ? "turn":"non-turn", pDest->address[0], pDest->address[1], pDest->address[2], pDest->address[3]);
+    // DLOGD("%s, ip: %d.%d.%d.%d", useTurn == TRUE ? "turn":"non-turn", pDest->address[0], pDest->address[1], pDest->address[2], pDest->address[3]);
     CHK_STATUS(iceUtilsPackageStunPacket(pStunPacket, password, passwordLen, stunPacketBuffer, &stunPacketSize));
     CHK_STATUS(iceUtilsSendData(stunPacketBuffer, stunPacketSize, pDest, pSocketConnection, pTurnConnection, useTurn));
 
@@ -226,20 +219,16 @@ CleanUp:
 }
 /**
  * @brief   send the packet via the socket of the selected ice candidate.
- * 
+ *
  * @param[in] buffer
- * @param[in] size 
+ * @param[in] size
  * @param[in] pDest the destination ip.
  * @param[in] pSocketConnection the socket handler.
  * @param[in] pTurnConnection  the turn connection handler.
  * @param[in] useTurn indicate this remote candidate belongs to the turn connection.
- * 
-*/
-STATUS iceUtilsSendData(PBYTE buffer,
-                        UINT32 size,
-                        PKvsIpAddress pDest,
-                        PSocketConnection pSocketConnection,
-                        PTurnConnection pTurnConnection,
+ *
+ */
+STATUS iceUtilsSendData(PBYTE buffer, UINT32 size, PKvsIpAddress pDest, PSocketConnection pSocketConnection, PTurnConnection pTurnConnection,
                         BOOL useTurn)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -264,11 +253,11 @@ CleanUp:
 }
 /**
  * @brief   #YC_TBD, consider to change this api, but it is not a bottleneck.
- * 
+ *
  * @param[in]
- * 
+ *
  * @return
-*/
+ */
 STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR credential)
 {
     ENTERS();
@@ -278,13 +267,12 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
 
     // username and credential is only mandatory for turn server
     CHK(url != NULL && pIceServer != NULL, STATUS_NULL_ARG);
-    //DLOGD("url:%s", url);
+    // DLOGD("url:%s", url);
     if (STRNCMP(ICE_URL_PREFIX_STUN, url, STRLEN(ICE_URL_PREFIX_STUN)) == 0) {
         urlNoPrefix = STRCHR(url, ':') + 1;
         pIceServer->isTurn = FALSE;
     } else if (STRNCMP(ICE_URL_PREFIX_TURN, url, STRLEN(ICE_URL_PREFIX_TURN)) == 0 ||
                STRNCMP(ICE_URL_PREFIX_TURN_SECURE, url, STRLEN(ICE_URL_PREFIX_TURN_SECURE)) == 0) {
-
         CHK(username != NULL && username[0] != '\0', STATUS_ICE_URL_TURN_MISSING_USERNAME);
         CHK(credential != NULL && credential[0] != '\0', STATUS_ICE_URL_TURN_MISSING_CREDENTIAL);
 
@@ -316,9 +304,9 @@ STATUS parseIceServer(PIceServer pIceServer, PCHAR url, PCHAR username, PCHAR cr
     } else {
         STRNCPY(pIceServer->url, urlNoPrefix, MAX_ICE_CONFIG_URI_LEN);
     }
-    //DLOGD("pIceServer->url:%s(%d):%d", pIceServer->url, port, pIceServer->transport);
+    // DLOGD("pIceServer->url:%s(%d):%d", pIceServer->url, port, pIceServer->transport);
     CHK_STATUS(getIpWithHostName(pIceServer->url, &pIceServer->ipAddress));
-    //DLOGD("getipwithhostname:%d.%d.%d.%d.", pIceServer->ipAddress.address[0],
+    // DLOGD("getipwithhostname:%d.%d.%d.%d.", pIceServer->ipAddress.address[0],
     //            pIceServer->ipAddress.address[1],
     //            pIceServer->ipAddress.address[2],
     //            pIceServer->ipAddress.address[3]);

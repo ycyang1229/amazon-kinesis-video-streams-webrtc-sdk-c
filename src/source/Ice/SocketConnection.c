@@ -4,7 +4,6 @@
 #define LOG_CLASS "SocketConnection"
 #include "../Include_i.h"
 
-
 /**
  * @brief   Create a SocketConnection object and store it in PSocketConnection. creates a socket based on KVS_SOCKET_PROTOCOL
  *          specified, and bind it to the host ip address. If the protocol is tcp, then peer ip address is required and it will
@@ -21,14 +20,9 @@
  *
  * @return - STATUS - status of execution
  */
-STATUS createSocketConnection(  KVS_IP_FAMILY_TYPE familyType,
-                                KVS_SOCKET_PROTOCOL protocol,
-                                PKvsIpAddress pBindAddr,
-                                PKvsIpAddress pPeerIpAddr,
-                                UINT64 customData,
-                                ConnectionDataAvailableFunc dataAvailableFn,
-                                UINT32 sendBufSize,
-                                PSocketConnection* ppSocketConnection)
+STATUS createSocketConnection(KVS_IP_FAMILY_TYPE familyType, KVS_SOCKET_PROTOCOL protocol, PKvsIpAddress pBindAddr, PKvsIpAddress pPeerIpAddr,
+                              UINT64 customData, ConnectionDataAvailableFunc dataAvailableFn, UINT32 sendBufSize,
+                              PSocketConnection* ppSocketConnection)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -183,7 +177,7 @@ CleanUp:
 }
 /**
  * @brief   Given a created SocketConnection, send data through the underlying socket.
- *          If socket type is UDP, then destination address is required. 
+ *          If socket type is UDP, then destination address is required.
  *          If socket type is tcp, destination address is ignored and data is send to the peer address provided
  *          at SocketConnection creation. If socketConnectionInitSecureConnection has been called then data will be encrypted,
  *          otherwise data will be sent as is.
@@ -214,7 +208,7 @@ STATUS socketConnectionSendData(PSocketConnection pSocketConnection, PBYTE pBuf,
 
     /* Should have a valid buffer */
     CHK(pBuf != NULL && bufLen > 0, STATUS_SOCKET_INVALID_ARG);
-    //DLOGD("socket send:%d", pSocketConnection->protocol);
+    // DLOGD("socket send:%d", pSocketConnection->protocol);
     if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP && pSocketConnection->secureConnection) {
         CHK_STATUS(tlsSessionPutApplicationData(pSocketConnection->pTlsSession, pBuf, bufLen));
     } else if (pSocketConnection->protocol == KVS_SOCKET_PROTOCOL_TCP) {
@@ -351,16 +345,16 @@ BOOL socketConnectionIsConnected(PSocketConnection pSocketConnection)
     return FALSE;
 }
 /**
- * @brief 
- * 
+ * @brief
+ *
  * @param[in] pSocketConnection
  * @param[in] buf
  * @param[in] bufLen
  * @param[in] pDestIp
  * @param[in, out] pBytesWritten the number of written bytes.
- * 
+ *
  * @return
-*/
+ */
 STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, UINT32 bufLen, PKvsIpAddress pDestIp, PUINT32 pBytesWritten)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -381,7 +375,7 @@ STATUS socketSendDataWithRetry(PSocketConnection pSocketConnection, PBYTE buf, U
 
     if (pDestIp != NULL) {
         if (IS_IPV4_ADDR(pDestIp)) {
-            CHK(NULL != (pIpv4Addr =(struct sockaddr_in*) (PCHAR) MEMALLOC(SIZEOF(struct sockaddr_in))), STATUS_NOT_ENOUGH_MEMORY);
+            CHK(NULL != (pIpv4Addr = (struct sockaddr_in*) (PCHAR) MEMALLOC(SIZEOF(struct sockaddr_in))), STATUS_NOT_ENOUGH_MEMORY);
             addrLen = SIZEOF(struct sockaddr_in);
             MEMSET(pIpv4Addr, 0x00, SIZEOF(struct sockaddr_in));
             pIpv4Addr->sin_family = AF_INET;

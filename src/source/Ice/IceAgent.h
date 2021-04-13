@@ -17,18 +17,18 @@ extern "C" {
 #define KVS_ICE_CONNECTIVITY_CHECK_TIMEOUT                     10 * HUNDREDS_OF_NANOS_IN_A_SECOND
 #define KVS_ICE_CANDIDATE_NOMINATION_TIMEOUT                   10 * HUNDREDS_OF_NANOS_IN_A_SECOND
 // https://tools.ietf.org/html/rfc5245#section-10
-#define KVS_ICE_SEND_KEEP_ALIVE_INTERVAL                       15 * HUNDREDS_OF_NANOS_IN_A_SECOND
-#define KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT               1 * HUNDREDS_OF_NANOS_IN_A_SECOND
-#define KVS_ICE_DEFAULT_TIMER_START_DELAY                      3 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
-#define KVS_ICE_FSM_TIMER_START_DELAY                          20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
-#define KVS_ICE_GATHERING_TIMER_START_DELAY                    3 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+#define KVS_ICE_SEND_KEEP_ALIVE_INTERVAL         15 * HUNDREDS_OF_NANOS_IN_A_SECOND
+#define KVS_ICE_TURN_CONNECTION_SHUTDOWN_TIMEOUT 1 * HUNDREDS_OF_NANOS_IN_A_SECOND
+#define KVS_ICE_DEFAULT_TIMER_START_DELAY        3 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+#define KVS_ICE_FSM_TIMER_START_DELAY            20 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+#define KVS_ICE_GATHERING_TIMER_START_DELAY      3 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 
 // Ta in https://tools.ietf.org/html/rfc8445
-#define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL              100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
-#define KVS_ICE_STATE_READY_TIMER_POLLING_INTERVAL             1 * HUNDREDS_OF_NANOS_IN_A_SECOND
+#define KVS_ICE_CONNECTION_CHECK_POLLING_INTERVAL  100 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+#define KVS_ICE_STATE_READY_TIMER_POLLING_INTERVAL 1 * HUNDREDS_OF_NANOS_IN_A_SECOND
 /* Control the calling rate of iceCandidateGatheringTimerTask. Can affect STUN TURN candidate gathering time */
-// 
-#define KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL        50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
+//
+#define KVS_ICE_GATHER_CANDIDATE_TIMER_POLLING_INTERVAL 50 * HUNDREDS_OF_NANOS_IN_A_MILLISECOND
 
 /* ICE should've received at least one keep alive within this period. Since keep alives are send every 15s */
 #define KVS_ICE_ENTER_STATE_DISCONNECTION_GRACE_PERIOD 2 * KVS_ICE_SEND_KEEP_ALIVE_INTERVAL
@@ -137,8 +137,8 @@ typedef struct {
 typedef struct {
     UINT64 customData;
     IceInboundPacketFunc inboundPacketFn;
-    IceConnectionStateChangedFunc connectionStateChangedFn;//!< the callback for the state of ice agent is changed.
-    IceNewLocalCandidateFunc newLocalCandidateFn;//!< the callback of new local candidate for the peer connection layer.
+    IceConnectionStateChangedFunc connectionStateChangedFn; //!< the callback for the state of ice agent is changed.
+    IceNewLocalCandidateFunc newLocalCandidateFn;           //!< the callback of new local candidate for the peer connection layer.
 } IceAgentCallbacks, *PIceAgentCallbacks;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/RTCIceCandidate/candidate
@@ -146,16 +146,16 @@ typedef struct {
 // a=candidate:4234997325 1 udp 2043278322 192.168.0.56 44323 typ host
 typedef struct {
     ICE_CANDIDATE_TYPE iceCandidateType;
-    BOOL isRemote;//!< remote or local.
+    BOOL isRemote; //!< remote or local.
     KvsIpAddress ipAddress;
-    PSocketConnection pSocketConnection;//!< the socket handler of this ice candidate.
+    PSocketConnection pSocketConnection; //!< the socket handler of this ice candidate.
     ICE_CANDIDATE_STATE state;
-    UINT32 priority;//!< the priority of ice candidate.
+    UINT32 priority; //!< the priority of ice candidate.
     UINT32 iceServerIndex;
     UINT32 foundation;
     /* If candidate is local and relay, then store the
      * pTurnConnection this candidate is associated to */
-    struct __TurnConnection* pTurnConnection;//!< the context of the turn connection.
+    struct __TurnConnection* pTurnConnection; //!< the context of the turn connection.
 
     /* store pointer to iceAgent to pass it to incomingDataHandler in incomingRelayedDataHandler
      * we pass pTurnConnectionTrack as customData to incomingRelayedDataHandler to avoid look up
@@ -170,28 +170,28 @@ typedef struct {
 
 /**
  * @brief the information of ice candidate pair.
-*/
+ */
 typedef struct {
     PIceCandidate local;
     PIceCandidate remote;
     BOOL nominated;
-    BOOL firstStunRequest;//!< is the first stun req or not.
+    BOOL firstStunRequest; //!< is the first stun req or not.
     UINT64 priority;
     ICE_CANDIDATE_PAIR_STATE state;
     PTransactionIdStore pTransactionIdStore;
-    UINT64 lastDataSentTime;//!< the time of the latest sending packet.
-    PHashTable requestSentTime;//!< for the stat
+    UINT64 lastDataSentTime;    //!< the time of the latest sending packet.
+    PHashTable requestSentTime; //!< for the stat
     UINT64 roundTripTime;
     UINT64 responsesReceived;
     RtcIceCandidatePairDiagnostics rtcIceCandidatePairDiagnostics;
 } IceCandidatePair, *PIceCandidatePair;
 
 struct __IceAgent {
-    volatile ATOMIC_BOOL agentStartGathering;//!< indicate the ice agent is starting gathering or not.
-    volatile ATOMIC_BOOL remoteCredentialReceived;//!< true: receive the username/password of remote peer.
+    volatile ATOMIC_BOOL agentStartGathering;      //!< indicate the ice agent is starting gathering or not.
+    volatile ATOMIC_BOOL remoteCredentialReceived; //!< true: receive the username/password of remote peer.
     volatile ATOMIC_BOOL candidateGatheringFinished;
     volatile ATOMIC_BOOL shutdown;
-    volatile ATOMIC_BOOL restart;//!< indicate the ice agent is restarting or not.
+    volatile ATOMIC_BOOL restart; //!< indicate the ice agent is restarting or not.
     volatile ATOMIC_BOOL processStun;
 
     CHAR localUsername[MAX_ICE_CONFIG_USER_NAME_LEN + 1];
@@ -206,7 +206,7 @@ struct __IceAgent {
 
     PHashTable requestTimestampDiagnostics;
 
-    PDoubleList localCandidates;//!< store all the local candidates including host, server-reflexive, and relayed.
+    PDoubleList localCandidates; //!< store all the local candidates including host, server-reflexive, and relayed.
     PDoubleList remoteCandidates;
     // store PIceCandidatePair which will be immediately checked for connectivity when the timer is fired.
     // #YC_TBD, receive the stun request, and store the corresponding candidate pair into this queue.
@@ -215,10 +215,10 @@ struct __IceAgent {
     // https://tools.ietf.org/html/rfc5245#section-5.8
     // https://tools.ietf.org/html/rfc5245#section-7.2.1.4
     PStackQueue triggeredCheckQueue;
-    PDoubleList iceCandidatePairs;//!< the ice candidate pairs.
+    PDoubleList iceCandidatePairs; //!< the ice candidate pairs.
 
     PConnectionListener pConnectionListener;
-    
+
     BOOL isControlling; //!< https://tools.ietf.org/html/rfc5245#section-5.2
                         //!< if we are the controlling ice agent, we need to nominate the ice candidate.
                         //!< basically, if you create the offer, you are the controlling ice agent.
@@ -232,12 +232,12 @@ struct __IceAgent {
     UINT32 iceCandidateGatheringTimerTask;
 
     // Current ice agent state
-    UINT64 iceAgentState;//!< used for the setup of ice agent fsm.
+    UINT64 iceAgentState; //!< used for the setup of ice agent fsm.
     // The state machine
     PStateMachine pStateMachine;
     STATUS iceAgentStatus;
     UINT64 stateEndTime;
-    UINT64 candidateGatheringEndTime;//!< the end time of gathering ice candidates.
+    UINT64 candidateGatheringEndTime; //!< the end time of gathering ice candidates.
     PIceCandidatePair pDataSendingIceCandidatePair;
 
     IceAgentCallbacks iceAgentCallbacks;
@@ -250,19 +250,19 @@ struct __IceAgent {
 
     UINT32 foundationCounter;
 
-    UINT32 relayCandidateCount;//!< the number of relay candidates.
+    UINT32 relayCandidateCount; //!< the number of relay candidates.
 
     TIMER_QUEUE_HANDLE timerQueueHandle;
     UINT64 lastDataReceivedTime;
     BOOL detectedDisconnection;
-    UINT64 disconnectionGracePeriodEndTime;//!< if ice agent enters the disconnected state, it will have grace period to recover.
+    UINT64 disconnectionGracePeriodEndTime; //!< if ice agent enters the disconnected state, it will have grace period to recover.
 
     ICE_TRANSPORT_POLICY iceTransportPolicy;
     KvsRtcConfiguration kvsRtcConfiguration;
 
     // Pre-allocated stun packets
     PStunPacket pBindingIndication;
-    PStunPacket pBindingRequest;//!< the packet of binding request.
+    PStunPacket pBindingRequest; //!< the packet of binding request.
 
     // store transaction ids for stun binding request.
     PTransactionIdStore pStunBindingRequestTransactionIdStore;
@@ -344,8 +344,6 @@ STATUS iceCandidateSerialize(PIceCandidate, PCHAR, PUINT32);
  * @return - STATUS - status of execution
  */
 STATUS iceAgentSendPacket(PIceAgent, PBYTE, UINT32);
-
-
 
 /**
  * Starting from given index, fillout PSdpMediaDescription->sdpAttributes with serialize local candidate strings.

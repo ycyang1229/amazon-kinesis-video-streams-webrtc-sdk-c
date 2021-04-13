@@ -389,7 +389,7 @@ typedef enum {
     ICE_TRANSPORT_POLICY_RELAY = 1, //!< The ICE Agent uses only media relay candidates such as candidates
                                     //!< passing through a TURN server
 
-    ICE_TRANSPORT_POLICY_ALL = 2, //!< The ICE Agent can use any type of candidate when this value is specified.
+    ICE_TRANSPORT_POLICY_ALL = 2,       //!< The ICE Agent can use any type of candidate when this value is specified.
     ICE_TRANSPORT_POLICY_INVALID = 0xFF //!< invalid value.
 } ICE_TRANSPORT_POLICY;
 
@@ -449,8 +449,8 @@ typedef enum {
     SIGNALING_CLIENT_STATE_CONNECTED,       //!< On transitioning to this state, the timeout on the state machine is reset
     SIGNALING_CLIENT_STATE_DISCONNECTED,    //!< This state transition happens either from connect or connected state
     SIGNALING_CLIENT_STATE_DELETE,          //!< This state transition happens when the application calls signalingClientDelete API.
-    SIGNALING_CLIENT_STATE_DELETED, //!< This state transition happens after the channel gets deleted as a result of a signalingClientDelete API.
-                                    //!< This is a terminal state.
+    SIGNALING_CLIENT_STATE_DELETED,   //!< This state transition happens after the channel gets deleted as a result of a signalingClientDelete API.
+                                      //!< This is a terminal state.
     SIGNALING_CLIENT_STATE_MAX_VALUE, //!< This state indicates maximum number of signaling client states
 } SIGNALING_CLIENT_STATE,
     *PSIGNALING_CLIENT_STATE;
@@ -1478,7 +1478,7 @@ PUBLIC_API PCHAR getNatBehaviorStr(NAT_BEHAVIOR natBehavior);
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
 PUBLIC_API STATUS signalingClientCreate(PSignalingClientInfo, PChannelInfo, PSignalingClientCallbacks, PAwsCredentialProvider,
-                                            PSIGNALING_CLIENT_HANDLE);
+                                        PSIGNALING_CLIENT_HANDLE);
 
 /**
  * @brief Frees the Signaling client object
@@ -1620,4 +1620,3 @@ PUBLIC_API STATUS rtcPeerConnectionGetMetrics(PRtcPeerConnection, PRtcRtpTransce
 }
 #endif
 #endif /* __KINESIS_VIDEO_WEBRTC_CLIENT_INCLUDE__ */
-

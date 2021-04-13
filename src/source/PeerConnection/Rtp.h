@@ -31,8 +31,8 @@ typedef struct {
     PayloadArray payloadArray;
 
     RtcMediaStreamTrack track;
-    PRtpRollingBuffer packetBuffer;//!< the rolling buffer.
-    PRetransmitter retransmitter;//!< the re-transmission buffer.
+    PRtpRollingBuffer packetBuffer; //!< the rolling buffer.
+    PRetransmitter retransmitter;   //!< the re-transmission buffer.
 
     UINT64 rtpTimeOffset;
     UINT64 firstFrameWallClockTime; // 100ns precision
@@ -44,8 +44,8 @@ typedef struct {
 } RtcRtpSender, *PRtcRtpSender;
 
 /**
- * @brief   
-*/
+ * @brief
+ */
 typedef struct {
     RtcRtpTransceiver transceiver;
     RtcRtpSender sender;

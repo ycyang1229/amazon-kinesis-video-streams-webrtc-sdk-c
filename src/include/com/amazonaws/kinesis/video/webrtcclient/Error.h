@@ -377,7 +377,6 @@ extern "C" {
 #define STATUS_RTCP_NULL_ARG                     STATUS_RTCP_BASE + 0x00000009
 /*!@} */
 
-
 /////////////////////////////////////////////////////
 /// Rolling buffer related status codes
 /////////////////////////////////////////////////////
@@ -391,7 +390,6 @@ extern "C" {
 #define STATUS_ROLLING_BUFFER_NOT_IN_RANGE STATUS_ROLLING_BUFFER_BASE + 0x00000001
 /*!@} */
 
-
 /////////////////////////////////////////////////////
 /// AWSSignerV4 related status codes
 /////////////////////////////////////////////////////
@@ -400,11 +398,9 @@ extern "C" {
  * WEBRTC AWSSignerV4 related codes. Values are derived from STATUS_AWS_SIGNER_BASE (0x62000000)
  *  @{
  */
-#define STATUS_AWS_SIGNER_BASE                         STATUS_ROLLING_BUFFER_BASE + 0x01000000
-#define STATUS_AWS_SIGNER_FAIL_TO_CALCULATE_HASH       STATUS_AWS_SIGNER_BASE + 0x00000001
+#define STATUS_AWS_SIGNER_BASE                   STATUS_ROLLING_BUFFER_BASE + 0x01000000
+#define STATUS_AWS_SIGNER_FAIL_TO_CALCULATE_HASH STATUS_AWS_SIGNER_BASE + 0x00000001
 /*!@} */
-
-
 
 /////////////////////////////////////////////////////
 /// Json related status codes
@@ -414,10 +410,9 @@ extern "C" {
  * WEBRTC json related codes. Values are derived from STATUS_JSON_BASE (0x63000000)
  *  @{
  */
-#define STATUS_JSON_BASE                         STATUS_AWS_SIGNER_BASE + 0x01000000
-#define STATUS_JSON_PARSE_ERROR                  STATUS_JSON_BASE + 0x00000001
+#define STATUS_JSON_BASE        STATUS_AWS_SIGNER_BASE + 0x01000000
+#define STATUS_JSON_PARSE_ERROR STATUS_JSON_BASE + 0x00000001
 /*!@} */
-
 
 /////////////////////////////////////////////////////
 /// http related status codes
@@ -427,13 +422,12 @@ extern "C" {
  * WEBRTC http related codes. Values are derived from STATUS_JSON_BASE (0x64000000)
  *  @{
  */
-#define STATUS_HTTP_BASE                         STATUS_JSON_BASE + 0x01000000
-#define STATUS_HTTP_RES_NOT_FOUND_ERROR          STATUS_HTTP_BASE + 0x00000001
-#define STATUS_HTTP_REST_EXCEPTION_ERROR         STATUS_HTTP_BASE + 0x00000002
-#define STATUS_HTTP_REST_NOT_AUTHORIZED_ERROR    STATUS_HTTP_BASE + 0x00000003
-#define STATUS_HTTP_REST_UNKNOWN_ERROR           STATUS_HTTP_BASE + 0x00000004
+#define STATUS_HTTP_BASE                      STATUS_JSON_BASE + 0x01000000
+#define STATUS_HTTP_RES_NOT_FOUND_ERROR       STATUS_HTTP_BASE + 0x00000001
+#define STATUS_HTTP_REST_EXCEPTION_ERROR      STATUS_HTTP_BASE + 0x00000002
+#define STATUS_HTTP_REST_NOT_AUTHORIZED_ERROR STATUS_HTTP_BASE + 0x00000003
+#define STATUS_HTTP_REST_UNKNOWN_ERROR        STATUS_HTTP_BASE + 0x00000004
 /*!@} */
-
 
 /////////////////////////////////////////////////////
 /// wss related status codes
@@ -443,24 +437,19 @@ extern "C" {
  * WEBRTC wss related codes. Values are derived from STATUS_JSON_BASE (0x65000000)
  *  @{
  */
-#define STATUS_WSS_BASE                         STATUS_HTTP_BASE + 0x01000000
-#define STATUS_WSS_CLIENT_SEND_FAILED           STATUS_WSS_BASE + 0x00000001
-#define STATUS_WSS_CLIENT_RECV_FAILED           STATUS_WSS_BASE + 0x00000001
-#define STATUS_WSS_UPGRADE_CONNECTION_ERROR     STATUS_WSS_BASE + 0x00000002
-#define STATUS_WSS_UPGRADE_PROTOCOL_ERROR       STATUS_WSS_BASE + 0x00000003
-#define STATUS_WSS_ACCEPT_KEY_ERROR             STATUS_WSS_BASE + 0x00000004
-#define STATUS_WSS_GENERATE_CLIENT_KEY_ERROR    STATUS_WSS_BASE + 0x00000005
-#define STATUS_WSS_GENERATE_ACCEPT_KEY_ERROR    STATUS_WSS_BASE + 0x00000005
-#define STATUS_WSS_VALIDATE_ACCEPT_KEY_ERROR    STATUS_WSS_BASE + 0x00000006
-#define STATUS_WSS_GENERATE_RANDOM_NUM_ERROR    STATUS_WSS_BASE + 0x00000007
+#define STATUS_WSS_BASE                      STATUS_HTTP_BASE + 0x01000000
+#define STATUS_WSS_CLIENT_SEND_FAILED        STATUS_WSS_BASE + 0x00000001
+#define STATUS_WSS_CLIENT_RECV_FAILED        STATUS_WSS_BASE + 0x00000001
+#define STATUS_WSS_UPGRADE_CONNECTION_ERROR  STATUS_WSS_BASE + 0x00000002
+#define STATUS_WSS_UPGRADE_PROTOCOL_ERROR    STATUS_WSS_BASE + 0x00000003
+#define STATUS_WSS_ACCEPT_KEY_ERROR          STATUS_WSS_BASE + 0x00000004
+#define STATUS_WSS_GENERATE_CLIENT_KEY_ERROR STATUS_WSS_BASE + 0x00000005
+#define STATUS_WSS_GENERATE_ACCEPT_KEY_ERROR STATUS_WSS_BASE + 0x00000005
+#define STATUS_WSS_VALIDATE_ACCEPT_KEY_ERROR STATUS_WSS_BASE + 0x00000006
+#define STATUS_WSS_GENERATE_RANDOM_NUM_ERROR STATUS_WSS_BASE + 0x00000007
 /*!@} */
-
-
-
-
 
 #ifdef __cplusplus
 }
 #endif
 #endif /* __KINESIS_VIDEO_WEBRTC_CLIENT_ERROR__ */
-
