@@ -1,18 +1,16 @@
 #define LOG_CLASS "WssApiRsp"
 #include "../Include_i.h"
 
-#define WSS_RSP_ENTER() //DLOGD("enter")
-#define WSS_RSP_EXIT() //DLOGD("exit")
-
-
+#define WSS_RSP_ENTER() // DLOGD("enter")
+#define WSS_RSP_EXIT()  // DLOGD("exit")
 
 /**
  * @brief   https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis-7.html
- *   
+ *
  * @param[in]
  * @return
-*/
-STATUS wssApiRspReceivedMessage( const CHAR * pMessage, UINT32 messageLen, PSignalingMessageWrapper pSignalingMessageWrapper)
+ */
+STATUS wssApiRspReceivedMessage(const CHAR* pMessage, UINT32 messageLen, PSignalingMessageWrapper pSignalingMessageWrapper)
 {
     WSS_RSP_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
@@ -21,7 +19,6 @@ STATUS wssApiRspReceivedMessage( const CHAR * pMessage, UINT32 messageLen, PSign
     UINT32 tokenCount;
     UINT32 i, strLen, outLen = MAX_SIGNALING_MESSAGE_LEN;
     BOOL parsedMessageType = FALSE, parsedStatusResponse = FALSE;
-
 
     CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT * SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
     jsmn_init(&parser);
@@ -43,7 +40,7 @@ STATUS wssApiRspReceivedMessage( const CHAR * pMessage, UINT32 messageLen, PSign
             strLen = (UINT32)(pTokens[i + 1].end - pTokens[i + 1].start);
             CHK(strLen <= MAX_SIGNALING_MESSAGE_TYPE_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
             CHK_STATUS(wssGetMessageTypeFromString(pMessage + pTokens[i + 1].start, strLen,
-                                                &pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType));
+                                                   &pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType));
 
             parsedMessageType = TRUE;
             i++;
@@ -56,7 +53,7 @@ STATUS wssApiRspReceivedMessage( const CHAR * pMessage, UINT32 messageLen, PSign
                                     (PBYTE)(pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payload), &outLen));
             pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payload[MAX_SIGNALING_MESSAGE_LEN] = '\0';
             pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payloadLen = outLen;
-            //DLOGD("decoded payload:%s", pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payload);
+            // DLOGD("decoded payload:%s", pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.payload);
             i++;
         } else {
             if (!parsedStatusResponse) {
@@ -86,7 +83,7 @@ STATUS wssApiRspReceivedMessage( const CHAR * pMessage, UINT32 messageLen, PSign
 
                     // Parse the status code
                     CHK_STATUS(STRTOUI32(pMessage + pTokens[i + 1].start, pMessage + pTokens[i + 1].end, 10,
-                                         (PUINT32)&pSignalingMessageWrapper->receivedSignalingMessage.statusCode));
+                                         (PUINT32) &pSignalingMessageWrapper->receivedSignalingMessage.statusCode));
 
                     i++;
                 } else if (compareJsonString(pMessage, &pTokens[i], JSMN_STRING, (PCHAR) "description")) {
@@ -108,5 +105,3 @@ CleanUp:
     WSS_RSP_EXIT();
     return retStatus;
 }
-
-

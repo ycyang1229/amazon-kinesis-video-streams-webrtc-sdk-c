@@ -22,10 +22,9 @@
 extern "C" {
 #endif
 
+PCHAR json_object_dotget_serialize_to_string(const JSON_Object* pRootObject, const PCHAR pName, BOOL bRemoveQuotes);
 
-PCHAR json_object_dotget_serialize_to_string( const JSON_Object *pRootObject, const PCHAR pName, BOOL bRemoveQuotes );
-
-UINT64 json_object_dotget_uint64( const JSON_Object *pRootObject, const PCHAR pName, INT32 base );
+UINT64 json_object_dotget_uint64(const JSON_Object* pRootObject, const PCHAR pName, INT32 base);
 
 #ifdef __cplusplus
 }

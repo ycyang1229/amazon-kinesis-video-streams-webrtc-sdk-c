@@ -4,13 +4,13 @@
 /**
  * @brief   Takes in a pointer to a public version of ChannelInfo object.
  *          Validates and creates an internal object
- * 
+ *
  * @param[in]
  * @param[in, out] ppChannelInfo the context of channel info.
- * 
+ *
  * @return STATUS code of the execution
- * 
-*/
+ *
+ */
 STATUS createValidateChannelInfo(PChannelInfo pOrigChannelInfo, PChannelInfo* ppChannelInfo)
 {
     ENTERS();

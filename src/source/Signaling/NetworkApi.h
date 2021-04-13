@@ -16,7 +16,6 @@
 #ifndef __KINESIS_VIDEO_WEBRTC_NETWORK_API_H__
 #define __KINESIS_VIDEO_WEBRTC_NETWORK_API_H__
 
-
 #pragma once
 
 #ifdef __cplusplus
@@ -27,27 +26,24 @@ extern "C" {
 //#include <mbedtls/ctr_drbg.h>
 //#include <mbedtls/entropy.h>
 
-
 /* The size of HTTP send buffer */
-#define MAX_HTTP_SEND_BUFFER_LEN            ( 2048 )
+#define MAX_HTTP_SEND_BUFFER_LEN (2048)
 
 /* The size of HTTP receive buffer */
-#define MAX_HTTP_RECV_BUFFER_LEN            ( 2048 )
+#define MAX_HTTP_RECV_BUFFER_LEN (2048)
 
-struct tls_context{
-  // net related.
-  mbedtls_net_context socket;
-  // tls library related.
-  mbedtls_entropy_context entropy;
-  mbedtls_ctr_drbg_context ctrDrbg;
-  mbedtls_ssl_config sslConfig;
-  mbedtls_ssl_context sslCtx;
-  mbedtls_x509_crt cacert;
-}tls_context_t;
+struct tls_context {
+    // net related.
+    mbedtls_net_context socket;
+    // tls library related.
+    mbedtls_entropy_context entropy;
+    mbedtls_ctr_drbg_context ctrDrbg;
+    mbedtls_ssl_config sslConfig;
+    mbedtls_ssl_context sslCtx;
+    mbedtls_x509_crt cacert;
+} tls_context_t;
 
-
-struct NetworkContext
-{
+struct NetworkContext {
     /* Basic ssl connection parameters */
     mbedtls_net_context server_fd;
     mbedtls_ssl_context ssl;
@@ -56,14 +52,14 @@ struct NetworkContext
     mbedtls_entropy_context entropy;
 
     /* Variables for IoT credential provider. It's optional feature so we declare them as pointers. */
-    mbedtls_x509_crt *pRootCA;
-    mbedtls_x509_crt *pClientCert;
-    mbedtls_pk_context *pPrivateKey;
+    mbedtls_x509_crt* pRootCA;
+    mbedtls_x509_crt* pClientCert;
+    mbedtls_pk_context* pPrivateKey;
 
     /* HTTP send and receive buffer */
-    uint8_t *pHttpSendBuffer;
+    uint8_t* pHttpSendBuffer;
     size_t uHttpSendBufferLen;
-    uint8_t *pHttpRecvBuffer;
+    uint8_t* pHttpRecvBuffer;
     size_t uHttpRecvBufferLen;
 };
 typedef struct NetworkContext NetworkContext_t;
@@ -77,7 +73,7 @@ typedef struct NetworkContext NetworkContext_t;
  *
  * @return KVS error code
  */
-STATUS initNetworkContext( NetworkContext_t * pNetworkContext );
+STATUS initNetworkContext(NetworkContext_t* pNetworkContext);
 
 /**
  * @brief Terminate network context
@@ -86,7 +82,7 @@ STATUS initNetworkContext( NetworkContext_t * pNetworkContext );
  *
  * @param pNetworkContext Network context
  */
-VOID terminateNetworkContext( NetworkContext_t * pNetworkContext );
+VOID terminateNetworkContext(NetworkContext_t* pNetworkContext);
 
 /**
  * @breif Connect to server with or without X509 certificates
@@ -103,12 +99,8 @@ VOID terminateNetworkContext( NetworkContext_t * pNetworkContext );
  *
  * @return KVS error code
  */
-STATUS connectToServerWithX509Cert( NetworkContext_t * pNetworkContext,
-                                     const PCHAR pServerHost,
-                                     const PCHAR pServerPort,
-                                     const PCHAR pRootCA,
-                                     const PCHAR pCertificate,
-                                     const PCHAR pPrivateKey );
+STATUS connectToServerWithX509Cert(NetworkContext_t* pNetworkContext, const PCHAR pServerHost, const PCHAR pServerPort, const PCHAR pRootCA,
+                                   const PCHAR pCertificate, const PCHAR pPrivateKey);
 
 /**
  * @brief Connect to server without X509 certificates
@@ -119,7 +111,7 @@ STATUS connectToServerWithX509Cert( NetworkContext_t * pNetworkContext,
  *
  * @return KVS error code
  */
-STATUS connectToServer( NetworkContext_t * pNetworkContext, const PCHAR pServerHost, const PCHAR pServerPort );
+STATUS connectToServer(NetworkContext_t* pNetworkContext, const PCHAR pServerHost, const PCHAR pServerPort);
 
 /**
  * @brief Disconnect from Server
@@ -128,7 +120,7 @@ STATUS connectToServer( NetworkContext_t * pNetworkContext, const PCHAR pServerH
  *
  * @return KVS error code
  */
-STATUS disconnectFromServer( NetworkContext_t * pNetworkContext );
+STATUS disconnectFromServer(NetworkContext_t* pNetworkContext);
 
 /**
  * @brief Send data
@@ -141,7 +133,7 @@ STATUS disconnectFromServer( NetworkContext_t * pNetworkContext );
  *
  * @return The number of bytes sent or a negative KVS error code.
  */
-INT32 networkSend( NetworkContext_t * pNetworkContext, const PVOID pBuffer, SIZE_T uBytesToSend );
+INT32 networkSend(NetworkContext_t* pNetworkContext, const PVOID pBuffer, SIZE_T uBytesToSend);
 
 /**
  * @brief Non-blocking API to check if any incoming data avaiable.
@@ -150,7 +142,7 @@ INT32 networkSend( NetworkContext_t * pNetworkContext, const PVOID pBuffer, SIZE
  *
  * @return KVS error code
  */
-int32_t isRecvDataAvailable( NetworkContext_t * pNetworkContext );
+int32_t isRecvDataAvailable(NetworkContext_t* pNetworkContext);
 
 /**
  * @brief Receive data
@@ -163,7 +155,7 @@ int32_t isRecvDataAvailable( NetworkContext_t * pNetworkContext );
  *
  * @return The number of bytes received or a negative KVS error code.
  */
-INT32 networkRecv( NetworkContext_t * pNetworkContext, PVOID pBuffer, SIZE_T uBytesToRecv );
+INT32 networkRecv(NetworkContext_t* pNetworkContext, PVOID pBuffer, SIZE_T uBytesToRecv);
 
 #ifdef __cplusplus
 }

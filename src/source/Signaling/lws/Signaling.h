@@ -73,7 +73,7 @@ typedef STATUS (*SignalingApiCallHookFunc)(UINT64);
 
 /**
  * @brief   Internal client info object
-*/
+ */
 typedef struct {
     // Public client info structure
     SignalingClientInfo signalingClientInfo;
@@ -100,8 +100,8 @@ typedef struct {
     SignalingApiCallHookFunc getEndpointPostHookFn;
     SignalingApiCallHookFunc getIceConfigPreHookFn;
     SignalingApiCallHookFunc getIceConfigPostHookFn;
-    SignalingApiCallHookFunc connectPreHookFn;//!< the pre-hook function of connecting signaling channel.
-    SignalingApiCallHookFunc connectPostHookFn;//!< the post-hook function of connecting signaling channel.
+    SignalingApiCallHookFunc connectPreHookFn;  //!< the pre-hook function of connecting signaling channel.
+    SignalingApiCallHookFunc connectPostHookFn; //!< the post-hook function of connecting signaling channel.
     SignalingApiCallHookFunc deletePreHookFn;
     SignalingApiCallHookFunc deletePostHookFn;
 } SignalingClientInfoInternal, *PSignalingClientInfoInternal;
@@ -136,23 +136,23 @@ typedef struct {
  * Internal representation of the Signaling client.
  */
 typedef struct {
-    volatile SIZE_T result;//!< Current service call result
+    volatile SIZE_T result; //!< Current service call result
     // Sent message result
-    volatile SIZE_T messageResult;//!< the message result of websocket service. SERVICE_CALL_RESULT.
+    volatile SIZE_T messageResult; //!< the message result of websocket service. SERVICE_CALL_RESULT.
 
     // Client is ready to connect to signaling channel
-    volatile ATOMIC_BOOL clientReady;//!< Inidicate the singaling fsm is ready.
+    volatile ATOMIC_BOOL clientReady; //!< Inidicate the singaling fsm is ready.
 
     // Shutting down the entire client
-    volatile ATOMIC_BOOL shutdown;//!< Indicate the signaling is freed.
+    volatile ATOMIC_BOOL shutdown; //!< Indicate the signaling is freed.
 
     // Wss is connected
-    volatile ATOMIC_BOOL connected;//!< Indidcate the signaling is connected or not by receiving the following lws message
+    volatile ATOMIC_BOOL connected; //!< Indidcate the signaling is connected or not by receiving the following lws message
                                     //!< LWS_CALLBACK_CLIENT_ESTABLISHED
                                     //!< LWS_CALLBACK_CLIENT_CONNECTION_ERROR
 
     // The channel is being deleted
-    volatile ATOMIC_BOOL deleting;//!< Indicate the signaling is deleting.
+    volatile ATOMIC_BOOL deleting; //!< Indicate the signaling is deleting.
 
     // The channel is deleted
     volatile ATOMIC_BOOL deleted;
@@ -187,12 +187,12 @@ typedef struct {
     PChannelInfo pChannelInfo;
 
     // Returned signaling channel description
-    SignalingChannelDescription channelDescription;//!< the information from calling the api of describing the channel.
+    SignalingChannelDescription channelDescription; //!< the information from calling the api of describing the channel.
 
     /**
      * https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_ResourceEndpointListItem.html
-    */
-   // Signaling endpoint
+     */
+    // Signaling endpoint
     CHAR channelEndpointWss[MAX_SIGNALING_ENDPOINT_URI_LEN + 1];
 
     // Signaling endpoint
@@ -214,7 +214,7 @@ typedef struct {
     ServiceCallContext serviceCallContext;
 
     // Indicates whether to self-prime on Ready or not
-    BOOL continueOnReady;//!< Indicate connect to signaling channel or not.
+    BOOL continueOnReady; //!< Indicate connect to signaling channel or not.
 
     // Interlocking the state transitions
     MUTEX stateLock;
@@ -242,14 +242,14 @@ typedef struct {
     UINT64 stepUntil;
 
     // Ongoing listener call info
-    PLwsCallInfo pOngoingCallInfo;//!< setup by the lws aip of connecting signaling channel.
+    PLwsCallInfo pOngoingCallInfo; //!< setup by the lws aip of connecting signaling channel.
 
     // Listener thread for the socket
     ThreadTracker listenerTracker;
 
     // Restarted thread handler
-    ThreadTracker reconnecterTracker;//!< receive the connection error msg or closed msg from lws.
-                                        //!< spin off one thread to re-connect.
+    ThreadTracker reconnecterTracker; //!< receive the connection error msg or closed msg from lws.
+                                      //!< spin off one thread to re-connect.
 
     // LWS context to use for Restful API
     struct lws_context* pLwsContext;
@@ -258,16 +258,16 @@ typedef struct {
     struct lws_protocols signalingProtocols[3];
 
     // List of the ongoing messages
-    PStackQueue pMessageQueue;//!< the queue of singaling ongoing messsages.
+    PStackQueue pMessageQueue; //!< the queue of singaling ongoing messsages.
 
     // Message queue lock
-    MUTEX messageQueueLock;//!< the lock of signaling ongoing message queue.
+    MUTEX messageQueueLock; //!< the lock of signaling ongoing message queue.
 
     // LWS needs to be locked
     MUTEX lwsServiceLock;
 
     // Serialized access to LWS service call
-    MUTEX lwsSerializerLock;//!< the lock of lws service call.
+    MUTEX lwsSerializerLock; //!< the lock of lws service call.
 
     // Re-entrant lock for diagnostics/stats
     MUTEX diagnosticsLock;
@@ -279,12 +279,12 @@ typedef struct {
     SignalingDiagnostics diagnostics;
 
     // Tracking when was the Last time the APIs were called
-    UINT64 describeTime;//!< the time of describing the channel.
+    UINT64 describeTime; //!< the time of describing the channel.
     UINT64 createTime;
     UINT64 getEndpointTime;
     UINT64 getIceConfigTime;
     UINT64 deleteTime;
-    UINT64 connectTime;//!< 
+    UINT64 connectTime; //!<
 } SignalingClient, *PSignalingClient;
 
 // Public handle to and from object converters

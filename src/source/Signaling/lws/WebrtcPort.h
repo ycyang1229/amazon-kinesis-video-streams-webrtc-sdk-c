@@ -27,7 +27,7 @@ extern "C" {
  *
  * @param[in] ms The desired milliseconds to sleep
  */
-VOID sleepInMs( UINT32 ms );
+VOID sleepInMs(UINT32 ms);
 
 /**
  * @brief Return time in ISO 8601 format: YYYYMMDD'T'HHMMSS'Z'
@@ -39,7 +39,7 @@ VOID sleepInMs( UINT32 ms );
  * @param[out] uBufSize The buffer size
  * @return
  */
-INT32 getTimeInIso8601( CHAR *buf, UINT32 uBufSize );
+INT32 getTimeInIso8601(CHAR* buf, UINT32 uBufSize);
 #ifdef __cplusplus
 }
 #endif

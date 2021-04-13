@@ -22,21 +22,21 @@
 extern "C" {
 #endif
 
-typedef struct{
+typedef struct {
     PCHAR field;
     UINT32 fieldLen;
     PCHAR value;
     UINT32 valueLen;
     struct list_head list;
-}HttpField, *PHttpField;
+} HttpField, *PHttpField;
 
-typedef struct{
+typedef struct {
     UINT32 httpStatusCode;
     UINT32 httpBodyLen;
     PCHAR phttpBodyLoc;
     HttpField curField;
     struct list_head* requiredHeader;
-}HttpResponseContext, *PHttpResponseContext;
+} HttpResponseContext, *PHttpResponseContext;
 
 INT32 httpParserAddRequiredHeader(struct list_head* head, PCHAR field, UINT32 fieldLen, PCHAR value, UINT32 valudLen);
 PHttpField httpParserGetValueByField(struct list_head* head, PCHAR field, UINT32 fieldLen);
@@ -46,8 +46,9 @@ UINT32 httpParserGetHttpBodyLength(PHttpResponseContext pHttpRspCtx);
 STATUS httpParserStart(PHttpResponseContext* ppHttpRspCtx, PCHAR pBuf, UINT32 uLen, struct list_head* requiredHeader);
 STATUS httpParserDetroy(PHttpResponseContext pHttpRspCtx);
 
-STATUS httpPackSendBuf(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT32 hostLen, PCHAR outputBuf, UINT32 bufLen, BOOL bWss, PCHAR clientKey);
+STATUS httpPackSendBuf(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT32 hostLen, PCHAR outputBuf, UINT32 bufLen, BOOL bWss,
+                       PCHAR clientKey);
 #ifdef __cplusplus
 }
 #endif
-#endif/* __KINESIS_VIDEO_WEBRTC_HTTP_HELPER_H__ */
+#endif /* __KINESIS_VIDEO_WEBRTC_HTTP_HELPER_H__ */

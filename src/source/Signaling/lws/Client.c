@@ -12,11 +12,8 @@
  *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
  */
-STATUS signalingClientCreate(PSignalingClientInfo pClientInfo,
-                                    PChannelInfo pChannelInfo,
-                                    PSignalingClientCallbacks pCallbacks,
-                                    PAwsCredentialProvider pCredentialProvider,
-                                    PSIGNALING_CLIENT_HANDLE pSignalingHandle)
+STATUS signalingClientCreate(PSignalingClientInfo pClientInfo, PChannelInfo pChannelInfo, PSignalingClientCallbacks pCallbacks,
+                             PAwsCredentialProvider pCredentialProvider, PSIGNALING_CLIENT_HANDLE pSignalingHandle)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;

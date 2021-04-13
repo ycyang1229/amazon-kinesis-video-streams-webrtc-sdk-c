@@ -7,9 +7,9 @@
 static BOOL gInterruptedFlagBySignalHandler;
 /**
  * @brief   signals the interrut to abort the blocking calls.
- * 
+ *
  * @param[in] signal the signal type.
-*/
+ */
 VOID lwsSignalHandler(INT32 signal)
 {
     UNUSED_PARAM(signal);
@@ -17,7 +17,7 @@ VOID lwsSignalHandler(INT32 signal)
 }
 /**
  * @brief   the callback of lws https routine.
-*/
+ */
 INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, PVOID user, PVOID pDataIn, size_t dataSize)
 {
     UNUSED_PARAM(user);
@@ -188,7 +188,7 @@ INT32 lwsHttpCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, 
             break;
 
         case LWS_CALLBACK_CLIENT_HTTP_WRITEABLE:
-            //DLOGD("Sending the body %.*s, size %d", pRequestInfo->bodySize, pRequestInfo->body, pRequestInfo->bodySize);
+            // DLOGD("Sending the body %.*s, size %d", pRequestInfo->bodySize, pRequestInfo->body, pRequestInfo->bodySize);
             MEMCPY(pBuffer, pRequestInfo->body, pRequestInfo->bodySize);
 
             size = lws_write(wsi, (PBYTE) pBuffer, (SIZE_T) pRequestInfo->bodySize, LWS_WRITE_TEXT);
@@ -235,15 +235,15 @@ CleanUp:
 
 /**
  * @brief   the callback from lws.
- * 
+ *
  * @param[in]
  * @param[in]
  * @param[in]
  * @param[in]
  * @param[in]
- * 
+ *
  * @return
-*/
+ */
 INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, PVOID user, PVOID pDataIn, size_t dataSize)
 {
     UNUSED_PARAM(user);
@@ -321,7 +321,7 @@ INT32 lwsWssCallbackRoutine(struct lws* wsi, enum lws_callback_reasons reason, P
 
             break;
         /**< after your client connection completed the websocket upgrade
-	     * handshake with the remote server */
+         * handshake with the remote server */
         case LWS_CALLBACK_CLIENT_ESTABLISHED:
             DLOGD("Connection established");
 
@@ -479,11 +479,11 @@ CleanUp:
 }
 /**
  * @brief   performing a blocking call.
- * 
+ *
  * @param[in] pCallInfo
- * 
+ *
  * @return
-*/
+ */
 STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
 {
     ENTERS();
@@ -501,9 +501,8 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
 
     CHK_STATUS(requestRequiresSecureConnection(pCallInfo->callInfo.pRequestInfo->url, &secureConnection));
     DLOGV("Perform %s synchronous call for URL: %s", secureConnection ? "secure" : EMPTY_STRING, pCallInfo->callInfo.pRequestInfo->url);
-    
+
     if (pCallInfo->protocolIndex == PROTOCOL_INDEX_WSS) {
-        
         pVerb = NULL;
 
         // Remove the header as it will be added back by LWS
@@ -516,7 +515,7 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
         CHK_STATUS(removeRequestHeaders(pCallInfo->callInfo.pRequestInfo));
     } else {
         pVerb = HTTP_REQUEST_VERB_POST_STRING;
-        
+
         // Sign the request
         CHK_STATUS(signAwsRequestInfo(pCallInfo->callInfo.pRequestInfo));
 
@@ -531,10 +530,9 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
     connectInfo.context = pContext;
     connectInfo.ssl_connection = LCCSCF_USE_SSL;
     connectInfo.port = SIGNALING_DEFAULT_SSL_PORT;
-    
+
     CHK_STATUS(getRequestHost(pCallInfo->callInfo.pRequestInfo->url, &pHostStart, &pHostEnd));
     CHK(pHostEnd == NULL || *pHostEnd == '/' || *pHostEnd == '?', STATUS_INTERNAL_ERROR);
-    
 
     // Store the pPath
     pPath[MAX_URI_CHAR_LEN] = '\0';
@@ -564,9 +562,9 @@ STATUS lwsCompleteSync(PLwsCallInfo pCallInfo)
 
     MUTEX_LOCK(pCallInfo->pSignalingClient->lwsServiceLock);
     locked = TRUE;
-    
+
     CHK(NULL != lws_client_connect_via_info(&connectInfo), STATUS_SIGNALING_LWS_CLIENT_CONNECT_FAILED);
-    
+
     MUTEX_UNLOCK(pCallInfo->pSignalingClient->lwsServiceLock);
     locked = FALSE;
 
@@ -593,16 +591,16 @@ CleanUp:
 //////////////////////////////////////////////////////////////////////////
 // API calls
 //////////////////////////////////////////////////////////////////////////
-// 
+//
 /**
  * @brief   It is a blocking call.
  *          https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_DescribeSignalingChannel.html
- * 
+ *
  * @param[in]
  * @param[in]
- * 
+ *
  * @return
-*/
+ */
 STATUS lwsDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
@@ -736,10 +734,10 @@ CleanUp:
 /**
  * @brief   It is a blocking call.
  *          https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_CreateSignalingChannel.html
- * 
+ *
  * @param[]
  * @param[]
-*/
+ */
 STATUS lwsCreateChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
@@ -841,13 +839,13 @@ CleanUp:
     LEAVES();
     return retStatus;
 }
-// 
+//
 /**
- * @brief  It is a blocking call. 
+ * @brief  It is a blocking call.
  *          https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_GetSignalingChannelEndpoint.html
  * @param[]
  * @param[]
-*/
+ */
 STATUS lwsGetChannelEndpoint(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
@@ -979,12 +977,12 @@ CleanUp:
 }
 
 /**
- * @brief   It is a blocking call. 
+ * @brief   It is a blocking call.
  *          https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_AWSAcuitySignalingService_GetIceServerConfig.html
- * 
+ *
  * @param[in]
  * @param[in]
-*/
+ */
 STATUS lwsGetIceConfig(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
@@ -1113,14 +1111,14 @@ CleanUp:
 }
 
 /**
- * @brief   It is a blocking call. 
+ * @brief   It is a blocking call.
  *          https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_DeleteSignalingChannel.html
- * 
+ *
  * @param[]
  * @param[]
- * 
+ *
  * @return
-*/
+ */
 STATUS lwsDeleteChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
@@ -1140,8 +1138,7 @@ STATUS lwsDeleteChannel(PSignalingClient pSignalingClient, UINT64 time)
     CHK(NULL != (pParamsJson = (PCHAR) MEMALLOC(MAX_JSON_PARAMETER_STRING_LEN)), STATUS_NOT_ENOUGH_MEMORY);
 
     // Check if we need to terminate the ongoing listener
-    if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) &&
-        pSignalingClient->pOngoingCallInfo != NULL &&
+    if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) && pSignalingClient->pOngoingCallInfo != NULL &&
         pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL) {
         lwsTerminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_OK);
     }
@@ -1185,14 +1182,14 @@ CleanUp:
 }
 /**
  * @brief   return the context of the lws call info.
- * 
+ *
  * @param[in] pSignalingClient
  * @param[in] pRequestInfo
  * @param[in] protocolIndex
- * @param[in, out] ppLwsCallInfo 
- * 
+ * @param[in, out] ppLwsCallInfo
+ *
  * @return
-*/
+ */
 STATUS lwsCreateCallInfo(PSignalingClient pSignalingClient, PRequestInfo pRequestInfo, UINT32 protocolIndex, PLwsCallInfo* ppLwsCallInfo)
 {
     ENTERS();
@@ -1223,8 +1220,8 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief   
-*/
+ * @brief
+ */
 STATUS lwsFreeCallInfo(PLwsCallInfo* ppLwsCallInfo)
 {
     ENTERS();
@@ -1250,12 +1247,12 @@ CleanUp:
 }
 /**
  * @brief   It is a non-blocking call, and it spin off one thread to handle the reception.
- * 
+ *
  * @param[in]
  * @param[in]
- * 
+ *
  * @return
-*/
+ */
 STATUS lwsConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();
@@ -1333,8 +1330,7 @@ CleanUp:
         SERVICE_CALL_RESULT serviceCallResult =
             (retStatus == STATUS_OPERATION_TIMED_OUT) ? SERVICE_CALL_NETWORK_CONNECTION_TIMEOUT : SERVICE_CALL_UNKNOWN;
         // Trigger termination
-        if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) &&
-            pSignalingClient->pOngoingCallInfo != NULL &&
+        if (!ATOMIC_LOAD_BOOL(&pSignalingClient->listenerTracker.terminated) && pSignalingClient->pOngoingCallInfo != NULL &&
             pSignalingClient->pOngoingCallInfo->callInfo.pRequestInfo != NULL) {
             lwsTerminateConnectionWithStatus(pSignalingClient, serviceCallResult);
         }
@@ -1351,11 +1347,11 @@ CleanUp:
 }
 /**
  * @brief   the task handler.
- * 
+ *
  * @param[in]
- * 
+ *
  * @return
-*/
+ */
 PVOID lwsListenerHandler(PVOID args)
 {
     ENTERS();
@@ -1411,11 +1407,11 @@ CleanUp:
 }
 /**
  * @brief   the task handler of re-connecting.
- * 
+ *
  * @param[in]
- * 
+ *
  * @return
-*/
+ */
 PVOID lwsReconnectHandler(PVOID args)
 {
     ENTERS();
@@ -1469,13 +1465,13 @@ CleanUp:
     return (PVOID)(ULONG_PTR) retStatus;
 }
 /**
- * @brief   
+ * @brief
  *          https://docs.aws.amazon.com/zh_tw/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis-7.html
- * 
+ *
  * @param[in]
- * 
- * @return 
-*/
+ *
+ * @return
+ */
 STATUS lwsSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCHAR peerClientId, PCHAR pMessage, UINT32 messageLen,
                       PCHAR pCorrelationId, UINT32 correlationIdLen)
 {
@@ -1515,23 +1511,12 @@ STATUS lwsSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCH
 
     // Prepare json message
     if (correlationLen == 0) {
-        writtenSize = (UINT32) SNPRINTF((PCHAR)(pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE),
-                                        size,
-                                        SIGNALING_SEND_MESSAGE_TEMPLATE,
-                                        pMessageType,
-                                        MAX_SIGNALING_CLIENT_ID_LEN,
-                                        peerClientId,
-                                        pEncodedMessage);
+        writtenSize = (UINT32) SNPRINTF((PCHAR)(pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE), size, SIGNALING_SEND_MESSAGE_TEMPLATE,
+                                        pMessageType, MAX_SIGNALING_CLIENT_ID_LEN, peerClientId, pEncodedMessage);
     } else {
-        writtenSize = (UINT32) SNPRINTF((PCHAR)(pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE),
-                                        size,
-                                        SIGNALING_SEND_MESSAGE_TEMPLATE_WITH_CORRELATION_ID,
-                                        pMessageType,
-                                        MAX_SIGNALING_CLIENT_ID_LEN,
-                                        peerClientId,
-                                        pEncodedMessage,
-                                        correlationLen,
-                                        pCorrelationId);
+        writtenSize = (UINT32) SNPRINTF((PCHAR)(pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE), size,
+                                        SIGNALING_SEND_MESSAGE_TEMPLATE_WITH_CORRELATION_ID, pMessageType, MAX_SIGNALING_CLIENT_ID_LEN, peerClientId,
+                                        pEncodedMessage, correlationLen, pCorrelationId);
     }
 
     // Validate against max
@@ -1558,13 +1543,13 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief   
- * 
+ * @brief
+ *
  * @param[in] pSignalingClient
  * @param[in] awaitForResponse
- * 
+ *
  * @return
-*/
+ */
 STATUS lwsWriteData(PSignalingClient pSignalingClient, BOOL awaitForResponse)
 {
     ENTERS();
@@ -1578,7 +1563,7 @@ STATUS lwsWriteData(PSignalingClient pSignalingClient, BOOL awaitForResponse)
     // See if anything needs to be done
     CHK(pSignalingClient->pOngoingCallInfo->sendBufferSize != pSignalingClient->pOngoingCallInfo->sendOffset, retStatus);
 
-    //DLOGD("Sending data over web socket: %s", pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE);
+    // DLOGD("Sending data over web socket: %s", pSignalingClient->pOngoingCallInfo->sendBuffer + LWS_PRE);
 
     // Initialize the send result to none
     ATOMIC_STORE(&pSignalingClient->messageResult, (SIZE_T) SERVICE_CALL_RESULT_NOT_SET);
@@ -1698,7 +1683,7 @@ STATUS lwsReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
             strLen = (UINT32)(pTokens[i + 1].end - pTokens[i + 1].start);
             CHK(strLen <= MAX_SIGNALING_MESSAGE_TYPE_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
             CHK_STATUS(lwsGetMessageTypeFromString(pMessage + pTokens[i + 1].start, strLen,
-                                                &pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType));
+                                                   &pSignalingMessageWrapper->receivedSignalingMessage.signalingMessage.messageType));
 
             parsedMessageType = TRUE;
             i++;
@@ -1740,7 +1725,7 @@ STATUS lwsReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 
                     // Parse the status code
                     CHK_STATUS(STRTOUI32(pMessage + pTokens[i + 1].start, pMessage + pTokens[i + 1].end, 10,
-                                         (PUINT32)&pSignalingMessageWrapper->receivedSignalingMessage.statusCode));
+                                         (PUINT32) &pSignalingMessageWrapper->receivedSignalingMessage.statusCode));
 
                     i++;
                 } else if (compareJsonString(pMessage, &pTokens[i], JSMN_STRING, (PCHAR) "description")) {
@@ -1857,12 +1842,12 @@ CleanUp:
 }
 /**
  * @brief   terminate the websocket connection.
- * 
+ *
  * @param[in]
  * @param[in]
- * 
+ *
  * @return
-*/
+ */
 STATUS lwsTerminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_CALL_RESULT callResult)
 {
     ENTERS();
@@ -1979,13 +1964,13 @@ CleanUp:
     return (PVOID)(ULONG_PTR) retStatus;
 }
 /**
- * @brief   
- * 
+ * @brief
+ *
  * @param[]
  * @param[]
- * 
+ *
  * @return
-*/
+ */
 STATUS lwsWakeServiceEventLoop(PSignalingClient pSignalingClient)
 {
     ENTERS();

@@ -16,36 +16,35 @@
 #define LOG_CLASS "HttpApiRsp"
 #include "../Include_i.h"
 
-#define HTTP_RSP_ENTER() //DLOGD("enter")
-#define HTTP_RSP_EXIT() //DLOGD("exit")
-
+#define HTTP_RSP_ENTER() // DLOGD("enter")
+#define HTTP_RSP_EXIT()  // DLOGD("exit")
 
 /*-----------------------------------------------------------*/
 
 /**
- * 
+ *
     {
-        "ChannelInfo": { 
+        "ChannelInfo": {
             "ChannelARN": "string",
             "ChannelName": "string",
             "ChannelStatus": "string",
             "ChannelType": "string",
             "CreationTime": number,
-            "SingleMasterConfiguration": { 
+            "SingleMasterConfiguration": {
                 "MessageTtlSeconds": number
             },
             "Version": "string"
         }
     }
- * 
+ *
 */
-STATUS httpApiRspCreateChannel( const CHAR * pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient)
+STATUS httpApiRspCreateChannel(const CHAR* pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient)
 {
     HTTP_RSP_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
     jsmn_parser parser;
     jsmntok_t* pTokens = NULL;
-    UINT32 tokenCount, i,strLen;
+    UINT32 tokenCount, i, strLen;
     UINT64 ttl;
 
     CHK(NULL != (pTokens = (jsmntok_t*) MEMALLOC(MAX_JSON_TOKEN_COUNT * SIZEOF(jsmntok_t))), STATUS_NOT_ENOUGH_MEMORY);
@@ -75,10 +74,7 @@ CleanUp:
     return retStatus;
 }
 
-
-STATUS httpApiRspDescribeChannel( const CHAR * pResponseStr,
-                                  UINT32 resultLen,
-                                  PSignalingClient pSignalingClient)
+STATUS httpApiRspDescribeChannel(const CHAR* pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient)
 {
     HTTP_RSP_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
@@ -98,7 +94,6 @@ STATUS httpApiRspDescribeChannel( const CHAR * pResponseStr,
 
     // Loop through the pTokens and extract the stream description
     for (i = 1; i < tokenCount; i++) {
-
         if (!jsonInChannelDescription) {
             if (compareJsonString(pResponseStr, &pTokens[i], JSMN_STRING, (PCHAR) "ChannelInfo")) {
                 pSignalingClient->channelDescription.version = SIGNALING_CHANNEL_DESCRIPTION_CURRENT_VERSION;
@@ -161,10 +156,9 @@ CleanUp:
     MEMFREE(pTokens);
     HTTP_RSP_EXIT();
     return retStatus;
-
 }
 
-STATUS httpApiRspGetChannelEndpoint( const CHAR * pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient)
+STATUS httpApiRspGetChannelEndpoint(const CHAR* pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient)
 {
     HTTP_RSP_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
@@ -253,8 +247,7 @@ CleanUp:
     return retStatus;
 }
 
-
-STATUS httpApiRspGetIceConfig( const CHAR * pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient)
+STATUS httpApiRspGetIceConfig(const CHAR* pResponseStr, UINT32 resultLen, PSignalingClient pSignalingClient)
 {
     HTTP_RSP_ENTER();
     STATUS retStatus = STATUS_SUCCESS;

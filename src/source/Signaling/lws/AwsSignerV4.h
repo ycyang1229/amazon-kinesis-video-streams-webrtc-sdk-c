@@ -25,90 +25,79 @@ extern "C" {
 #endif
 
 /* (Configurable). Max length of AWS region name. */
-#define MAX_REGION_NAME_LEN                     24
+#define MAX_REGION_NAME_LEN 24
 
 /* (Configurable). Max length of AWS service name. */
-#define MAX_SERVICE_NAME_LEN                    48
+#define MAX_SERVICE_NAME_LEN 48
 
 /* The buffer length used for doing SHA256 hash check. */
-#define SHA256_DIGEST_LENGTH                    32
+#define SHA256_DIGEST_LENGTH 32
 
 /* The string length of "date + time" format defined by AWS Signature V4. */
-#define SIGNATURE_DATE_TIME_STRING_LEN          17
+#define SIGNATURE_DATE_TIME_STRING_LEN 17
 
 /* The string length of "date" format defined by AWS Signature V4. */
-#define SIGNATURE_DATE_STRING_LEN               8
+#define SIGNATURE_DATE_STRING_LEN 8
 
 /* (Configurable).  The number of HTTP headers to be signed. */
-#define AWS_SIG_V4_MAX_HEADER_CNT               12
+#define AWS_SIG_V4_MAX_HEADER_CNT 12
 
 /* (Configurable).  The max length of HTTP header to be signed. */
-#define AWS_SIG_V4_MAX_HEADER_LEN               64
+#define AWS_SIG_V4_MAX_HEADER_LEN 64
 
-#define AWS_SIG_V4_MAX_HEADERS_LEN              ( AWS_SIG_V4_MAX_HEADER_CNT * AWS_SIG_V4_MAX_HEADER_LEN )
+#define AWS_SIG_V4_MAX_HEADERS_LEN (AWS_SIG_V4_MAX_HEADER_CNT * AWS_SIG_V4_MAX_HEADER_LEN)
 
 /* The signature start described by AWS Signature V4. */
-#define AWS_SIG_V4_SIGNATURE_START              "AWS4"
+#define AWS_SIG_V4_SIGNATURE_START "AWS4"
 
 /* The signature end described by AWS Signature V4. */
-#define AWS_SIG_V4_SIGNATURE_END                "aws4_request"
+#define AWS_SIG_V4_SIGNATURE_END "aws4_request"
 
 /* The signed algorithm. */
-#define AWS_SIG_V4_ALGORITHM                    "AWS4-HMAC-SHA256"
+#define AWS_SIG_V4_ALGORITHM "AWS4-HMAC-SHA256"
 
 /* The length of oct string for SHA256 hash buffer. */
-#define AWS_SIG_V4_MAX_HMAC_SIZE                ( SHA256_DIGEST_LENGTH * 2 + 1 )
+#define AWS_SIG_V4_MAX_HMAC_SIZE (SHA256_DIGEST_LENGTH * 2 + 1)
 
 /* The max length of signature scope which is composed of date, time, region, service, and signature end. */
-#define MAX_SCOPE_LEN                           ( SIGNATURE_DATE_TIME_STRING_LEN + 1 + \
-                                                MAX_REGION_NAME_LEN + 1 + \
-                                                MAX_SERVICE_NAME_LEN + 1 + \
-                                                sizeof( AWS_SIG_V4_SIGNATURE_END ) )
+#define MAX_SCOPE_LEN (SIGNATURE_DATE_TIME_STRING_LEN + 1 + MAX_REGION_NAME_LEN + 1 + MAX_SERVICE_NAME_LEN + 1 + sizeof(AWS_SIG_V4_SIGNATURE_END))
 
 /* The max length of signature result. */
-#define MAX_SIGNED_STRING_LEN                   ( sizeof( AWS_SIG_V4_ALGORITHM ) + \
-                                                SIGNATURE_DATE_TIME_STRING_LEN + 1 + \
-                                                MAX_SCOPE_LEN + 1 +                 \
-                                                ( SHA256_DIGEST_LENGTH * 2 + 1 ) + 1 )
+#define MAX_SIGNED_STRING_LEN                                                                                                                        \
+    (sizeof(AWS_SIG_V4_ALGORITHM) + SIGNATURE_DATE_TIME_STRING_LEN + 1 + MAX_SCOPE_LEN + 1 + (SHA256_DIGEST_LENGTH * 2 + 1) + 1)
 
-
-typedef struct awsAccessKey
-{
+typedef struct awsAccessKey {
     PCHAR accessKeyId;
-    //UINT32 accessKeyIdLen;  //!< Length of the access key id - not including NULL terminator
+    // UINT32 accessKeyIdLen;  //!< Length of the access key id - not including NULL terminator
     PCHAR secretKey;
-    //UINT32 secretKeyLen;    //!< Length of the secret key - not including NULL terminator
-}awsAccessKey_t;
+    // UINT32 secretKeyLen;    //!< Length of the secret key - not including NULL terminator
+} awsAccessKey_t;
 
-typedef struct sessionToken
-{
-    PCHAR sessionToken;     //!< Session token - NULL terminated
-    //UINT32 sessionTokenLen; //!< Length of the session token - not including NULL terminator
-    UINT64 expiration;      //!< Expiration in absolute time in 100ns.
-}sessionToken_t;
+typedef struct sessionToken {
+    PCHAR sessionToken; //!< Session token - NULL terminated
+    // UINT32 sessionTokenLen; //!< Length of the session token - not including NULL terminator
+    UINT64 expiration; //!< Expiration in absolute time in 100ns.
+} sessionToken_t;
 
-typedef union _awsCredential{
+typedef union _awsCredential {
     awsAccessKey_t accessKey;
     sessionToken_t sessionToken;
-}_awsCredential_t;
+} _awsCredential_t;
 
-
-struct awsCredential{
+struct awsCredential {
     UINT32 version;
     _awsCredential_t awsCredential;
-}awsCredential_t;
-
+} awsCredential_t;
 
 /* A context that keeps the signature request and results */
-typedef struct AwsSignerV4Context
-{
-    PCHAR pBuf;                 /* A buffer to keep the sign request header and body. */
-    UINT32 uBufSize;          /* The buffer size */
-    PCHAR pBufIndex;            /* The buffer index (i.e. buffer ending) */
+typedef struct AwsSignerV4Context {
+    PCHAR pBuf;      /* A buffer to keep the sign request header and body. */
+    UINT32 uBufSize; /* The buffer size */
+    PCHAR pBufIndex; /* The buffer index (i.e. buffer ending) */
 
-    PCHAR pSignedHeader;        /* The HTTP headers to be signed. */
-    PCHAR pCredentialScope;               /* The scope of this signature. */
-    PCHAR pHmacEncoded;         /* The signature in a form of encoded HMAC SHA256 hex text */
+    PCHAR pSignedHeader;    /* The HTTP headers to be signed. */
+    PCHAR pCredentialScope; /* The scope of this signature. */
+    PCHAR pHmacEncoded;     /* The signature in a form of encoded HMAC SHA256 hex text */
 } AwsSignerV4Context_t;
 
 /**
@@ -123,14 +112,14 @@ typedef struct AwsSignerV4Context
  *
  * @return KVS error code
  */
-STATUS AwsSignerV4_initContext( AwsSignerV4Context_t * pCtx, UINT32 uBufsize );
+STATUS AwsSignerV4_initContext(AwsSignerV4Context_t* pCtx, UINT32 uBufsize);
 
 /**
  * @brief De-initialize the AWS signer V4 context.
  *
  * @param[in] pCtx The context of AWS signer V4 to be de-initialized
  */
-void AwsSignerV4_terminateContext( AwsSignerV4Context_t * pCtx );
+void AwsSignerV4_terminateContext(AwsSignerV4Context_t* pCtx);
 
 /**
  * @brief Initialize the canonical request
@@ -142,7 +131,7 @@ void AwsSignerV4_terminateContext( AwsSignerV4Context_t * pCtx );
  * 4. canonical headers
  * 5. signed headers
  * 6. payload with the encode results
- * 
+ *
  * https://docs.aws.amazon.com/general/latest/gr/sigv4-create-canonical-request.html
  * CanonicalRequest =
  * HTTPRequestMethod + '\n' +
@@ -164,13 +153,8 @@ void AwsSignerV4_terminateContext( AwsSignerV4Context_t * pCtx );
  *
  * @return KVS error code
  */
-STATUS AwsSignerV4_initCanonicalRequest( AwsSignerV4Context_t * pCtx,
-                                          PCHAR  pMethod,
-                                          UINT32 uMethodLen,
-                                          PCHAR  pUri,
-                                          UINT32 uUriLen,
-                                          PCHAR  pParameter,
-                                          UINT32 pParameterLen );
+STATUS AwsSignerV4_initCanonicalRequest(AwsSignerV4Context_t* pCtx, PCHAR pMethod, UINT32 uMethodLen, PCHAR pUri, UINT32 uUriLen, PCHAR pParameter,
+                                        UINT32 pParameterLen);
 
 /**
  * @brief Add a HTTP header into canonical request.
@@ -186,11 +170,7 @@ STATUS AwsSignerV4_initCanonicalRequest( AwsSignerV4Context_t * pCtx,
  *
  * @return KVS error code
  */
-STATUS AwsSignerV4_addCanonicalHeader( AwsSignerV4Context_t *pCtx,
-                                        PCHAR pHeader,
-                                        UINT32 uHeaderLen,
-                                        PCHAR pValue,
-                                        UINT32 uValueLen );
+STATUS AwsSignerV4_addCanonicalHeader(AwsSignerV4Context_t* pCtx, PCHAR pHeader, UINT32 uHeaderLen, PCHAR pValue, UINT32 uValueLen);
 
 /**
  * @brief Add HTTP body into canonical request.
@@ -205,9 +185,7 @@ STATUS AwsSignerV4_addCanonicalHeader( AwsSignerV4Context_t *pCtx,
  *
  * @return KVS error code
  */
-STATUS AwsSignerV4_addCanonicalBody( AwsSignerV4Context_t * pCtx,
-                                      uint8_t * pBody,
-                                      UINT32 uBodyLen );
+STATUS AwsSignerV4_addCanonicalBody(AwsSignerV4Context_t* pCtx, uint8_t* pBody, UINT32 uBodyLen);
 
 /**
  * @brief Sign the canonical request with key and other information
@@ -224,15 +202,8 @@ STATUS AwsSignerV4_addCanonicalBody( AwsSignerV4Context_t * pCtx,
  *
  * @return KVS error code
  */
-STATUS AwsSignerV4_sign( AwsSignerV4Context_t * pCtx,
-                          PCHAR  pSecretKey,
-                          UINT32 uSecretKeyLen,
-                          PCHAR  pRegion,
-                          UINT32 uRegionLen,
-                          PCHAR  pService,
-                          UINT32 uServiceLen,
-                          PCHAR  pXAmzDate,
-                          UINT32 uXAmzDateLen );
+STATUS AwsSignerV4_sign(AwsSignerV4Context_t* pCtx, PCHAR pSecretKey, UINT32 uSecretKeyLen, PCHAR pRegion, UINT32 uRegionLen, PCHAR pService,
+                        UINT32 uServiceLen, PCHAR pXAmzDate, UINT32 uXAmzDateLen);
 
 /**
  * @brief Get the header lists to be signed
@@ -241,7 +212,7 @@ STATUS AwsSignerV4_sign( AwsSignerV4Context_t * pCtx,
  *
  * @return The header lists to be signed
  */
-PCHAR AwsSignerV4_getSignedHeader( AwsSignerV4Context_t * pCtx );
+PCHAR AwsSignerV4_getSignedHeader(AwsSignerV4Context_t* pCtx);
 
 /**
  * @brief Get the scope of the context
@@ -253,7 +224,7 @@ PCHAR AwsSignerV4_getSignedHeader( AwsSignerV4Context_t * pCtx );
  *
  * @return Scope of signature
  */
-PCHAR AwsSignerV4_getScope( AwsSignerV4Context_t * pCtx );
+PCHAR AwsSignerV4_getScope(AwsSignerV4Context_t* pCtx);
 
 /**
  * @brief Get the encoded results of signature
@@ -264,7 +235,7 @@ PCHAR AwsSignerV4_getScope( AwsSignerV4Context_t * pCtx );
  *
  * @return The encoded HEX text of signature
  */
-PCHAR AwsSignerV4_getHmacEncoded( AwsSignerV4Context_t * pCtx );
+PCHAR AwsSignerV4_getHmacEncoded(AwsSignerV4Context_t* pCtx);
 
 #ifdef __cplusplus
 }

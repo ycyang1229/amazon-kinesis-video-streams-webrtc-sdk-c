@@ -17,44 +17,43 @@
 #include "../Include_i.h"
 
 /*-----------------------------------------------------------*/
-typedef struct{
+typedef struct {
     llhttp_t httpParser;
     PVOID customData;
-}CustomLlhttp, *PCustomLlhttp;
+} CustomLlhttp, *PCustomLlhttp;
 
-
-#define GET_USER_DATA(p) (((PCustomLlhttp)p)->customData)
+#define GET_USER_DATA(p) (((PCustomLlhttp) p)->customData)
 
 /*-----------------------------------------------------------*/
 PHttpField httpParserGetValueByField(struct list_head* head, char* field, UINT32 fieldLen)
 {
-    struct list_head *listptr;
+    struct list_head* listptr;
     PHttpField node;
     UINT32 found = 0;
 
-    list_for_each(listptr, head) {
+    list_for_each(listptr, head)
+    {
         node = list_entry(listptr, HttpField, list);
-        if(STRNCMP(node->field, field, node->fieldLen) == 0 && node->fieldLen == fieldLen ){
+        if (STRNCMP(node->field, field, node->fieldLen) == 0 && node->fieldLen == fieldLen) {
             found = 1;
             break;
         }
-        
     }
-    if(!found){
+    if (!found) {
         return NULL;
-    }else{
+    } else {
         return node;
     }
 }
 
 int32_t httpParserAddRequiredHeader(struct list_head* head, char* field, UINT32 fieldLen, char* value, UINT32 valueLen)
 {
-    PHttpField node = (PHttpField)MEMALLOC(sizeof(HttpField));
+    PHttpField node = (PHttpField) MEMALLOC(sizeof(HttpField));
     node->field = field;
     node->fieldLen = fieldLen;
     node->value = value;
     node->valueLen = valueLen;
-    //DLOGD("required: field = %s | len = %d | value = %s | len = %d",
+    // DLOGD("required: field = %s | len = %d | value = %s | len = %d",
     //    node->field,
     //    node->fieldLen,
     //    node->value,
@@ -65,154 +64,145 @@ int32_t httpParserAddRequiredHeader(struct list_head* head, char* field, UINT32 
 
 void httpParserDeleteAllHeader(struct list_head* head)
 {
-    struct list_head *listptr;
+    struct list_head* listptr;
     PHttpField node;
 
-    list_for_each(listptr, head) {
+    list_for_each(listptr, head)
+    {
         node = list_entry(listptr, HttpField, list);
 
-        //DLOGD("\nFree: field = %s | len = %d | value = %s | len = %d",
+        // DLOGD("\nFree: field = %s | len = %d | value = %s | len = %d",
         //        node->field,
         //        node->fieldLen,
         //        node->value,
         //        node->valueLen);
         MEMFREE(node);
-        node=NULL;
+        node = NULL;
     }
     return;
 }
 
-static INT32 _on_message_begin( llhttp_t *httpParser )
+static INT32 _on_message_begin(llhttp_t* httpParser)
 {
-    //DLOGD("on_message_begin");
+    // DLOGD("on_message_begin");
     return 0;
 }
 
-static INT32 _on_url( llhttp_t *httpParser, const char *at, size_t length )
+static INT32 _on_url(llhttp_t* httpParser, const char* at, size_t length)
 {
-    //DLOGD("on_url");
-    //char* buf = MEMALLOC(length+1);
-    //memcpy(buf, at, length);
-    //buf[length] = '\0';
-    //DLOGD("%s", buf);
+    // DLOGD("on_url");
+    // char* buf = MEMALLOC(length+1);
+    // memcpy(buf, at, length);
+    // buf[length] = '\0';
+    // DLOGD("%s", buf);
     return 0;
 }
 
-
-static INT32 _on_status( llhttp_t *httpParser, const char *at, size_t length )
+static INT32 _on_status(llhttp_t* httpParser, const char* at, size_t length)
 {
-    //DLOGD("on_status");
-    //char* buf = MEMALLOC(length+1);
-    //memcpy(buf, at, length);
-    //buf[length] = '\0';
-    //DLOGD("%s", buf);
+    // DLOGD("on_status");
+    // char* buf = MEMALLOC(length+1);
+    // memcpy(buf, at, length);
+    // buf[length] = '\0';
+    // DLOGD("%s", buf);
     return 0;
 }
 
-
-static INT32 _on_header_field( llhttp_t *httpParser, const char *at, size_t length )
+static INT32 _on_header_field(llhttp_t* httpParser, const char* at, size_t length)
 {
-    HttpResponseContext* pCtx = (HttpResponseContext*)GET_USER_DATA(httpParser);
-    //DLOGD("on_header_field");
-    //char* buf = MEMALLOC(length+1);
-    //memcpy(buf, at, length);
-    //buf[length] = '\0';
-    //DLOGD("%s", buf);
+    HttpResponseContext* pCtx = (HttpResponseContext*) GET_USER_DATA(httpParser);
+    // DLOGD("on_header_field");
+    // char* buf = MEMALLOC(length+1);
+    // memcpy(buf, at, length);
+    // buf[length] = '\0';
+    // DLOGD("%s", buf);
 
-    pCtx->curField.field = ( char * )at;
+    pCtx->curField.field = (char*) at;
     pCtx->curField.fieldLen = length;
     return 0;
 }
 
-static INT32 _on_header_value( llhttp_t *httpParser, const char *at, size_t length )
+static INT32 _on_header_value(llhttp_t* httpParser, const char* at, size_t length)
 {
-    HttpResponseContext* pCtx = (HttpResponseContext*)GET_USER_DATA(httpParser);
-    //DLOGD("on_header_value");
-    //char* buf = MEMALLOC(length+1);
-    //memcpy(buf, at, length);
-    //buf[length] = '\0';
-    //DLOGD("%s", buf);
-    pCtx->curField.value = ( char * )at;
+    HttpResponseContext* pCtx = (HttpResponseContext*) GET_USER_DATA(httpParser);
+    // DLOGD("on_header_value");
+    // char* buf = MEMALLOC(length+1);
+    // memcpy(buf, at, length);
+    // buf[length] = '\0';
+    // DLOGD("%s", buf);
+    pCtx->curField.value = (char*) at;
     pCtx->curField.valueLen = length;
     return 0;
 }
 
-
-static INT32 _on_headers_complete( llhttp_t *httpParser )
+static INT32 _on_headers_complete(llhttp_t* httpParser)
 {
-    //DLOGD("on_headers_complete");
+    // DLOGD("on_headers_complete");
     return 0;
 }
 
-
-static INT32 _on_body( llhttp_t *httpParser, const char *at, size_t length )
+static INT32 _on_body(llhttp_t* httpParser, const char* at, size_t length)
 {
-    HttpResponseContext* pCtx = (HttpResponseContext*)GET_USER_DATA(httpParser);
-    //DLOGD("on_body");
-    //char* buf = MEMALLOC(length+1);
-    //memcpy(buf, at, length);
-    //buf[length] = '\0';
-    //DLOGD("%s", buf);
-    pCtx->phttpBodyLoc = ( char * )at;
+    HttpResponseContext* pCtx = (HttpResponseContext*) GET_USER_DATA(httpParser);
+    // DLOGD("on_body");
+    // char* buf = MEMALLOC(length+1);
+    // memcpy(buf, at, length);
+    // buf[length] = '\0';
+    // DLOGD("%s", buf);
+    pCtx->phttpBodyLoc = (char*) at;
     pCtx->httpBodyLen = length;
     return 0;
 }
 
-
-static INT32 _on_message_complete( llhttp_t *httpParser )
+static INT32 _on_message_complete(llhttp_t* httpParser)
 {
-    //DLOGD("on_message_complete");
-    //HttpResponseContext* pCtx = (HttpResponseContext*)GET_USER_DATA(httpParser);
+    // DLOGD("on_message_complete");
+    // HttpResponseContext* pCtx = (HttpResponseContext*)GET_USER_DATA(httpParser);
 
     return -1;
 }
 
-
-static INT32 _on_chunk_header( llhttp_t *httpParser )
+static INT32 _on_chunk_header(llhttp_t* httpParser)
 {
-    //DLOGD("on_chunk_header");
+    // DLOGD("on_chunk_header");
     return 0;
 }
 
-
-static INT32 _on_chunk_complete( llhttp_t *httpParser )
+static INT32 _on_chunk_complete(llhttp_t* httpParser)
 {
-    //DLOGD("on_chunk_complete");
+    // DLOGD("on_chunk_complete");
     return 0;
 }
 
-
-static INT32 _on_url_complete( llhttp_t *httpParser )
+static INT32 _on_url_complete(llhttp_t* httpParser)
 {
-    //DLOGD("on_url_complete");
+    // DLOGD("on_url_complete");
     return 0;
 }
 
-
-static INT32 _on_status_complete( llhttp_t *httpParser )
+static INT32 _on_status_complete(llhttp_t* httpParser)
 {
-    //DLOGD("on_status_complete");
+    // DLOGD("on_status_complete");
     return 0;
 }
 
-static INT32 _on_header_field_complete( llhttp_t *httpParser )
+static INT32 _on_header_field_complete(llhttp_t* httpParser)
 {
-    //DLOGD("on_header_field_complete");
+    // DLOGD("on_header_field_complete");
     return 0;
 }
 
-
-static INT32 _on_header_value_complete( llhttp_t *httpParser )
+static INT32 _on_header_value_complete(llhttp_t* httpParser)
 {
-    PHttpResponseContext pCtx = (PHttpResponseContext)GET_USER_DATA(httpParser);
-    if(pCtx->requiredHeader == NULL){
+    PHttpResponseContext pCtx = (PHttpResponseContext) GET_USER_DATA(httpParser);
+    if (pCtx->requiredHeader == NULL) {
         return 0;
     }
     PHttpField node = httpParserGetValueByField(pCtx->requiredHeader, pCtx->curField.field, pCtx->curField.fieldLen);
-    if(node != NULL){
+    if (node != NULL) {
         node->value = pCtx->curField.value;
         node->valueLen = pCtx->curField.valueLen;
-    }else{
+    } else {
         return -1;
     }
 
@@ -238,68 +228,63 @@ UINT32 httpParserGetHttpBodyLength(HttpResponseContext* pHttpRspCtx)
 STATUS httpParserStart(HttpResponseContext** ppHttpRspCtx, PCHAR pBuf, UINT32 uLen, struct list_head* requiredHeader)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    CustomLlhttp userParser = { 0 };
-    llhttp_settings_t httpSettings = { 
-        NULL, //_on_message_begin, /* on_message_begin */
-        NULL, //_on_url, /* on_url */
-        _on_status, /* on_status */
-        _on_header_field, /* on_header_field */
-        _on_header_value, /* on_header_value */
-        _on_headers_complete, /* on_headers_complete */
-        _on_body, /* on_body */
-        NULL, //_on_message_complete, /* on_message_complete */
-        NULL, //_on_chunk_header, /* on_chunk_header */
-        NULL, //_on_chunk_complete, /* on_chunk_complete */
-        NULL, //_on_url_complete, /* on_url_complete */
-        _on_status_complete, /* on_status_complete */
+    CustomLlhttp userParser = {0};
+    llhttp_settings_t httpSettings = {
+        NULL,                      //_on_message_begin, /* on_message_begin */
+        NULL,                      //_on_url, /* on_url */
+        _on_status,                /* on_status */
+        _on_header_field,          /* on_header_field */
+        _on_header_value,          /* on_header_value */
+        _on_headers_complete,      /* on_headers_complete */
+        _on_body,                  /* on_body */
+        NULL,                      //_on_message_complete, /* on_message_complete */
+        NULL,                      //_on_chunk_header, /* on_chunk_header */
+        NULL,                      //_on_chunk_complete, /* on_chunk_complete */
+        NULL,                      //_on_url_complete, /* on_url_complete */
+        _on_status_complete,       /* on_status_complete */
         _on_header_field_complete, /* on_header_field_complete */
-        _on_header_value_complete /* on_header_value_complete */
+        _on_header_value_complete  /* on_header_value_complete */
     };
     enum llhttp_errno httpErrno = HPE_OK;
 
-    HttpResponseContext* pCtx = (HttpResponseContext*)MEMALLOC(sizeof(HttpResponseContext));
-    if(pCtx == NULL){
+    HttpResponseContext* pCtx = (HttpResponseContext*) MEMALLOC(sizeof(HttpResponseContext));
+    if (pCtx == NULL) {
         return -1;
     }
     MEMSET(pCtx, 0, sizeof(HttpResponseContext));
     pCtx->requiredHeader = requiredHeader;
     *ppHttpRspCtx = pCtx;
-    
-    llhttp_init( (PVOID)&userParser, HTTP_RESPONSE, &httpSettings);
+
+    llhttp_init((PVOID) &userParser, HTTP_RESPONSE, &httpSettings);
     userParser.customData = pCtx;
-    httpErrno = llhttp_execute( (void*)&userParser, pBuf, ( size_t )uLen );
+    httpErrno = llhttp_execute((void*) &userParser, pBuf, (size_t) uLen);
     // #YC_TBD, need to be fixed.
-    if ( httpErrno != HPE_OK && httpErrno < HPE_CB_MESSAGE_BEGIN )
-    {
+    if (httpErrno != HPE_OK && httpErrno < HPE_CB_MESSAGE_BEGIN) {
         retStatus = STATUS_RECV_DATA_FAILED;
-    }
-    else
-    {
-        pCtx->httpStatusCode = ( UINT32 )(userParser.httpParser.status_code);
+    } else {
+        pCtx->httpStatusCode = (UINT32)(userParser.httpParser.status_code);
         return STATUS_SUCCESS;
     }
 
     return retStatus;
 }
 
-
 STATUS httpParserDetroy(HttpResponseContext* pHttpRspCtx)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    //DLOGD("detroying required headers...");
-    if(pHttpRspCtx != NULL && pHttpRspCtx->requiredHeader != NULL){
+    // DLOGD("detroying required headers...");
+    if (pHttpRspCtx != NULL && pHttpRspCtx->requiredHeader != NULL) {
         httpParserDeleteAllHeader(pHttpRspCtx->requiredHeader);
-        //DLOGD("all required headers is removed...");
+        // DLOGD("all required headers is removed...");
         MEMFREE(pHttpRspCtx->requiredHeader);
     }
-    //DLOGD("detroying context...");
+    // DLOGD("detroying context...");
     MEMFREE(pHttpRspCtx);
     return retStatus;
 }
 
-
-
-STATUS httpPackSendBuf(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT32 hostLen, PCHAR outputBuf, UINT32 bufLen, BOOL bWss, PCHAR clientKey)
+STATUS httpPackSendBuf(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT32 hostLen, PCHAR outputBuf, UINT32 bufLen, BOOL bWss,
+                       PCHAR clientKey)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR p = NULL;
@@ -308,19 +293,19 @@ STATUS httpPackSendBuf(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT
     UINT32 headerCount;
     PSingleListNode pCurNode;
     UINT64 item;
-    PRequestHeader pRequestHeader;    
-        
+    PRequestHeader pRequestHeader;
+
     // Sign the request
-    if(!bWss){
+    if (!bWss) {
         CHK_STATUS(signAwsRequestInfo(pRequestInfo));
-    }else{
+    } else {
         CHK_STATUS(signAwsRequestInfoQueryParam(pRequestInfo));
     }
 
     CHK_STATUS(getRequestHost(pRequestInfo->url, &pHostStart, &pHostEnd));
     CHK(pHostEnd == NULL || *pHostEnd == '/' || *pHostEnd == '?', STATUS_INTERNAL_ERROR);
-    MEMCPY(pHost, pHostStart, pHostEnd-pHostStart);
-    pHost[pHostEnd-pHostStart] = '\0';
+    MEMCPY(pHost, pHostStart, pHostEnd - pHostStart);
+    pHost[pHostEnd - pHostStart] = '\0';
 
     UINT32 pathLen = MAX_URI_CHAR_LEN;
     CHK(NULL != (pPath = (PCHAR) MEMCALLOC(pathLen + 1, SIZEOF(CHAR))), STATUS_NOT_ENOUGH_MEMORY);
@@ -356,40 +341,37 @@ STATUS httpPackSendBuf(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT
     */
     p = (PCHAR)(outputBuf);
     /* header */
-    //p += SPRINTF(p, "%s %s%s HTTP/1.1\r\n", pVerb, uri, pParameterUriEncode);
+    // p += SPRINTF(p, "%s %s%s HTTP/1.1\r\n", pVerb, uri, pParameterUriEncode);
     p += SPRINTF(p, "%s %s HTTP/1.1\r\n", pVerb, pPath);
-
 
     CHK_STATUS(singleListGetHeadNode(pRequestInfo->pRequestHeaders, &pCurNode));
     while (pCurNode != NULL) {
         CHK_STATUS(singleListGetNodeData(pCurNode, &item));
         pRequestHeader = (PRequestHeader) item;
 
-        //pPrevNode = pCurNode;
-        //DLOGD("Appending header - %s %s", pRequestHeader->pName, pRequestHeader->pValue);
+        // pPrevNode = pCurNode;
+        // DLOGD("Appending header - %s %s", pRequestHeader->pName, pRequestHeader->pValue);
         p += SPRINTF(p, "%s: %s\r\n", pRequestHeader->pName, pRequestHeader->pValue);
 
         CHK_STATUS(singleListGetNextNode(pCurNode, &pCurNode));
     }
     /* Web socket upgrade */
-    if(bWss && clientKey != NULL)
-    {
+    if (bWss && clientKey != NULL) {
         p += SPRINTF(p, "Pragma: no-cache\r\n");
         p += SPRINTF(p, "Cache-Control: no-cache\r\n");
         p += SPRINTF(p, "upgrade: WebSocket\r\n");
         p += SPRINTF(p, "connection: Upgrade\r\n");
-        
+
         p += SPRINTF(p, "Sec-WebSocket-Key: %s\r\n", clientKey);
         p += SPRINTF(p, "Sec-WebSocket-Protocol: wss\r\n");
         p += SPRINTF(p, "Sec-WebSocket-Version: 13\r\n");
     }
 
-    p += SPRINTF(p, "\r\n" );
+    p += SPRINTF(p, "\r\n");
     /* body */
-    if(pRequestInfo->body != NULL)
-    {
-        p += SPRINTF(p, "%s\r\n", pRequestInfo->body );
-        p += SPRINTF(p, "\r\n" );
+    if (pRequestInfo->body != NULL) {
+        p += SPRINTF(p, "%s\r\n", pRequestInfo->body);
+        p += SPRINTF(p, "\r\n");
     }
 
 CleanUp:

@@ -4,21 +4,18 @@
 extern StateMachineState SIGNALING_STATE_MACHINE_STATES[];
 extern UINT32 SIGNALING_STATE_MACHINE_STATE_COUNT;
 /**
- * @brief   
- * 
+ * @brief
+ *
  * @param[in] pClientInfo
  * @param[in] pChannelInfo
  * @param[in] pCallbacks
  * @param[in] pCredentialProvider the context of the credential.
  * @param[in, out] ppSignalingClient the context of singaling client.
- * 
+ *
  * @return
-*/
-STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
-                        PChannelInfo pChannelInfo,
-                        PSignalingClientCallbacks pCallbacks,
-                        PAwsCredentialProvider pCredentialProvider,
-                        PSignalingClient* ppSignalingClient)
+ */
+STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo, PChannelInfo pChannelInfo, PSignalingClientCallbacks pCallbacks,
+                       PAwsCredentialProvider pCredentialProvider, PSignalingClient* ppSignalingClient)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -31,7 +28,7 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     PSignalingFileCacheEntry pFileCacheEntry = NULL;
 
     // error check.
-    CHK(pClientInfo != NULL &&pChannelInfo != NULL && pCallbacks != NULL && pCredentialProvider != NULL && ppSignalingClient != NULL,
+    CHK(pClientInfo != NULL && pChannelInfo != NULL && pCallbacks != NULL && pCredentialProvider != NULL && ppSignalingClient != NULL,
         STATUS_NULL_ARG);
     CHK(pChannelInfo->version <= CHANNEL_INFO_CURRENT_VERSION, STATUS_SIGNALING_INVALID_CHANNEL_INFO_VERSION);
     // #heap.
@@ -39,14 +36,14 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
 
     // Allocate enough storage
     CHK(NULL != (pSignalingClient = (PSignalingClient) MEMCALLOC(1, SIZEOF(SignalingClient))), STATUS_NOT_ENOUGH_MEMORY);
-    
+
     // Initialize the listener and restarter thread trackers
     CHK_STATUS(signalingInitThreadTracker(&pSignalingClient->listenerTracker));
     CHK_STATUS(signalingInitThreadTracker(&pSignalingClient->reconnecterTracker));
 
     // Validate and store the input
     CHK_STATUS(createValidateChannelInfo(pChannelInfo, &pSignalingClient->pChannelInfo));
-    
+
     CHK_STATUS(signalingValidateCallbacks(pSignalingClient, pCallbacks));
     CHK_STATUS(signalingValidateClientInfo(pSignalingClient, pClientInfo));
 
@@ -62,10 +59,7 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     if (pSignalingClient->pChannelInfo->cachingPolicy == SIGNALING_API_CALL_CACHE_TYPE_FILE) {
         // Signaling channel name can be NULL in case of pre-created channels in which case we use ARN as the name
         if (STATUS_FAILED(signalingCacheLoadFromFile(pChannelInfo->pChannelName != NULL ? pChannelInfo->pChannelName : pChannelInfo->pChannelArn,
-                                                     pChannelInfo->pRegion,
-                                                     pChannelInfo->channelRoleType,
-                                                     pFileCacheEntry,
-                                                     &cacheFound))) {
+                                                     pChannelInfo->pRegion, pChannelInfo->channelRoleType, pFileCacheEntry, &cacheFound))) {
             DLOGW("Failed to load signaling cache from file");
         } else if (cacheFound) {
             STRCPY(pSignalingClient->channelDescription.channelArn, pFileCacheEntry->channelArn);
@@ -77,8 +71,7 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     }
 
     // Attempting to get the logging level from the env var and if it fails then set it from the client info
-    if ((userLogLevelStr = GETENV(DEBUG_LOG_LEVEL_ENV_VAR)) != NULL &&
-            STATUS_SUCCEEDED(STRTOUI32(userLogLevelStr, NULL, 10, &userLogLevel))) {
+    if ((userLogLevelStr = GETENV(DEBUG_LOG_LEVEL_ENV_VAR)) != NULL && STATUS_SUCCEEDED(STRTOUI32(userLogLevelStr, NULL, 10, &userLogLevel))) {
         userLogLevel = userLogLevel > LOG_LEVEL_SILENT ? LOG_LEVEL_SILENT : userLogLevel < LOG_LEVEL_VERBOSE ? LOG_LEVEL_VERBOSE : userLogLevel;
     } else {
         userLogLevel = pClientInfo->signalingClientInfo.loggingLevel;
@@ -90,20 +83,17 @@ STATUS signalingCreate(PSignalingClientInfoInternal pClientInfo,
     pSignalingClient->pCredentialProvider = pCredentialProvider;
 
     // Create the state machine
-    CHK_STATUS(createStateMachine(SIGNALING_STATE_MACHINE_STATES,
-                                    SIGNALING_STATE_MACHINE_STATE_COUNT,
-                                    CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient),
-                                    signalingGetCurrentTime,
-                                    CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient),
-                                    &pSignalingClient->pStateMachine));
+    CHK_STATUS(createStateMachine(SIGNALING_STATE_MACHINE_STATES, SIGNALING_STATE_MACHINE_STATE_COUNT,
+                                  CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient), signalingGetCurrentTime,
+                                  CUSTOM_DATA_FROM_SIGNALING_CLIENT(pSignalingClient), &pSignalingClient->pStateMachine));
 
     // Prepare the signaling channel protocols array
     // for the https connection.
     pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS].name = HTTPS_SCHEME_NAME;
-    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS].callback = (lws_callback_function*)lwsHttpCallbackRoutine;
+    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_HTTPS].callback = (lws_callback_function*) lwsHttpCallbackRoutine;
     // for the websocket connection.
     pSignalingClient->signalingProtocols[PROTOCOL_INDEX_WSS].name = WSS_SCHEME_NAME;
-    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_WSS].callback = (lws_callback_function*)lwsWssCallbackRoutine;
+    pSignalingClient->signalingProtocols[PROTOCOL_INDEX_WSS].callback = (lws_callback_function*) lwsWssCallbackRoutine;
 
     // #lws, for the wrap of libwebsockets.
     MEMSET(&creationInfo, 0x00, SIZEOF(struct lws_context_creation_info));
@@ -297,13 +287,13 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief  
- *  
+ * @brief
+ *
  * @param[]
  * @param[]
- * 
+ *
  * @return
-*/
+ */
 STATUS signalingTerminateOngoingOperations(PSignalingClient pSignalingClient, BOOL freeTimerQueue)
 {
     ENTERS();
@@ -329,16 +319,16 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief   
+ * @brief
  *          https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis3.html
  *          https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis4.html
  *          https://docs.aws.amazon.com/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis5.html
- * 
+ *
  * @param[]
  * @param[]
- * 
+ *
  * @return
-*/
+ */
 STATUS signalingSendMessage(PSignalingClient pSignalingClient, PSignalingMessage pSignalingMessage)
 {
     ENTERS();
@@ -370,13 +360,8 @@ STATUS signalingSendMessage(PSignalingClient pSignalingClient, PSignalingMessage
     removeFromList = TRUE;
 
     // Perform the call
-    CHK_STATUS(lwsSendMessage(pSignalingClient,
-                                pOfferType,
-                                pSignalingMessage->peerClientId,
-                                pSignalingMessage->payload,
-                                pSignalingMessage->payloadLen,
-                                pSignalingMessage->correlationId,
-                                0));
+    CHK_STATUS(lwsSendMessage(pSignalingClient, pOfferType, pSignalingMessage->peerClientId, pSignalingMessage->payload,
+                              pSignalingMessage->payloadLen, pSignalingMessage->correlationId, 0));
 
     // Update the internal diagnostics only after successfully sending
     ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfMessagesSent);
@@ -544,12 +529,12 @@ CleanUp:
 }
 /**
  * @brief   validate the version of singaling callbacks.
- * 
+ *
  * @param[]
  * @param[]
- * 
+ *
  * @return
-*/
+ */
 STATUS signalingValidateCallbacks(PSignalingClient pSignalingClient, PSignalingClientCallbacks pCallbacks)
 {
     ENTERS();
@@ -570,12 +555,12 @@ CleanUp:
 }
 /**
  * @brief   validate the client info and assign it to the context of singling client.
- * 
+ *
  * @param[in, out]
  * @param[in]
- * 
+ *
  * @return
-*/
+ */
 STATUS signalingValidateClientInfo(PSignalingClient pSignalingClient, PSignalingClientInfoInternal pClientInfo)
 {
     ENTERS();
@@ -634,12 +619,8 @@ STATUS signalingValidateIceConfiguration(PSignalingClient pSignalingClient)
     CHK(timer <= 1, retStatus);
 
     // Schedule the refresh on the timer queue
-    CHK_STATUS(timerQueueAddTimer(pSignalingClient->timerQueueHandle,
-                                    refreshPeriod,
-                                    TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
-                                    signalingRefreshIceConfigurationCallback,
-                                    (UINT64) pSignalingClient,
-                                    &timer));
+    CHK_STATUS(timerQueueAddTimer(pSignalingClient->timerQueueHandle, refreshPeriod, TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
+                                  signalingRefreshIceConfigurationCallback, (UINT64) pSignalingClient, &timer));
 
 CleanUp:
 
@@ -648,7 +629,7 @@ CleanUp:
 }
 /**
  * @brief   refresh the information of ice server.
-*/
+ */
 STATUS signalingRefreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduledTime, UINT64 customData)
 {
     ENTERS();
@@ -668,12 +649,9 @@ STATUS signalingRefreshIceConfigurationCallback(UINT32 timerId, UINT64 scheduled
     // If we are coming from async code we need to check if we have already landed in Ready state
     if (ATOMIC_LOAD_BOOL(&pSignalingClient->asyncGetIceConfig)) {
         // Re-schedule in a while
-        CHK_STATUS(timerQueueAddTimer(pSignalingClient->timerQueueHandle,
-                                        SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY,
-                                        TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
-                                        signalingRefreshIceConfigurationCallback,
-                                        (UINT64) pSignalingClient,
-                                        &newTimerId));
+        CHK_STATUS(timerQueueAddTimer(pSignalingClient->timerQueueHandle, SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY,
+                                      TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, signalingRefreshIceConfigurationCallback, (UINT64) pSignalingClient,
+                                      &newTimerId));
         CHK(FALSE, retStatus);
     }
 
@@ -724,12 +702,12 @@ CleanUp:
 }
 /**
  * @brief   store the singaling ongoing message, and also check the duplicated messages.
- * 
+ *
  * @param[in] pSignalingClient the context of signaling client.
  * @param[in] pSignalingMessage the signaling message.
- * 
+ *
  * @return status
-*/
+ */
 STATUS signalingStoreOngoingMessage(PSignalingClient pSignalingClient, PSignalingMessage pSignalingMessage)
 {
     ENTERS();
@@ -801,15 +779,15 @@ CleanUp:
 }
 /**
  * @brief   Get the corresponding message with correction id and peer client id.
- * 
+ *
  * @param[in] pSignalingClient
  * @param[in] correlationId A unique identifier for the message.
  *                          Type: String. Length constraints: Minimum length of 1. Maximum length of 256. Pattern: [a-zA-Z0-9_.-]+. Required: No
  * @param[in] peerClientId A unique identifier for the recipient.
  * @param[in, out] ppSignalingMessage
- * 
+ *
  * @return
-*/
+ */
 STATUS signalingGetOngoingMessage(PSignalingClient pSignalingClient, PCHAR correlationId, PCHAR peerClientId, PSignalingMessage* ppSignalingMessage)
 {
     ENTERS();
@@ -835,7 +813,7 @@ STATUS signalingGetOngoingMessage(PSignalingClient pSignalingClient, PCHAR corre
         CHK(pExistingMessage != NULL, STATUS_INTERNAL_ERROR);
 
         if (((correlationId[0] == '\0' && pExistingMessage->correlationId[0] == '\0') ||
-                0 == STRCMP(pExistingMessage->correlationId, correlationId)) &&
+             0 == STRCMP(pExistingMessage->correlationId, correlationId)) &&
             (!checkPeerClientId || 0 == STRCMP(pExistingMessage->peerClientId, peerClientId))) {
             *ppSignalingMessage = pExistingMessage;
 
@@ -861,11 +839,11 @@ CleanUp:
 }
 /**
  * @brief   The initialization of thread context not including the creation of thread.
- * 
+ *
  * @param[in] pThreadTracker thread context.
- * 
+ *
  * @return
-*/
+ */
 STATUS signalingInitThreadTracker(PThreadTracker pThreadTracker)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -905,12 +883,12 @@ CleanUp:
 }
 /**
  * @brief  waiting for the thread being terminated.
- *  
+ *
  * @param[in] pThreadTracker the context of thread.
- * @param[in] timeout the 
- * 
+ * @param[in] timeout the
+ *
  * @return
-*/
+ */
 STATUS signalingAwaitForThreadTermination(PThreadTracker pThreadTracker, UINT64 timeout)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -1148,11 +1126,9 @@ STATUS signalingGetIceConfig(PSignalingClient pSignalingClient, UINT64 time)
     // Check if we need to async the API and if so early return
     if (ATOMIC_LOAD_BOOL(&pSignalingClient->asyncGetIceConfig)) {
         // We will emulate the call and kick off the ice refresh routine
-        CHK_STATUS(timerQueueAddTimer(pSignalingClient->timerQueueHandle,
-                                        SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY,
-                                        TIMER_QUEUE_SINGLE_INVOCATION_PERIOD,
-                                        signalingRefreshIceConfigurationCallback,
-                                        (UINT64) pSignalingClient, &timerId));
+        CHK_STATUS(timerQueueAddTimer(pSignalingClient->timerQueueHandle, SIGNALING_ASYNC_ICE_CONFIG_REFRESH_DELAY,
+                                      TIMER_QUEUE_SINGLE_INVOCATION_PERIOD, signalingRefreshIceConfigurationCallback, (UINT64) pSignalingClient,
+                                      &timerId));
 
         // Success early return to prime the state machine to the next state which is Ready
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
@@ -1243,13 +1219,13 @@ CleanUp:
     return retStatus;
 }
 /**
- * @brief   
- * 
+ * @brief
+ *
  * @param[in] pSignalingClient the context of signaling client.
- * @param[in] time the absolute time. 
- * 
+ * @param[in] time the absolute time.
+ *
  * @return
-*/
+ */
 STATUS signalingConnectChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
     ENTERS();

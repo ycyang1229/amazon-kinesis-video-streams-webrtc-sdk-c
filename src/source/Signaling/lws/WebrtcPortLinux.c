@@ -15,26 +15,23 @@
 #define LOG_CLASS "webrtc_port"
 #include "../Include_i.h"
 
-#define DATE_TIME_ISO_8601_FORMAT_STRING_SIZE           ( 17 )
+#define DATE_TIME_ISO_8601_FORMAT_STRING_SIZE (17)
 
-VOID sleepInMs( UINT32 ms )
+VOID sleepInMs(UINT32 ms)
 {
-    usleep( ms * 1000 );
+    usleep(ms * 1000);
 }
 
-INT32 getTimeInIso8601( CHAR *pBuf, UINT32 uBufSize )
+INT32 getTimeInIso8601(CHAR* pBuf, UINT32 uBufSize)
 {
     INT32 retStatus = STATUS_SUCCESS;
-    time_t timeUtcNow = { 0 };
+    time_t timeUtcNow = {0};
 
-    if( pBuf == NULL || uBufSize < DATE_TIME_ISO_8601_FORMAT_STRING_SIZE )
-    {
+    if (pBuf == NULL || uBufSize < DATE_TIME_ISO_8601_FORMAT_STRING_SIZE) {
         retStatus = STATUS_INVALID_ARG;
-    }
-    else
-    {
-        timeUtcNow = time( NULL );
-        strftime(pBuf, DATE_TIME_ISO_8601_FORMAT_STRING_SIZE, "%Y%m%dT%H%M%SZ", gmtime(&timeUtcNow ) );
+    } else {
+        timeUtcNow = time(NULL);
+        strftime(pBuf, DATE_TIME_ISO_8601_FORMAT_STRING_SIZE, "%Y%m%dT%H%M%SZ", gmtime(&timeUtcNow));
     }
 
     return retStatus;
