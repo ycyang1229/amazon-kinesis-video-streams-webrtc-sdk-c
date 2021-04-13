@@ -36,6 +36,7 @@ STATUS wssHandleDataMsg(PSignalingClient pSignalingClient, PCHAR pMessage, UINT3
 STATUS wssHandleCtrlMsg(PSignalingClient pSignalingClient, UINT8 opcode, PCHAR pMessage, UINT32 messageLen);
 // #YC_TBD.
 STATUS wssTerminateConnection(PSignalingClient pSignalingClient, SERVICE_CALL_RESULT callResult);
+STATUS wssGetMessageTypeFromString(PCHAR typeStr, UINT32 typeLen, SIGNALING_MESSAGE_TYPE* pMessageType);
 // json parser.
 STATUS wssApiRspReceivedMessage(const CHAR* pResponseStr, UINT32 resultLen, PSignalingMessageWrapper pSignalingMessageWrapper);
 
