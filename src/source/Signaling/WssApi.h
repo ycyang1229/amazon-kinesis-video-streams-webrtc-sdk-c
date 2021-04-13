@@ -1,18 +1,3 @@
-/*
- * Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
- *  http://aws.amazon.com/apache2.0
- *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
- */
-
 #ifndef __KINESIS_VIDEO_WEBRTC_WSS_API_H__
 #define __KINESIS_VIDEO_WEBRTC_WSS_API_H__
 
@@ -36,14 +21,21 @@ typedef struct {
     PSignalingClient pSignalingClient;
 } SignalingMessageWrapper, *PSignalingMessageWrapper;
 
+/**
+ * @brief   It is a non-blocking call, and it spin off one thread to handle the reception.
+ * 
+ * @param[in]
+ * @param[in]
+ * 
+ * @return
+*/
 STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time);
 STATUS wssSendMessage(PSignalingClient pSignalingClient, PCHAR pMessageType, PCHAR peerClientId, PCHAR pMessage, UINT32 messageLen,
                       PCHAR pCorrelationId, UINT32 correlationIdLen);
-STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT32 messageLen);
+STATUS wssHandleDataMsg(PSignalingClient pSignalingClient, PCHAR pMessage, UINT32 messageLen);
 STATUS wssHandleCtrlMsg(PSignalingClient pSignalingClient, UINT8 opcode, PCHAR pMessage, UINT32 messageLen);
-STATUS wssGetMessageTypeFromString(PCHAR typeStr, UINT32 typeLen, SIGNALING_MESSAGE_TYPE* pMessageType);
 // #YC_TBD.
-STATUS wssTerminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_CALL_RESULT callResult);
+STATUS wssTerminateConnection(PSignalingClient pSignalingClient, SERVICE_CALL_RESULT callResult);
 // json parser.
 STATUS wssApiRspReceivedMessage( const CHAR * pResponseStr, UINT32 resultLen, PSignalingMessageWrapper pSignalingMessageWrapper);
 

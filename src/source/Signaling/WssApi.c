@@ -6,7 +6,7 @@
 #define WSS_API_EXIT() //DLOGD("exit")
 /*-----------------------------------------------------------*/
 
-#define KVS_ENDPOINT_TCP_PORT   "443"
+#define API_ENDPOINT_TCP_PORT   "443"
 /*-----------------------------------------------------------*/
 #define MAX_STRLEN_OF_INT32_t   ( 11 )
 #define MAX_STRLEN_OF_UINT32    ( 10 )
@@ -23,8 +23,8 @@
 // #YC_TBD, need to be fixed.
 #define SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define MAX_CONNECTION_RETRY                ( 3 )
-#define CONNECTION_RETRY_INTERVAL_IN_MS     ( 1000 )
+#define API_CONNECTING_RETRY                ( 3 )
+#define API_CALL_CONNECTING_RETRY_INTERVAL_IN_MS     ( 1000 )
 
 
 
@@ -77,18 +77,9 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
     /* Variables for HTTP request */
     PCHAR pUrl = NULL;
     PRequestInfo pRequestInfo = NULL;
-    BOOL secureConnection;
     PCHAR pHttpBody = NULL;
     CHAR clientKey[WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1];
-
-    // temp interface.
-    PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
-    PCHAR pSecretKey = pSignalingClient->pAwsCredentials->secretKey;
-    PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
-    PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
-    PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
     PCHAR pHost = NULL;    
-    PCHAR pUserAgent = pChannelInfo->pUserAgent;// HTTP agent name
     // rsp
     UINT32 uHttpStatusCode = 0;
     HttpResponseContext* pHttpRspCtx = NULL;
@@ -141,15 +132,16 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
     wssClientGenerateClientKey(clientKey, WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1);
     httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_GET_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, (PCHAR)pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, TRUE, clientKey);
 
-    for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
+    for( uConnectionRetryCnt = 0; uConnectionRetryCnt < API_CONNECTING_RETRY; uConnectionRetryCnt++ )
     {
-        if( ( retStatus = connectToServer( pNetworkContext, pHost, KVS_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
+        if( ( retStatus = connectToServer( pNetworkContext, pHost, API_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
         {
             DLOGD("%s(%d) connect successfully", __func__, __LINE__);
             break;
         }
-        THREAD_SLEEP( CONNECTION_RETRY_INTERVAL_IN_MS*HUNDREDS_OF_NANOS_IN_A_MILLISECOND );
+        THREAD_SLEEP( API_CALL_CONNECTING_RETRY_INTERVAL_IN_MS*HUNDREDS_OF_NANOS_IN_A_MILLISECOND );
     }
+    CHK_STATUS(retStatus);
 
     uBytesToSend = STRLEN((PCHAR)pNetworkContext->pHttpSendBuffer);
     CHK(uBytesToSend == networkSend( pNetworkContext, pNetworkContext->pHttpSendBuffer, uBytesToSend ), STATUS_SEND_DATA_FAILED);
@@ -200,38 +192,18 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
         */
         /* We got a success response here. */
         WssClientContext* wssClientCtx = NULL;
-        // #YC_TBD.
-        
-        //setNonBlocking(pNetworkContext);
-        //mbedtls_ssl_set_timer_cb( &ssl, &timer, mbedtls_timing_set_delay,
-        //                                    mbedtls_timing_get_delay );
-        wssClientCreate(&wssClientCtx, pNetworkContext, pSignalingClient, wssReceiveMessage, wssHandleCtrlMsg);
-        // #YC_TBD !!!!!!!!! MUST
-        //pSignalingClient->pOngoingCallInfo = MEMALLOC(SIZEOF(LwsCallInfo));
+        wssClientCreate(&wssClientCtx, pNetworkContext, pSignalingClient, wssHandleDataMsg, wssHandleCtrlMsg);
         pSignalingClient->pWssContext = wssClientCtx;
 
-        // Don't let the thread to start running initially
-        //MUTEX_LOCK(pSignalingClient->connectedLock);
-        //locked = TRUE;
-
-        // The actual connection will be handled in a separate thread
-        // Start the request/response thread
         CHK_STATUS(THREAD_CREATE(&threadId, wssClientStart, (PVOID) wssClientCtx));
         CHK_STATUS(THREAD_DETACH(threadId));
 
-        // Set the call result to succeeded
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
         ATOMIC_STORE_BOOL(&pSignalingClient->connected, TRUE);
 
-        // Notify the listener thread
-        //CVAR_BROADCAST(pSignalingClient->connectedCvar);
-        // Check whether we are connected and reset the result
         if (ATOMIC_LOAD_BOOL(&pSignalingClient->connected)) {
             ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_RESULT_OK);
         }
-
-        //MUTEX_UNLOCK(pSignalingClient->connectedLock);
-        //locked = FALSE;
     }
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK, retStatus);
 
@@ -258,7 +230,7 @@ CleanUp:
         }
 
         if (pSignalingClient->pWssContext != NULL) {
-            wssTerminateConnectionWithStatus(pSignalingClient, serviceCallResult);
+            wssTerminateConnection(pSignalingClient, serviceCallResult);
         }
 
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) serviceCallResult);
@@ -522,7 +494,7 @@ CleanUp:
 #endif
 
 
-STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT32 messageLen)
+STATUS wssHandleDataMsg(PSignalingClient pSignalingClient, PCHAR pMessage, UINT32 messageLen)
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
@@ -565,7 +537,7 @@ STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 
         case SIGNALING_MESSAGE_TYPE_GO_AWAY:
             // Move the describe state
-            CHK_STATUS(wssTerminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_SIGNALING_GO_AWAY));
+            CHK_STATUS(wssTerminateConnection(pSignalingClient, SERVICE_CALL_RESULT_SIGNALING_GO_AWAY));
 
             // Delete the message wrapper and exit
             SAFE_MEMFREE(pSignalingMessageWrapper);
@@ -578,7 +550,7 @@ STATUS wssReceiveMessage(PSignalingClient pSignalingClient, PCHAR pMessage, UINT
 
         case SIGNALING_MESSAGE_TYPE_RECONNECT_ICE_SERVER:
             // Move to get ice config state
-            CHK_STATUS(wssTerminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE));
+            CHK_STATUS(wssTerminateConnection(pSignalingClient, SERVICE_CALL_RESULT_SIGNALING_RECONNECT_ICE));
 
             // Delete the message wrapper and exit
             SAFE_MEMFREE(pSignalingMessageWrapper);
@@ -656,6 +628,9 @@ STATUS wssHandleCtrlMsg(PSignalingClient pSignalingClient, UINT8 opcode, PCHAR p
 
         connected = ATOMIC_EXCHANGE_BOOL(&pSignalingClient->connected, FALSE);
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
+
+        // Update the diagnostics info
+        ATOMIC_INCREMENT(&pSignalingClient->diagnostics.numberOfReconnects);
         CHK_STATUS(signalingFsmStep(pSignalingClient, retStatus));
         if (pSignalingClient != NULL) {
         // Call the error handler in case of an error
@@ -669,15 +644,16 @@ STATUS wssHandleCtrlMsg(PSignalingClient pSignalingClient, UINT8 opcode, PCHAR p
                 //                                                         STATUS_SIGNALING_RECONNECT_FAILED, pReconnectErrMsg, reconnectErrLen);
             }
         }
+        //if (connected && !ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
+        //    // Handle re-connection in a reconnect handler thread
+        //    CHK_STATUS(THREAD_CREATE(&pSignalingClient->reconnecterTracker.threadId, lwsReconnectHandler, (PVOID) pSignalingClient));
+        //    CHK_STATUS(THREAD_DETACH(pSignalingClient->reconnecterTracker.threadId));
+        //}
     }
     }else{
         DLOGD("<== ctrl msg(%d), len: %ld", opcode, messageLen);
     }
-    //if (connected && !ATOMIC_LOAD_BOOL(&pSignalingClient->shutdown)) {
-    //    // Handle re-connection in a reconnect handler thread
-    //    CHK_STATUS(THREAD_CREATE(&pSignalingClient->reconnecterTracker.threadId, lwsReconnectHandler, (PVOID) pSignalingClient));
-    //    CHK_STATUS(THREAD_DETACH(pSignalingClient->reconnecterTracker.threadId));
-    //}
+    
 
 CleanUp:
 
@@ -694,7 +670,7 @@ CleanUp:
  * 
  * @return
 */
-STATUS wssTerminateConnectionWithStatus(PSignalingClient pSignalingClient, SERVICE_CALL_RESULT callResult)
+STATUS wssTerminateConnection(PSignalingClient pSignalingClient, SERVICE_CALL_RESULT callResult)
 {
     WSS_API_ENTER();
     STATUS retStatus = STATUS_SUCCESS;

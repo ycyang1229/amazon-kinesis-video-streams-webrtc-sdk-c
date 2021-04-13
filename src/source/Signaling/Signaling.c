@@ -276,7 +276,7 @@ STATUS signalingTerminateOngoingOperations(PSignalingClient pSignalingClient, BO
     }
 
     if (pSignalingClient->pWssContext != NULL) {
-        wssTerminateConnectionWithStatus(pSignalingClient, SERVICE_CALL_RESULT_OK);
+        wssTerminateConnection(pSignalingClient, SERVICE_CALL_RESULT_OK);
     }
 
     // Await for the reconnect thread to exit

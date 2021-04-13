@@ -1,51 +1,31 @@
-/*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
- *  http://aws.amazon.com/apache2.0
- *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
- */
-
 #define LOG_CLASS "HttpApi"
 #include "../Include_i.h"
-
 
 #define HTTP_API_ENTER() //DLOGD("enter")
 #define HTTP_API_EXIT() //DLOGD("exit")
 
+#define API_CALL_CONNECTION_TIMEOUT (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define API_CALL_COMPLETION_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define API_CALL_CONNECTING_RETRY                ( 3 )
+#define API_CALL_CONNECTING_RETRY_INTERVAL_IN_MS     ( 1000 )
+#define API_ENDPOINT_TCP_PORT   "443"
+#define API_CALL_CHANNEL_PROTOCOL "\"WSS\", \"HTTPS\""
 
-/*-----------------------------------------------------------*/
-#define KVS_ENDPOINT_TCP_PORT   "443"
-/*-----------------------------------------------------------*/
 // API postfix definitions
 // https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_CreateSignalingChannel.html
-#define WEBRTC_API_CREATE_SIGNALING_CHANNEL       "/createSignalingChannel"
-// https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_DeleteSignalingChannel.html
-#define WEBRTC_API_DELETE_SIGNALING_CHANNEL       "/deleteSignalingChannel"
+#define API_CREATE_SIGNALING_CHANNEL       "/createSignalingChannel"
 // https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_DescribeSignalingChannel.html
-#define WEBRTC_API_DESCRIBE_SIGNALING_CHANNEL     "/describeSignalingChannel"
+#define API_DESCRIBE_SIGNALING_CHANNEL     "/describeSignalingChannel"
 // https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_GetSignalingChannelEndpoint.html
-#define WEBRTC_API_GET_SIGNALING_CHANNEL_ENDPOINT "/getSignalingChannelEndpoint"
-// https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_ListSignalingChannels.html
-#define WEBRTC_API_LIST_SIGNALING_CHANNEL         "/listSignalingChannels"
-// https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_UpdateSignalingChannel.html
-#define WEBRTC_API_UPDATE_SIGNALING_CHANNEL       "/updateSignalingChannel"
+#define API_GET_SIGNALING_CHANNEL_ENDPOINT "/getSignalingChannelEndpoint"
+// https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_DeleteSignalingChannel.html
+#define API_DELETE_SIGNALING_CHANNEL       "/deleteSignalingChannel"
 // https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_AWSAcuitySignalingService_GetIceServerConfig.html
-#define WEBRTC_API_GET_ICE_CONFIG                 "/v1/get-ice-server-config"
-/*-----------------------------------------------------------*/
-#define SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define MAX_CONNECTION_RETRY                ( 3 )
-#define CONNECTION_RETRY_INTERVAL_IN_MS     ( 1000 )
-/*-----------------------------------------------------------*/
-// API request body
+#define API_GET_ICE_CONFIG                 "/v1/get-ice-server-config"
+// https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_ListSignalingChannels.html
+#define API_LIST_SIGNALING_CHANNEL         "/listSignalingChannels"
+// https://docs.aws.amazon.com/kinesisvideostreams/latest/dg/API_UpdateSignalingChannel.html
+#define API_UPDATE_SIGNALING_CHANNEL       "/updateSignalingChannel"
 /**
  * @brief   API_CreateSignalingChannel
  * POST /createSignalingChannel HTTP/1.1
@@ -65,28 +45,14 @@
  *    ]
  * }
 */
-#define CREATE_CHANNEL_JSON_TEMPLATE                                                                                                           \
+// #YC_TBD, need to add the rest part.
+#define BODY_TEMPLATE_CREATE_CHANNEL                                                                                                           \
     "{\n\t\"ChannelName\": \"%s\""                                                                                                                  \
     "\n}"
 
 // Parameterized string for TagStream API - we should have at least one tag
-#define TAGS_PARAM_JSON_TEMPLATE ",\n\t\"Tags\": [%s\n\t]"
-#define TAG_PARAM_JSON_OBJ_TEMPLATE "\n\t\t{\"Key\": \"%s\", \"Value\": \"%s\"},"
-
-/**
- * @brief   API_DeleteSignalingChannel
- * POST /deleteSignalingChannel HTTP/1.1
- * Content-type: application/json
- * 
- * {
- *    "ChannelARN": "string",
- *    "CurrentVersion": "string"
- * }
-*/
-#define DELETE_CHANNEL_PARAM_JSON_TEMPLATE                                                                                                           \
-    "{\n\t\"ChannelARN\": \"%s\","                                                                                                                   \
-    "\n\t\"CurrentVersion\": \"%s\"\n}"
-
+#define BODY_TEMPLATE_TAGS ",\n\t\"Tags\": [%s\n\t]"
+#define BODY_TEMPLATE_TAG "\n\t\t{\"Key\": \"%s\", \"Value\": \"%s\"},"
 /**
  * @brief   API_DescribeSignalingChannel
  * POST /describeSignalingChannel HTTP/1.1
@@ -97,8 +63,7 @@
  *    "ChannelName": "string"
  * }
 */
-#define DESCRIBE_CHANNEL_JSON_TEMPLATE "{\n\t\"ChannelName\": \"%s\"\n}"
-
+#define BODY_TEMPLATE_DESCRIBE_CHANNEL "{\n\t\"ChannelName\": \"%s\"\n}"
 /**
  * @brief   API_GetSignalingChannelEndpoint
  * POST /getSignalingChannelEndpoint HTTP/1.1
@@ -112,12 +77,42 @@
  *    }
  * }
 */
-#define GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE                                                                                                     \
+#define BODY_TEMPLATE_GET_CHANNEL_ENDPOINT                                                                                                     \
     "{\n\t\"ChannelARN\": \"%s\","                                                                                                                   \
     "\n\t\"SingleMasterChannelEndpointConfiguration\": {"                                                                                            \
     "\n\t\t\"Protocols\": [%s],"                                                                                                                     \
     "\n\t\t\"Role\": \"%s\""                                                                                                                         \
     "\n\t}\n}"
+/**
+ * @brief   API_DeleteSignalingChannel
+ * POST /deleteSignalingChannel HTTP/1.1
+ * Content-type: application/json
+ * 
+ * {
+ *    "ChannelARN": "string",
+ *    "CurrentVersion": "string"
+ * }
+*/
+#define BODY_TEMPLATE_DELETE_CHANNEL                                                                                                           \
+    "{\n\t\"ChannelARN\": \"%s\","                                                                                                                   \
+    "\n\t\"CurrentVersion\": \"%s\"\n}"
+/**
+ * @brief   API_AWSAcuitySignalingService_GetIceServerConfig
+ * POST /v1/get-ice-server-config HTTP/1.1
+ * Content-type: application/json
+ * 
+ * {
+ *    "ChannelARN": "string",
+ *    "ClientId": "string",
+ *    "Service": "string",
+ *    "Username": "string"
+ * }
+*/
+#define BODY_TEMPLATE_GET_ICE_CONFIG                                                                                                           \
+    "{\n\t\"ChannelARN\": \"%s\","                                                                                                                   \
+    "\n\t\"ClientId\": \"%s\","                                                                                                                      \
+    "\n\t\"Service\": \"TURN\""                                                                                                                      \
+    "\n}"
 /**
  * @brief   API_ListSignalingChannels
  * POST /listSignalingChannels HTTP/1.1
@@ -132,7 +127,7 @@
  *    "NextToken": "string"
  * }
 */
-//#define LIST_SIGNALING_CHANNELS_PARAM_JSON_TEMPLATE
+//#define BODY_TEMPLATE_LIST_CHANNELS
 
 /**
  * @brief   API_UpdateSignalingChannel
@@ -147,37 +142,13 @@
  *    }
  * }
 */
-//#define UPDATE_SIGNALING_CHANNELS_PARAM_JSON_TEMPLATE
-
-// Parameterized string for Get Ice Server Config API
-/**
- * @brief   API_AWSAcuitySignalingService_GetIceServerConfig
- * POST /v1/get-ice-server-config HTTP/1.1
- * Content-type: application/json
- * 
- * {
- *    "ChannelARN": "string",
- *    "ClientId": "string",
- *    "Service": "string",
- *    "Username": "string"
- * }
-*/
-#define GET_ICE_CONFIG_PARAM_JSON_TEMPLATE                                                                                                           \
-    "{\n\t\"ChannelARN\": \"%s\","                                                                                                                   \
-    "\n\t\"ClientId\": \"%s\","                                                                                                                      \
-    "\n\t\"Service\": \"TURN\""                                                                                                                      \
-    "\n}"
-
-#define MAX_STRLEN_OF_INT32_t   ( 11 )
+//#define BODY_TEMPLATE_UPDATE_CHANNEL
+// #YC_TBD.
 #define MAX_STRLEN_OF_UINT32    ( 10 )
 
-/*-----------------------------------------------------------*/
-/*-----------------------------------------------------------*/
-
-/*-----------------------------------------------------------*/
-/**
- * 
-*/
+//////////////////////////////////////////////////////////////////////////
+// API calls
+//////////////////////////////////////////////////////////////////////////
 STATUS httpApiCreateChannl(PSignalingClient pSignalingClient, UINT64 time)
 {
     HTTP_API_ENTER();
@@ -193,40 +164,29 @@ STATUS httpApiCreateChannl(PSignalingClient pSignalingClient, UINT64 time)
     PCHAR pUrl = NULL;
     PRequestInfo pRequestInfo = NULL;
     PCHAR pHttpBody = NULL;
-
-    // temp interface.
-    //PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
-    //PCHAR pSecretKey = pSignalingClient->pAwsCredentials->secretKey;
-    //PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
-    //PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
-    //PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
+    UINT32 httpBodyLen;
     PCHAR pHost = NULL;
-    //PCHAR pUserAgent = pChannelInfo->pUserAgent;//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
     // rsp
     UINT32 uHttpStatusCode = 0;
     HttpResponseContext* pHttpRspCtx = NULL;
     PCHAR pResponseStr;
     UINT32 resultLen;
 
-
     CHK(NULL != (pHost = (PCHAR)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pUrl = (PCHAR)MEMALLOC(STRLEN(pSignalingClient->pChannelInfo->pControlPlaneUrl) +
-                                        STRLEN(WEBRTC_API_CREATE_SIGNALING_CHANNEL) + 1)), STATUS_NOT_ENOUGH_MEMORY);
-
+                                        STRLEN(API_CREATE_SIGNALING_CHANNEL) + 1)), STATUS_NOT_ENOUGH_MEMORY);
     // Create the API url
     STRCPY(pUrl, pSignalingClient->pChannelInfo->pControlPlaneUrl);
-    STRCAT(pUrl, WEBRTC_API_CREATE_SIGNALING_CHANNEL);
-
-    CHK(NULL != (pHttpBody = (CHAR *)MEMALLOC(  SIZEOF( CREATE_CHANNEL_JSON_TEMPLATE ) +
-                                                STRLEN( pChannelInfo->pChannelName ) +
-                                                MAX_STRLEN_OF_UINT32 + 1 )), STATUS_NOT_ENOUGH_MEMORY);
+    STRCAT(pUrl, API_CREATE_SIGNALING_CHANNEL);
+    httpBodyLen = SIZEOF( BODY_TEMPLATE_CREATE_CHANNEL ) + STRLEN( pChannelInfo->pChannelName ) + 1;
+    CHK(NULL != (pHttpBody = (CHAR *)MEMALLOC(httpBodyLen)), STATUS_NOT_ENOUGH_MEMORY);
 
     /* generate HTTP request body */
-    SPRINTF( pHttpBody, CREATE_CHANNEL_JSON_TEMPLATE, pChannelInfo->pChannelName);
+    SNPRINTF( pHttpBody, httpBodyLen, BODY_TEMPLATE_CREATE_CHANNEL, pChannelInfo->pChannelName);
     // Create the request info with the body
     CHK_STATUS(createRequestInfo(pUrl, pHttpBody, pSignalingClient->pChannelInfo->pRegion, (PCHAR)pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
                                  SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
-                                 SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
+                                 API_CALL_CONNECTION_TIMEOUT, API_CALL_COMPLETION_TIMEOUT,
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
 
     /* Initialize and generate HTTP request, then send it. */
@@ -235,15 +195,15 @@ STATUS httpApiCreateChannl(PSignalingClient pSignalingClient, UINT64 time)
     
     httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, (PCHAR)pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE, NULL);
 
-    for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
+    for( uConnectionRetryCnt = 0; uConnectionRetryCnt < API_CALL_CONNECTING_RETRY; uConnectionRetryCnt++ )
     {
-        if( ( retStatus = connectToServer( pNetworkContext, pHost, KVS_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
+        if( ( retStatus = connectToServer( pNetworkContext, pHost, API_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
         {
             break;
         }
-        THREAD_SLEEP( CONNECTION_RETRY_INTERVAL_IN_MS*HUNDREDS_OF_NANOS_IN_A_MILLISECOND );
+        THREAD_SLEEP( API_CALL_CONNECTING_RETRY_INTERVAL_IN_MS*HUNDREDS_OF_NANOS_IN_A_MILLISECOND );
     }
-
+    CHK_STATUS(retStatus);
 
     uBytesToSend = STRLEN((PCHAR)pNetworkContext->pHttpSendBuffer);
     CHK(uBytesToSend == networkSend( pNetworkContext, pNetworkContext->pHttpSendBuffer, uBytesToSend ), STATUS_SEND_DATA_FAILED);
@@ -279,7 +239,7 @@ CleanUp:
         retStatus =  httpParserDetroy(pHttpRspCtx);
         if( retStatus != STATUS_SUCCESS )
         {
-            printf("destroying http parset failed. \n");
+            DLOGE("destroying http parset failed. \n");
         }
     }
     SAFE_MEMFREE(pHttpBody);
@@ -291,15 +251,6 @@ CleanUp:
     return retStatus;
 }
 
-/*-----------------------------------------------------------*/
-/**
- * @brief   
- *          
- *
- * 
- * @param[]
- * @
-*/
 STATUS httpApiDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
     HTTP_API_ENTER();
@@ -316,15 +267,8 @@ STATUS httpApiDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
     PCHAR pUrl = NULL;
     PRequestInfo pRequestInfo = NULL;
     PCHAR pHttpBody = NULL;
-
-    // temp interface.
-    //PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
-    //PCHAR pSecretKey = pSignalingClient->pAwsCredentials->secretKey;
-    //PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
-    //PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
-    //PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
+    UINT32 httpBodyLen;
     PCHAR pHost = NULL;
-    //PCHAR pUserAgent = pChannelInfo->pUserAgent;//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
     // rsp
     UINT32 uHttpStatusCode = 0;
     HttpResponseContext* pHttpRspCtx = NULL;
@@ -333,19 +277,19 @@ STATUS httpApiDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
     
     CHK(NULL != (pHost = (PCHAR)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pUrl = (PCHAR) MEMALLOC(STRLEN(pSignalingClient->pChannelInfo->pControlPlaneUrl) +
-                                        STRLEN(WEBRTC_API_DESCRIBE_SIGNALING_CHANNEL) + 1)), STATUS_NOT_ENOUGH_MEMORY);
-    CHK(NULL != (pHttpBody = (PCHAR) MEMALLOC(STRLEN(DESCRIBE_CHANNEL_JSON_TEMPLATE)+ 
-                                              STRLEN(pSignalingClient->pChannelInfo->pChannelName)+1)), STATUS_NOT_ENOUGH_MEMORY);
+                                        STRLEN(API_DESCRIBE_SIGNALING_CHANNEL) + 1)), STATUS_NOT_ENOUGH_MEMORY);
+    httpBodyLen = STRLEN(BODY_TEMPLATE_DESCRIBE_CHANNEL) + STRLEN(pSignalingClient->pChannelInfo->pChannelName) + 1;
+    CHK(NULL != (pHttpBody = (PCHAR) MEMALLOC(httpBodyLen)), STATUS_NOT_ENOUGH_MEMORY);
     // Create the http url
     STRCPY(pUrl, pSignalingClient->pChannelInfo->pControlPlaneUrl);
-    STRCAT(pUrl, WEBRTC_API_DESCRIBE_SIGNALING_CHANNEL);
+    STRCAT(pUrl, API_DESCRIBE_SIGNALING_CHANNEL);
     // create the http body
-    SNPRINTF(pHttpBody, MAX_JSON_PARAMETER_STRING_LEN, DESCRIBE_CHANNEL_JSON_TEMPLATE, pSignalingClient->pChannelInfo->pChannelName);
+    SNPRINTF(pHttpBody, httpBodyLen, BODY_TEMPLATE_DESCRIBE_CHANNEL, pSignalingClient->pChannelInfo->pChannelName);
 
     // Create the request info with the body
     CHK_STATUS(createRequestInfo(pUrl, pHttpBody, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
                                  SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
-                                 SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
+                                 API_CALL_CONNECTION_TIMEOUT, API_CALL_COMPLETION_TIMEOUT,
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
 
     /* Initialize and generate HTTP request, then send it. */
@@ -355,14 +299,15 @@ STATUS httpApiDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
     
     httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, (PCHAR)pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE, NULL);
 
-    for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
+    for( uConnectionRetryCnt = 0; uConnectionRetryCnt < API_CALL_CONNECTING_RETRY; uConnectionRetryCnt++ )
     {
-        if( ( retStatus = connectToServer( pNetworkContext, pHost, KVS_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
+        if( ( retStatus = connectToServer( pNetworkContext, pHost, API_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
         {
             break;
         }
-        THREAD_SLEEP( CONNECTION_RETRY_INTERVAL_IN_MS*HUNDREDS_OF_NANOS_IN_A_MILLISECOND );
+        THREAD_SLEEP( API_CALL_CONNECTING_RETRY_INTERVAL_IN_MS*HUNDREDS_OF_NANOS_IN_A_MILLISECOND );
     }
+    CHK_STATUS(retStatus);
 
     uBytesToSend = STRLEN((PCHAR)pNetworkContext->pHttpSendBuffer);
     CHK(uBytesToSend == networkSend( pNetworkContext, pNetworkContext->pHttpSendBuffer, uBytesToSend ), STATUS_SEND_DATA_FAILED);
@@ -377,7 +322,7 @@ STATUS httpApiDescribeChannel(PSignalingClient pSignalingClient, UINT64 time)
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
     /* Check HTTP results */
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
-    retStatus = httpApiRspDescribeChannel( ( const CHAR * )pResponseStr, resultLen, pSignalingClient );
+    CHK_STATUS(httpApiRspDescribeChannel( ( const CHAR * )pResponseStr, resultLen, pSignalingClient ));
 
 CleanUp:
     CHK_LOG_ERR(retStatus);
@@ -392,7 +337,7 @@ CleanUp:
         retStatus =  httpParserDetroy(pHttpRspCtx);
         if( retStatus != STATUS_SUCCESS )
         {
-            printf("destroying http parset failed. \n");
+            DLOGE("destroying http parset failed. \n");
         }
     }
     SAFE_MEMFREE(pHttpBody);
@@ -403,8 +348,6 @@ CleanUp:
     HTTP_API_EXIT();
     return retStatus;
 }
-
-/*-----------------------------------------------------------*/
 
 STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time)
 {
@@ -421,15 +364,8 @@ STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time
     PCHAR pUrl = NULL;
     PRequestInfo pRequestInfo = NULL;
     PCHAR pHttpBody = NULL;
-
-    // temp interface.
-    //PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
-    //PCHAR pSecretKey = pSignalingClient->pAwsCredentials->secretKey;
-    //PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
-    //PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
-    //PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
+    UINT32 httpBodyLen;
     PCHAR pHost = NULL;
-    //PCHAR pUserAgent = pChannelInfo->pUserAgent;//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
     // rsp
     UINT32 uHttpStatusCode = 0;
     HttpResponseContext* pHttpRspCtx = NULL;
@@ -438,24 +374,23 @@ STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time
 
     CHK(NULL != (pHost = (PCHAR)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pUrl = (PCHAR) MEMALLOC(STRLEN(pSignalingClient->pChannelInfo->pControlPlaneUrl) +
-                                        STRLEN(WEBRTC_API_GET_SIGNALING_CHANNEL_ENDPOINT) + 1)), STATUS_NOT_ENOUGH_MEMORY);
+                                        STRLEN(API_GET_SIGNALING_CHANNEL_ENDPOINT) + 1)), STATUS_NOT_ENOUGH_MEMORY);
 
     // Create the API url
     STRCPY(pUrl, pSignalingClient->pChannelInfo->pControlPlaneUrl);
-    STRCAT(pUrl, WEBRTC_API_GET_SIGNALING_CHANNEL_ENDPOINT);
-
-    CHK(NULL != (pHttpBody = (PCHAR) MEMALLOC( SIZEOF( GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE ) + 
-                                    STRLEN( pSignalingClient->channelDescription.channelArn ) + 
-                                    STRLEN( WEBRTC_CHANNEL_PROTOCOL ) +
-                                    STRLEN( getStringFromChannelRoleType( pChannelInfo->channelRoleType )) + 
-                                    1 )), STATUS_NOT_ENOUGH_MEMORY);
+    STRCAT(pUrl, API_GET_SIGNALING_CHANNEL_ENDPOINT);
+    httpBodyLen = SIZEOF( BODY_TEMPLATE_GET_CHANNEL_ENDPOINT ) + 
+                  STRLEN( pSignalingClient->channelDescription.channelArn ) + 
+                  STRLEN( API_CALL_CHANNEL_PROTOCOL ) +
+                  STRLEN( getStringFromChannelRoleType( pChannelInfo->channelRoleType )) + 1;
+    CHK(NULL != (pHttpBody = (PCHAR) MEMALLOC(httpBodyLen)), STATUS_NOT_ENOUGH_MEMORY);
 
     /* generate HTTP request body */
-    SPRINTF( pHttpBody, GET_CHANNEL_ENDPOINT_PARAM_JSON_TEMPLATE, pSignalingClient->channelDescription.channelArn, WEBRTC_CHANNEL_PROTOCOL, getStringFromChannelRoleType( pChannelInfo->channelRoleType ) );
+    SNPRINTF( pHttpBody, httpBodyLen, BODY_TEMPLATE_GET_CHANNEL_ENDPOINT, pSignalingClient->channelDescription.channelArn, API_CALL_CHANNEL_PROTOCOL, getStringFromChannelRoleType( pChannelInfo->channelRoleType ) );
     // Create the request info with the body
     CHK_STATUS(createRequestInfo(pUrl, pHttpBody, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
                                  SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
-                                 SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
+                                 API_CALL_CONNECTION_TIMEOUT, API_CALL_COMPLETION_TIMEOUT,
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
 
     /* Initialize and generate HTTP request, then send it. */
@@ -464,14 +399,15 @@ STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time
 
     httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, (PCHAR)pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE, NULL);
 
-    for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
+    for( uConnectionRetryCnt = 0; uConnectionRetryCnt < API_CALL_CONNECTING_RETRY; uConnectionRetryCnt++ )
     {
-        if( ( retStatus = connectToServer( pNetworkContext, pHost, KVS_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
+        if( ( retStatus = connectToServer( pNetworkContext, pHost, API_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
         {
             break;
         }
-        THREAD_SLEEP( CONNECTION_RETRY_INTERVAL_IN_MS*HUNDREDS_OF_NANOS_IN_A_MILLISECOND );
+        THREAD_SLEEP( API_CALL_CONNECTING_RETRY_INTERVAL_IN_MS*HUNDREDS_OF_NANOS_IN_A_MILLISECOND );
     }
+    CHK_STATUS(retStatus);
 
     uBytesToSend = STRLEN((PCHAR)pNetworkContext->pHttpSendBuffer);
     CHK(uBytesToSend == networkSend( pNetworkContext, pNetworkContext->pHttpSendBuffer, uBytesToSend ), STATUS_SEND_DATA_FAILED);
@@ -487,7 +423,7 @@ STATUS httpApiGetChannelEndpoint( PSignalingClient pSignalingClient, UINT64 time
     /* Check HTTP results */
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
 
-    retStatus = httpApiRspGetChannelEndpoint( ( const CHAR * )pResponseStr, resultLen, pSignalingClient );
+    CHK_STATUS(httpApiRspGetChannelEndpoint( ( const CHAR * )pResponseStr, resultLen, pSignalingClient ));
     /* We got a success response here. */
 
 
@@ -505,7 +441,7 @@ CleanUp:
         retStatus =  httpParserDetroy(pHttpRspCtx);
         if( retStatus != STATUS_SUCCESS )
         {
-            printf("destroying http parset failed. \n");
+            DLOGE("destroying http parset failed. \n");
         }
     }
     SAFE_MEMFREE(pHttpBody);
@@ -515,8 +451,6 @@ CleanUp:
     HTTP_API_EXIT();
     return retStatus;
 }
-
-/*-----------------------------------------------------------*/
 
 STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
 {
@@ -534,15 +468,8 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
     PCHAR pUrl = NULL;
     PRequestInfo pRequestInfo = NULL;
     PCHAR pHttpBody = NULL;
-
-    // temp interface.
-    //PCHAR pAccessKey = pSignalingClient->pAwsCredentials->accessKeyId;
-    //PCHAR pSecretKey = pSignalingClient->pAwsCredentials->secretKey;
-    //PCHAR pToken = pSignalingClient->pAwsCredentials->sessionToken;
-    //PCHAR pRegion = pSignalingClient->pChannelInfo->pRegion;     // The desired region of KVS service
-    //PCHAR pService = KINESIS_VIDEO_SERVICE_NAME;    // KVS service name
+    UINT32 httpBodyLen;
     PCHAR pHost = NULL;
-    //PCHAR pUserAgent = pChannelInfo->pUserAgent;//pSignalingClient->pChannelInfo->pCustomUserAgent;  // HTTP agent name
     // rsp
     UINT32 uHttpStatusCode = 0;
     HttpResponseContext* pHttpRspCtx = NULL;
@@ -551,22 +478,22 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
 
     CHK(NULL != (pHost = (PCHAR)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
     CHK(NULL != (pUrl = (PCHAR) MEMALLOC(STRLEN(pSignalingClient->channelEndpointHttps) +
-                                        STRLEN(WEBRTC_API_GET_ICE_CONFIG) + 1)), STATUS_NOT_ENOUGH_MEMORY);
-    CHK(NULL != (pHttpBody = (PCHAR) MEMALLOC( SIZEOF( GET_ICE_CONFIG_PARAM_JSON_TEMPLATE ) + 
-                                    STRLEN( pSignalingClient->channelDescription.channelArn ) + 
-                                    STRLEN( pSignalingClient->clientInfo.signalingClientInfo.clientId ) +
-                                    1 )), STATUS_NOT_ENOUGH_MEMORY);
+                                        STRLEN(API_GET_ICE_CONFIG) + 1)), STATUS_NOT_ENOUGH_MEMORY);
+    httpBodyLen = SIZEOF( BODY_TEMPLATE_GET_ICE_CONFIG ) + 
+                  STRLEN( pSignalingClient->channelDescription.channelArn ) + 
+                  STRLEN( pSignalingClient->clientInfo.signalingClientInfo.clientId ) + 1;
+    CHK(NULL != (pHttpBody = (PCHAR) MEMALLOC(httpBodyLen)), STATUS_NOT_ENOUGH_MEMORY);
 
 
     STRCPY(pUrl, pSignalingClient->channelEndpointHttps);
-    STRCAT(pUrl, WEBRTC_API_GET_ICE_CONFIG);
+    STRCAT(pUrl, API_GET_ICE_CONFIG);
     /* generate HTTP request body */
-    SPRINTF( pHttpBody, GET_ICE_CONFIG_PARAM_JSON_TEMPLATE, pSignalingClient->channelDescription.channelArn, pSignalingClient->clientInfo.signalingClientInfo.clientId);
+    SNPRINTF(pHttpBody, httpBodyLen, BODY_TEMPLATE_GET_ICE_CONFIG, pSignalingClient->channelDescription.channelArn, pSignalingClient->clientInfo.signalingClientInfo.clientId);
 
     // Create the request info with the body
     CHK_STATUS(createRequestInfo(pUrl, pHttpBody, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
                                  SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
-                                 SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
+                                 API_CALL_CONNECTION_TIMEOUT, API_CALL_COMPLETION_TIMEOUT,
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
 
     /* Initialize and generate HTTP request, then send it. */
@@ -576,14 +503,15 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
 
     httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, (PCHAR)pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE, NULL);
 
-    for( uConnectionRetryCnt = 0; uConnectionRetryCnt < MAX_CONNECTION_RETRY; uConnectionRetryCnt++ )
+    for( uConnectionRetryCnt = 0; uConnectionRetryCnt < API_CALL_CONNECTING_RETRY; uConnectionRetryCnt++ )
     {
-        if( ( retStatus = connectToServer( pNetworkContext, pHost, KVS_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
+        if( ( retStatus = connectToServer( pNetworkContext, pHost, API_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
         {
             break;
         }
-        THREAD_SLEEP( CONNECTION_RETRY_INTERVAL_IN_MS*HUNDREDS_OF_NANOS_IN_A_MILLISECOND );
+        THREAD_SLEEP( API_CALL_CONNECTING_RETRY_INTERVAL_IN_MS*HUNDREDS_OF_NANOS_IN_A_MILLISECOND );
     }
+    CHK_STATUS(retStatus);
 
     uBytesToSend = STRLEN((PCHAR)pNetworkContext->pHttpSendBuffer);
     CHK(uBytesToSend == networkSend( pNetworkContext, pNetworkContext->pHttpSendBuffer, uBytesToSend ), STATUS_SEND_DATA_FAILED);
@@ -600,7 +528,7 @@ STATUS httpApiGetIceConfig( PSignalingClient pSignalingClient, UINT64 time)
     /* Check HTTP results */
     CHK((SERVICE_CALL_RESULT) ATOMIC_LOAD(&pSignalingClient->result) == SERVICE_CALL_RESULT_OK && resultLen != 0 && pResponseStr != NULL, retStatus);
 
-    retStatus = httpApiRspGetIceConfig( ( const CHAR * )pResponseStr, resultLen, pSignalingClient );
+    CHK_STATUS(httpApiRspGetIceConfig( ( const CHAR * )pResponseStr, resultLen, pSignalingClient ));
 
     if(retStatus != STATUS_SUCCESS)
     {
@@ -620,7 +548,7 @@ CleanUp:
         retStatus =  httpParserDetroy(pHttpRspCtx);
         if( retStatus != STATUS_SUCCESS )
         {
-            printf("destroying http parset failed. \n");
+            DLOGE("destroying http parset failed. \n");
         }
     }
     SAFE_MEMFREE(pHttpBody);
@@ -634,6 +562,98 @@ CleanUp:
 
 STATUS httpApiDeleteChannl(PSignalingClient pSignalingClient, UINT64 time)
 {
-    //STATUS retStatus = STATUS_SUCCESS;
-    return STATUS_SUCCESS;//retStatus;
+    HTTP_API_ENTER();
+    STATUS retStatus = STATUS_SUCCESS;
+    PChannelInfo pChannelInfo = pSignalingClient->pChannelInfo;
+    NetworkContext_t* pNetworkContext = NULL;
+    SIZE_T uConnectionRetryCnt = 0;
+    UINT32 uBytesToSend = 0, uBytesReceived = 0;
+    PCHAR pUrl = NULL;
+    PRequestInfo pRequestInfo = NULL;
+    PCHAR pHttpBody = NULL;
+    UINT32 httpBodyLen;
+    PCHAR pHost = NULL;
+    SIZE_T result;
+    UINT32 uHttpStatusCode = 0;
+    HttpResponseContext* pHttpRspCtx = NULL;
+
+    CHK(NULL != (pHost = (PCHAR)MEMALLOC(MAX_CONTROL_PLANE_URI_CHAR_LEN)), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pUrl = (PCHAR)MEMALLOC(STRLEN(pSignalingClient->pChannelInfo->pControlPlaneUrl) +
+                                        STRLEN(API_DELETE_SIGNALING_CHANNEL) + 1)), STATUS_NOT_ENOUGH_MEMORY);
+    // Check if we need to terminate the ongoing listener
+    if (pSignalingClient->pWssContext != NULL) {
+        wssTerminateConnection(pSignalingClient, SERVICE_CALL_RESULT_OK);
+    }
+    // Create the API url
+    STRCPY(pUrl, pSignalingClient->pChannelInfo->pControlPlaneUrl);
+    STRCAT(pUrl, API_DELETE_SIGNALING_CHANNEL);
+    httpBodyLen = SIZEOF( BODY_TEMPLATE_DELETE_CHANNEL ) + STRLEN( pSignalingClient->channelDescription.channelArn ) + STRLEN(pSignalingClient->channelDescription.updateVersion) + 1;
+    CHK(NULL != (pHttpBody = (CHAR *)MEMALLOC(httpBodyLen)), STATUS_NOT_ENOUGH_MEMORY);
+
+    /* generate HTTP request body */
+    SNPRINTF( pHttpBody, httpBodyLen, BODY_TEMPLATE_DELETE_CHANNEL, pSignalingClient->channelDescription.channelArn,
+             pSignalingClient->channelDescription.updateVersion);
+    // Create the request info with the body
+    CHK_STATUS(createRequestInfo(pUrl, pHttpBody, pSignalingClient->pChannelInfo->pRegion, (PCHAR)pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
+                                 SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
+                                 API_CALL_CONNECTION_TIMEOUT, API_CALL_COMPLETION_TIMEOUT,
+                                 DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
+
+    /* Initialize and generate HTTP request, then send it. */
+    CHK(NULL != (pNetworkContext = (NetworkContext_t *)MEMALLOC( SIZEOF(NetworkContext_t))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK_STATUS(initNetworkContext( pNetworkContext ) );
+    
+    httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_POST_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, (PCHAR)pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, FALSE, NULL);
+
+    for( uConnectionRetryCnt = 0; uConnectionRetryCnt < API_CALL_CONNECTING_RETRY; uConnectionRetryCnt++ )
+    {
+        if( ( retStatus = connectToServer( pNetworkContext, pHost, API_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
+        {
+            break;
+        }
+        THREAD_SLEEP( API_CALL_CONNECTING_RETRY_INTERVAL_IN_MS*HUNDREDS_OF_NANOS_IN_A_MILLISECOND );
+    }
+    CHK_STATUS(retStatus);
+
+    uBytesToSend = STRLEN((PCHAR)pNetworkContext->pHttpSendBuffer);
+    CHK(uBytesToSend == networkSend( pNetworkContext, pNetworkContext->pHttpSendBuffer, uBytesToSend ), STATUS_SEND_DATA_FAILED);
+    uBytesReceived = networkRecv( pNetworkContext, pNetworkContext->pHttpRecvBuffer, pNetworkContext->uHttpRecvBufferLen );
+    CHK(uBytesReceived > 0, STATUS_RECV_DATA_FAILED);
+
+    CHK_STATUS(httpParserStart(&pHttpRspCtx, ( CHAR * )pNetworkContext->pHttpRecvBuffer, ( UINT32 )uBytesReceived, NULL));
+    uHttpStatusCode = httpParserGetHttpStatusCode(pHttpRspCtx);
+
+    ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
+    /* Check HTTP results */
+    result = ATOMIC_LOAD(&pSignalingClient->result);
+    CHK((SERVICE_CALL_RESULT) result == SERVICE_CALL_RESULT_OK || (SERVICE_CALL_RESULT) result == SERVICE_CALL_RESOURCE_NOT_FOUND, retStatus);
+
+    ATOMIC_STORE_BOOL(&pSignalingClient->deleted, TRUE);
+
+CleanUp:
+
+    CHK_LOG_ERR(retStatus);
+
+    if( pNetworkContext != NULL )
+    {
+        disconnectFromServer( pNetworkContext );
+        terminateNetworkContext(pNetworkContext);
+        MEMFREE( pNetworkContext );
+    }
+
+    if(pHttpRspCtx != NULL)
+    {
+        retStatus =  httpParserDetroy(pHttpRspCtx);
+        if( retStatus != STATUS_SUCCESS )
+        {
+            DLOGE("destroying http parset failed. \n");
+        }
+    }
+    SAFE_MEMFREE(pHttpBody);
+    SAFE_MEMFREE(pHost);
+    SAFE_MEMFREE(pUrl);
+    freeRequestInfo(&pRequestInfo);
+    
+    HTTP_API_EXIT();
+    return retStatus;
 }

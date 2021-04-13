@@ -397,19 +397,16 @@ INT32 networkRecv( NetworkContext_t * pNetworkContext,
     }
     else
     {
-        //printf("ssl read st\n");
         n = mbedtls_ssl_read( &( pNetworkContext->ssl ), pBuffer, uBytesToRecv );
-        //return mbedtls_ssl_read( &( pNetworkContext->ssl ), pBuffer, uBytesToRecv );
-        //printf("ssl read end\n");
 
         if( n < 0 || n > uBytesToRecv )
         {
-            //DLOGW("ssl read err (%d)", n);
+            DLOGW("ssl read err (%d)", n);
             retStatus = n;
         }
         else
         {
-            //DLOGD("ssl read %d bytes", n);
+            DLOGD("ssl read %d bytes", n);
         }
     }
 
@@ -421,10 +418,4 @@ INT32 networkRecv( NetworkContext_t * pNetworkContext,
     {
         return retStatus;
     }
-}
-
-
-STATUS setNonBlocking(NetworkContext_t* pNetworkContext)
-{
-    return mbedtls_net_set_nonblock(&pNetworkContext->server_fd);
 }

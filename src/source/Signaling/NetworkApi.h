@@ -29,10 +29,10 @@ extern "C" {
 
 
 /* The size of HTTP send buffer */
-#define MAX_HTTP_SEND_BUFFER_LEN            ( 2048 + 2048)
+#define MAX_HTTP_SEND_BUFFER_LEN            ( 2048 )
 
 /* The size of HTTP receive buffer */
-#define MAX_HTTP_RECV_BUFFER_LEN            ( 2048 + 2048)
+#define MAX_HTTP_RECV_BUFFER_LEN            ( 2048 )
 
 struct tls_context{
   // net related.
@@ -165,7 +165,6 @@ int32_t isRecvDataAvailable( NetworkContext_t * pNetworkContext );
  */
 INT32 networkRecv( NetworkContext_t * pNetworkContext, PVOID pBuffer, SIZE_T uBytesToRecv );
 
-STATUS setNonBlocking(NetworkContext_t* pNetworkContext);
 #ifdef __cplusplus
 }
 #endif
