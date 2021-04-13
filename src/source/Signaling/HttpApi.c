@@ -1,14 +1,14 @@
 #define LOG_CLASS "HttpApi"
 #include "../Include_i.h"
 
-#define HTTP_API_ENTER() //DLOGD("enter")
-#define HTTP_API_EXIT() //DLOGD("exit")
+#define HTTP_API_ENTER()
+#define HTTP_API_EXIT()
 
+#define API_ENDPOINT_TCP_PORT   "443"
 #define API_CALL_CONNECTION_TIMEOUT (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define API_CALL_COMPLETION_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
 #define API_CALL_CONNECTING_RETRY                ( 3 )
 #define API_CALL_CONNECTING_RETRY_INTERVAL_IN_MS     ( 1000 )
-#define API_ENDPOINT_TCP_PORT   "443"
 #define API_CALL_CHANNEL_PROTOCOL "\"WSS\", \"HTTPS\""
 
 // API postfix definitions

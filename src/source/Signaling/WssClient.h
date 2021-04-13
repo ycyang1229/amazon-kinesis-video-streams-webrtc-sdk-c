@@ -40,7 +40,7 @@ typedef struct {
     CtrlMessageHandlerFunc ctrlMessageHandler;//!< the handler of receive the ctrl messages.
 }WssClientContext, *PWssClientContext;
 
-STATUS wssClientGenerateRandomNumber(PCHAR num, UINT32 len);
+STATUS wssClientGenerateRandomNumber(PUINT8 num, UINT32 len);
 STATUS wssClientGenerateClientKey(PCHAR buf, UINT32 bufLen);
 STATUS wssClientValidateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR acceptKey, UINT32 acceptKeyLen);
 VOID wssClientCreate(WssClientContext** ppWssClientCtx,

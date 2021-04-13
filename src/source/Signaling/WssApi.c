@@ -1,41 +1,29 @@
 #define LOG_CLASS "WssApi"
 #include "../Include_i.h"
 
-
-#define WSS_API_ENTER() //DLOGD("enter")
-#define WSS_API_EXIT() //DLOGD("exit")
-/*-----------------------------------------------------------*/
+#define WSS_API_ENTER()
+#define WSS_API_EXIT()
 
 #define API_ENDPOINT_TCP_PORT   "443"
-/*-----------------------------------------------------------*/
-#define MAX_STRLEN_OF_INT32_t   ( 11 )
-#define MAX_STRLEN_OF_UINT32    ( 10 )
-#define MIN_FRAGMENT_LENGTH     ( 6 )
+#define API_CALL_CONNECTION_TIMEOUT (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define API_CALL_COMPLETION_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
+#define API_CALL_CONNECTING_RETRY                ( 3 )
+#define API_CALL_CONNECTING_RETRY_INTERVAL_IN_MS     ( 1000 )
 
 #define HTTP_HEADER_FIELD_CONNECTION "Connection"
 #define HTTP_HEADER_FIELD_UPGRADE "upgrade"
 #define HTTP_HEADER_FIELD_SEC_WS_ACCEPT "sec-websocket-accept"
-
-
 #define HTTP_HEADER_VALUE_UPGRADE "upgrade"
 #define HTTP_HEADER_VALUE_WS "websocket"
 
-// #YC_TBD, need to be fixed.
-#define SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT (2 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT (5 * HUNDREDS_OF_NANOS_IN_A_SECOND)
-#define API_CONNECTING_RETRY                ( 3 )
-#define API_CALL_CONNECTING_RETRY_INTERVAL_IN_MS     ( 1000 )
-
-
-
 // Parameterized string for WSS connect
-#define SIGNALING_ENDPOINT_MASTER_URL_WSS_TEMPLATE "%s?%s=%s"
-#define SIGNALING_ENDPOINT_VIEWER_URL_WSS_TEMPLATE "%s?%s=%s&%s=%s"
-#define SIGNALING_CHANNEL_ARN_PARAM_NAME  "X-Amz-ChannelARN"
-#define SIGNALING_CLIENT_ID_PARAM_NAME    "X-Amz-ClientId"
+#define URL_TEMPLATE_ENDPOINT_MASTER "%s?%s=%s"
+#define URL_TEMPLATE_ENDPOINT_VIEWER "%s?%s=%s&%s=%s"
+#define URL_PARAM_CHANNEL_ARN  "X-Amz-ChannelARN"
+#define URL_PARAM_CLIENT_ID    "X-Amz-ClientId"
 
 // Send message JSON template
-#define SIGNALING_SEND_MESSAGE_TEMPLATE                                                                                                              \
+#define WSS_MESSAGE_TEMPLATE                                                                                                              \
     "{\n"                                                                                                                                            \
     "\t\"action\": \"%s\",\n"                                                                                                                        \
     "\t\"RecipientClientId\": \"%.*s\",\n"                                                                                                           \
@@ -43,7 +31,7 @@
     "}"
 
 // Send message JSON template with correlation id
-#define SIGNALING_SEND_MESSAGE_TEMPLATE_WITH_CORRELATION_ID                                                                                          \
+#define WSS_MESSAGE_TEMPLATE_WITH_CORRELATION_ID                                                                                          \
     "{\n"                                                                                                                                            \
     "\t\"action\": \"%s\",\n"                                                                                                                        \
     "\t\"RecipientClientId\": \"%.*s\",\n"                                                                                                           \
@@ -51,24 +39,10 @@
     "\t\"CorrelationId\": \"%.*s\"\n"                                                                                                                \
     "}"
 
-/*-----------------------------------------------------------*/
-/*-----------------------------------------------------------*/
-
-/*-----------------------------------------------------------*/
-/**
- * @brief   It is a non-blocking call, and it spin off one thread to handle the reception.
- * 
- * @param[in]
- * @param[in]
- * 
- * @return
-*/
 STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time)
 {
     WSS_API_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
-    PChannelInfo pChannelInfo = pSignalingClient->pChannelInfo;
-
     /* Variables for network connection */
     NetworkContext_t *pNetworkContext = NULL;
     SIZE_T uConnectionRetryCnt = 0;
@@ -77,16 +51,11 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
     /* Variables for HTTP request */
     PCHAR pUrl = NULL;
     PRequestInfo pRequestInfo = NULL;
-    PCHAR pHttpBody = NULL;
     CHAR clientKey[WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1];
     PCHAR pHost = NULL;    
-    // rsp
+
     UINT32 uHttpStatusCode = 0;
     HttpResponseContext* pHttpRspCtx = NULL;
-    PCHAR pResponseStr;
-    UINT32 resultLen;
-    BOOL locked = FALSE;
-    UINT64 timeout;
     UINT32 urlLen = 0;
 
     CHK(pSignalingClient != NULL, STATUS_NULL_ARG);
@@ -98,25 +67,25 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
     // Prepare the json params for the call
     if (pSignalingClient->pChannelInfo->channelRoleType == SIGNALING_CHANNEL_ROLE_TYPE_VIEWER) {
         
-        urlLen = STRLEN(SIGNALING_ENDPOINT_VIEWER_URL_WSS_TEMPLATE) +
+        urlLen = STRLEN(URL_TEMPLATE_ENDPOINT_VIEWER) +
                  STRLEN(pSignalingClient->channelEndpointWss) +
-                 STRLEN(SIGNALING_CHANNEL_ARN_PARAM_NAME) +
+                 STRLEN(URL_PARAM_CHANNEL_ARN) +
                  STRLEN(pSignalingClient->channelDescription.channelArn) +
-                 STRLEN(SIGNALING_CLIENT_ID_PARAM_NAME) +
-                 STRLEN(pSignalingClient->clientInfo.signalingClientInfo.clientId);
-        CHK(NULL != (pUrl = (PCHAR) MEMALLOC(urlLen + 1)), STATUS_NOT_ENOUGH_MEMORY);
-        SNPRINTF(pUrl, (urlLen + 1), SIGNALING_ENDPOINT_VIEWER_URL_WSS_TEMPLATE, pSignalingClient->channelEndpointWss,
-                 SIGNALING_CHANNEL_ARN_PARAM_NAME, pSignalingClient->channelDescription.channelArn, SIGNALING_CLIENT_ID_PARAM_NAME,
+                 STRLEN(URL_PARAM_CLIENT_ID) +
+                 STRLEN(pSignalingClient->clientInfo.signalingClientInfo.clientId) + 1;
+        CHK(NULL != (pUrl = (PCHAR) MEMALLOC(urlLen)), STATUS_NOT_ENOUGH_MEMORY);
+        SNPRINTF(pUrl, urlLen, URL_TEMPLATE_ENDPOINT_VIEWER, pSignalingClient->channelEndpointWss,
+                 URL_PARAM_CHANNEL_ARN, pSignalingClient->channelDescription.channelArn, URL_PARAM_CLIENT_ID,
                  pSignalingClient->clientInfo.signalingClientInfo.clientId);
     } else {
-        urlLen = STRLEN(SIGNALING_ENDPOINT_MASTER_URL_WSS_TEMPLATE) +
+        urlLen = STRLEN(URL_TEMPLATE_ENDPOINT_MASTER) +
                  STRLEN(pSignalingClient->channelEndpointWss) +
-                 STRLEN(SIGNALING_CHANNEL_ARN_PARAM_NAME) +
-                 STRLEN(pSignalingClient->channelDescription.channelArn);
-        CHK(NULL != (pUrl = (PCHAR) MEMALLOC(urlLen + 1)), STATUS_NOT_ENOUGH_MEMORY);
+                 STRLEN(URL_PARAM_CHANNEL_ARN) +
+                 STRLEN(pSignalingClient->channelDescription.channelArn) + 1;
+        CHK(NULL != (pUrl = (PCHAR) MEMALLOC(urlLen)), STATUS_NOT_ENOUGH_MEMORY);
 
-        SNPRINTF(pUrl, (urlLen + 1), SIGNALING_ENDPOINT_MASTER_URL_WSS_TEMPLATE, pSignalingClient->channelEndpointWss,
-                 SIGNALING_CHANNEL_ARN_PARAM_NAME, pSignalingClient->channelDescription.channelArn);
+        SNPRINTF(pUrl, urlLen, URL_TEMPLATE_ENDPOINT_MASTER, pSignalingClient->channelEndpointWss,
+                 URL_PARAM_CHANNEL_ARN, pSignalingClient->channelDescription.channelArn);
     }
 
     /* Initialize and generate HTTP request, then send it. */
@@ -125,18 +94,17 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
 
     CHK_STATUS(createRequestInfo(pUrl, NULL, pSignalingClient->pChannelInfo->pRegion, pSignalingClient->pChannelInfo->pCertPath, NULL, NULL,
                                  SSL_CERTIFICATE_TYPE_NOT_SPECIFIED, pSignalingClient->pChannelInfo->pUserAgent,
-                                 SIGNALING_SERVICE_API_CALL_CONNECTION_TIMEOUT, SIGNALING_SERVICE_API_CALL_COMPLETION_TIMEOUT,
+                                 API_CALL_CONNECTION_TIMEOUT, API_CALL_COMPLETION_TIMEOUT,
                                  DEFAULT_LOW_SPEED_LIMIT, DEFAULT_LOW_SPEED_TIME_LIMIT, pSignalingClient->pAwsCredentials, &pRequestInfo));
     pRequestInfo->verb = HTTP_REQUEST_VERB_GET;
     MEMSET(clientKey, 0, WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1);
     wssClientGenerateClientKey(clientKey, WSS_CLIENT_BASED64_RANDOM_SEED_LEN+1);
     httpPackSendBuf(pRequestInfo, HTTP_REQUEST_VERB_GET_STRING, pHost, MAX_CONTROL_PLANE_URI_CHAR_LEN, (PCHAR)pNetworkContext->pHttpSendBuffer, MAX_HTTP_SEND_BUFFER_LEN, TRUE, clientKey);
 
-    for( uConnectionRetryCnt = 0; uConnectionRetryCnt < API_CONNECTING_RETRY; uConnectionRetryCnt++ )
+    for( uConnectionRetryCnt = 0; uConnectionRetryCnt < API_CALL_CONNECTING_RETRY; uConnectionRetryCnt++ )
     {
         if( ( retStatus = connectToServer( pNetworkContext, pHost, API_ENDPOINT_TCP_PORT ) ) == STATUS_SUCCESS )
         {
-            DLOGD("%s(%d) connect successfully", __func__, __LINE__);
             break;
         }
         THREAD_SLEEP( API_CALL_CONNECTING_RETRY_INTERVAL_IN_MS*HUNDREDS_OF_NANOS_IN_A_MILLISECOND );
@@ -149,10 +117,6 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
     CHK(uBytesReceived > 0, STATUS_RECV_DATA_FAILED);
 
     struct list_head* requiredHeader = malloc(sizeof(struct list_head));
-    // on_status, Switching Protocols
-    // Connection, upgrade
-    // upgrade, websocket
-    // sec-websocket-accept, P9UpKZWjaPkoB8NXkHhLgAYqRtc=
     INIT_LIST_HEAD(requiredHeader);
     httpParserAddRequiredHeader(requiredHeader, HTTP_HEADER_FIELD_CONNECTION, STRLEN(HTTP_HEADER_FIELD_CONNECTION), NULL, 0);
     httpParserAddRequiredHeader(requiredHeader, HTTP_HEADER_FIELD_UPGRADE, STRLEN(HTTP_HEADER_FIELD_UPGRADE), NULL, 0);
@@ -161,25 +125,18 @@ STATUS wssConnectSignalingChannel(PSignalingClient pSignalingClient, UINT64 time
     
     PHttpField node;
     node = httpParserGetValueByField(requiredHeader, HTTP_HEADER_FIELD_CONNECTION, STRLEN(HTTP_HEADER_FIELD_CONNECTION));
-    if( node != NULL && 
+    CHK( node != NULL && 
         node->valueLen == STRLEN(HTTP_HEADER_VALUE_UPGRADE) &&
-        MEMCMP(node->value, HTTP_HEADER_VALUE_UPGRADE, node->valueLen) == 0 ){
-    }
+        MEMCMP(node->value, HTTP_HEADER_VALUE_UPGRADE, node->valueLen) == 0,  STATUS_WSS_UPGRADE_CONNECTION_ERROR);
 
     node = httpParserGetValueByField(requiredHeader, HTTP_HEADER_FIELD_UPGRADE, STRLEN(HTTP_HEADER_FIELD_UPGRADE));
-    if( node != NULL && 
+    CHK( node != NULL && 
         node->valueLen == STRLEN(HTTP_HEADER_VALUE_WS) &&
-        MEMCMP(node->value, HTTP_HEADER_VALUE_WS, node->valueLen) == 0 ){
-    }
-    node = httpParserGetValueByField(requiredHeader, HTTP_HEADER_FIELD_SEC_WS_ACCEPT, STRLEN(HTTP_HEADER_FIELD_SEC_WS_ACCEPT));
-    if( node != NULL ){
-        if(wssClientValidateAcceptKey(clientKey, WSS_CLIENT_BASED64_RANDOM_SEED_LEN, node->value, node->valueLen)!=0){
-            DLOGD("validate accept key failed");
-        }
-    }
+        MEMCMP(node->value, HTTP_HEADER_VALUE_WS, node->valueLen) == 0, STATUS_WSS_UPGRADE_PROTOCOL_ERROR);
 
-    pResponseStr = httpParserGetHttpBodyLocation(pHttpRspCtx);
-    resultLen = httpParserGetHttpBodyLength(pHttpRspCtx);
+    node = httpParserGetValueByField(requiredHeader, HTTP_HEADER_FIELD_SEC_WS_ACCEPT, STRLEN(HTTP_HEADER_FIELD_SEC_WS_ACCEPT));
+    CHK( node != NULL && wssClientValidateAcceptKey(clientKey, WSS_CLIENT_BASED64_RANDOM_SEED_LEN, node->value, node->valueLen) == STATUS_SUCCESS, STATUS_WSS_ACCEPT_KEY_ERROR);
+
     uHttpStatusCode = httpParserGetHttpStatusCode(pHttpRspCtx);
     ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) uHttpStatusCode);
     
@@ -254,13 +211,9 @@ STATUS wssWriteData(PSignalingClient pSignalingClient, PBYTE pSendBuf, UINT32 bu
 {
     ENTERS();
     STATUS retStatus = STATUS_SUCCESS;
-
-    //CHK(pSignalingClient != NULL && pSignalingClient->pOngoingCallInfo != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient != NULL && pSignalingClient->pWssContext != NULL, STATUS_NULL_ARG);
 
     DLOGD("Sending data over web socket: %s", pSendBuf);
-
-
     CHK_STATUS(wssClientSendText(pSignalingClient->pWssContext,
                                  pSendBuf,
                                  bufLen));
@@ -270,16 +223,6 @@ CleanUp:
     return retStatus;
 }
 
-
-
-/**
- * @brief   
- *          https://docs.aws.amazon.com/zh_tw/kinesisvideostreams-webrtc-dg/latest/devguide/kvswebrtc-websocket-apis-7.html
- * 
- * @param[in]
- * 
- * @return 
-*/
 STATUS wssSendMessage(PSignalingClient pSignalingClient,
                       PCHAR pMessageType,
                       PCHAR peerClientId,
@@ -299,8 +242,6 @@ STATUS wssSendMessage(PSignalingClient pSignalingClient,
 
     // Ensure we are in a connected state
     CHK_STATUS(signalingFsmAccept(pSignalingClient, SIGNALING_STATE_CONNECTED));
-
-    //CHK(pSignalingClient != NULL && pSignalingClient->pOngoingCallInfo != NULL, STATUS_NULL_ARG);
     CHK(pSignalingClient != NULL && pSignalingClient->pWssContext != NULL, STATUS_NULL_ARG);
     // #YC_TBD, need to enhance, #heap.
     CHK(NULL != (pEncodedMessage = (PCHAR) MEMALLOC(MAX_SESSION_DESCRIPTION_INIT_SDP_LEN + 1)), STATUS_NOT_ENOUGH_MEMORY);
@@ -331,7 +272,7 @@ STATUS wssSendMessage(PSignalingClient pSignalingClient,
     if (correlationLen == 0) {
         writtenSize = (UINT32) SNPRINTF((PCHAR)(pSendBuffer),
                                         size,
-                                        SIGNALING_SEND_MESSAGE_TEMPLATE,
+                                        WSS_MESSAGE_TEMPLATE,
                                         pMessageType,
                                         MAX_SIGNALING_CLIENT_ID_LEN,
                                         peerClientId,
@@ -339,7 +280,7 @@ STATUS wssSendMessage(PSignalingClient pSignalingClient,
     } else {
         writtenSize = (UINT32) SNPRINTF((PCHAR)(pSendBuffer),
                                         size,
-                                        SIGNALING_SEND_MESSAGE_TEMPLATE_WITH_CORRELATION_ID,
+                                        WSS_MESSAGE_TEMPLATE_WITH_CORRELATION_ID,
                                         pMessageType,
                                         MAX_SIGNALING_CLIENT_ID_LEN,
                                         peerClientId,

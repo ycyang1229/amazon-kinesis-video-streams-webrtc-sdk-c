@@ -1,48 +1,18 @@
-/*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
- *  http://aws.amazon.com/apache2.0
- *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
- */
-
 #define LOG_CLASS "WssClient"
 #include "../Include_i.h"
 
-#define WSS_CLIENT_ENTER() //DLOGD("enter")
-#define WSS_CLIENT_EXIT() //DLOGD("exit")
+#define WSS_CLIENT_ENTER()
+#define WSS_CLIENT_EXIT()
 
-//#include "json_helper.h"
-//#include "http_helper.h"
-//#include "parson.h"
-//#include "wslay/wslay.h"
-//mbedtls
-//#include <mbedtls/base64.h>
-//#include <mbedtls/sha1.h>
-//#include "mbedtls/entropy.h"
-//#include "mbedtls/ctr_drbg.h"
 
-// platform
-//#include <errno.h> // #YC_TBD.
-//#include <sys/epoll.h>// #YC_TBD.
-//#include <pthread.h>
-// time
-
-#define CLIENT_LOCK(pCtx)     MUTEX_LOCK(pCtx->clientLock)
-#define CLIENT_UNLOCK(pCtx)   MUTEX_UNLOCK(pCtx->clientLock)
-#define LISTENER_LOCK(pCtx)   MUTEX_LOCK(pCtx->listenerLock)
-#define LISTENER_UNLOCK(pCtx) MUTEX_UNLOCK(pCtx->listenerLock)
+#define CLIENT_LOCK(pWssCtx)     MUTEX_LOCK(pWssCtx->clientLock)
+#define CLIENT_UNLOCK(pWssCtx)   MUTEX_UNLOCK(pWssCtx->clientLock)
+#define LISTENER_LOCK(pWssCtx)   MUTEX_LOCK(pWssCtx->listenerLock)
+#define LISTENER_UNLOCK(pWssCtx) MUTEX_UNLOCK(pWssCtx->listenerLock)
 
 #define WSLAY_SUCCESS 0
 /*-----------------------------------------------------------*/
-STATUS wssClientGenerateRandomNumber(PCHAR num, UINT32 len)
+STATUS wssClientGenerateRandomNumber(PUINT8 num, UINT32 len)
 {
     WSS_CLIENT_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
@@ -51,19 +21,10 @@ STATUS wssClientGenerateRandomNumber(PCHAR num, UINT32 len)
     mbedtls_entropy_init( &entropy );
     mbedtls_ctr_drbg_init( &ctr_drbg );
 
-    retStatus = mbedtls_ctr_drbg_seed( &ctr_drbg , mbedtls_entropy_func, &entropy, NULL, 0);
-    if( retStatus != 0 )
-    {
-        DLOGD("setup ctr_drbg failed(%d)", retStatus);
-        return -1;
-    }
-    retStatus = mbedtls_ctr_drbg_random( &ctr_drbg, (UINT8*)num, len);
-    if( retStatus != 0 )
-    {
-        DLOGD("access ctr_drbg failed(%d)", retStatus);
-        return -1;
-    }
+    CHK(mbedtls_ctr_drbg_seed( &ctr_drbg , mbedtls_entropy_func, &entropy, NULL, 0) == 0, STATUS_WSS_GENERATE_RANDOM_NUM_ERROR);
+    CHK(mbedtls_ctr_drbg_random( &ctr_drbg, (UINT8*)num, len) == 0, STATUS_WSS_GENERATE_RANDOM_NUM_ERROR);
 
+CleanUp:
     mbedtls_ctr_drbg_free( &ctr_drbg );
     mbedtls_entropy_free( &entropy );
     WSS_CLIENT_EXIT();
@@ -75,35 +36,18 @@ STATUS wssClientGenerateClientKey(PCHAR buf, UINT32 bufLen)
     WSS_CLIENT_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
     UINT32 olen = 0;
-    CHAR randomNum[WSS_CLIENT_RANDOM_SEED_LEN+1];
+    UINT8 randomNum[WSS_CLIENT_RANDOM_SEED_LEN+1];
     MEMSET(randomNum, 0, WSS_CLIENT_RANDOM_SEED_LEN+1);
-    // get random value.
-    retStatus = wssClientGenerateRandomNumber(randomNum, WSS_CLIENT_RANDOM_SEED_LEN);
-    if( retStatus != 0 )
-    {
-        DLOGD("generate the random value failed(%d)", retStatus);
-        return -1;
-    }
-    // base64 the random value.
-    retStatus = mbedtls_base64_encode((UINT8*)buf, bufLen, (VOID*)&olen, (UINT8*)randomNum, WSS_CLIENT_RANDOM_SEED_LEN );
-    if( retStatus != 0 )
-    {
-        DLOGD("base64-encode the random value failed(%d)", retStatus);
-        return -1;
-    }
-    if(olen != WSS_CLIENT_BASED64_RANDOM_SEED_LEN){
-        DLOGD("the invalid length of the base64-encoded random value%d)", retStatus);
-        return -1;
-    }
+
+    CHK_STATUS(wssClientGenerateRandomNumber(randomNum, WSS_CLIENT_RANDOM_SEED_LEN));
+    CHK(mbedtls_base64_encode((UINT8*)buf, bufLen, (VOID*)&olen, (UINT8*)randomNum, WSS_CLIENT_RANDOM_SEED_LEN )==0, STATUS_WSS_GENERATE_CLIENT_KEY_ERROR);
+    CHK(olen == WSS_CLIENT_BASED64_RANDOM_SEED_LEN, STATUS_WSS_GENERATE_CLIENT_KEY_ERROR);
+
+CleanUp:
     WSS_CLIENT_EXIT();
     return retStatus;
 }
 
-/**
- * @brief create accept key according to the client key.
- *        #YC_TBD,
- * @return
-*/
 STATUS wssClientGenerateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR acceptKey, UINT32 acceptKeyLen)
 {
     WSS_CLIENT_ENTER();
@@ -117,12 +61,11 @@ STATUS wssClientGenerateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR ac
     MEMCPY(buf, clientKey, STRLEN(clientKey));
     MEMCPY(buf+STRLEN(clientKey), WSS_CLIENT_RFC6455_UUID, STRLEN(WSS_CLIENT_RFC6455_UUID));
     mbedtls_sha1( buf, STRLEN((PCHAR)buf), obuf );
-    retStatus = mbedtls_base64_encode((UINT8*)acceptKey, acceptKeyLen, (VOID*)&olen, (UINT8*)obuf, 20);
 
-    if( retStatus!=0 || olen != WSS_CLIENT_ACCEPT_KEY_LEN){
-        DLOGD("base64-encode accept key failed");
-    }
+    CHK(mbedtls_base64_encode((UINT8*)acceptKey, acceptKeyLen, (VOID*)&olen, (UINT8*)obuf, 20) == 0, STATUS_WSS_GENERATE_ACCEPT_KEY_ERROR);
+    CHK(olen == WSS_CLIENT_ACCEPT_KEY_LEN, STATUS_WSS_GENERATE_ACCEPT_KEY_ERROR);
 
+CleanUp:
     WSS_CLIENT_EXIT();
     return retStatus;
 }
@@ -133,63 +76,33 @@ STATUS wssClientValidateAcceptKey(PCHAR clientKey, UINT32 clientKeyLen, PCHAR ac
     STATUS retStatus = STATUS_SUCCESS;
     UINT8 tmpKey[WSS_CLIENT_ACCEPT_KEY_LEN+1];
     MEMSET(tmpKey, 0, WSS_CLIENT_ACCEPT_KEY_LEN+1);
-    retStatus = wssClientGenerateAcceptKey(clientKey, clientKeyLen, (PCHAR)tmpKey, WSS_CLIENT_ACCEPT_KEY_LEN+1);
-    if( retStatus != STATUS_SUCCESS ){
-        DLOGD("generating accept key failed");
-    }
-    //wssClientGenerateAcceptKey(clientKey, clientKeyLen, buf, WSS_CLIENT_ACCEPT_KEY_LEN);
-    if(MEMCMP(tmpKey, acceptKey, WSS_CLIENT_ACCEPT_KEY_LEN)!=0){
-        DLOGD("validate accept key failed");
-        return -1;
-    }
+
+    CHK_STATUS(wssClientGenerateAcceptKey(clientKey, clientKeyLen, (PCHAR)tmpKey, WSS_CLIENT_ACCEPT_KEY_LEN+1));
+    CHK(MEMCMP(tmpKey, acceptKey, WSS_CLIENT_ACCEPT_KEY_LEN)==0, STATUS_WSS_VALIDATE_ACCEPT_KEY_ERROR);
+
+CleanUp:
     WSS_CLIENT_EXIT();
     return 0;
 }
 
-/**
- * @brief   send data to the socket layer.
- * 
- * @param[in]
- * 
- * @return
-*/
-INT32 wssClientSocketSend(WssClientContext* pCtx, const UINT8* data, SIZE_T len, INT32 flags)
+INT32 wssClientSocketSend(WssClientContext* pWssCtx, const UINT8* data, SIZE_T len, INT32 flags)
 {
-    //DLOGD("S ==>");
-    return networkSend( pCtx->pNetworkContext, data, len );
-}
-/**
- * @brief   receive data from the socket layer.
- * 
- * @param[in]
- * @return
-*/
-INT32 wssClientSocketRead(WssClientContext* pCtx, UINT8* data, SIZE_T len, INT32 flags)
-{
-    //DLOGD("R <==");
-    return networkRecv( pCtx->pNetworkContext, data, len );
+    return networkSend( pWssCtx->pNetworkContext, data, len );
 }
 
-SSIZE_T wssClientFeedBody(WssClientContext* pCtx, UINT8 *data, SIZE_T len) 
+INT32 wssClientSocketRead(WssClientContext* pWssCtx, UINT8* data, SIZE_T len, INT32 flags)
 {
-  DLOGD("feed body callback****");
-  return 0;
+    return networkRecv( pWssCtx->pNetworkContext, data, len );
 }
-/**
- * @brief   the callback for wslay.
- * 
- * @param[in]
- * 
- * @return
-*/
+
 SSIZE_T wslay_send_callback(wslay_event_context_ptr ctx,
                       const UINT8 *data,
                       SIZE_T len,
                       INT32 flags,
                       VOID *user_data) 
 {
-    WssClientContext *pCtx = (WssClientContext *)user_data;
-    SSIZE_T r = wssClientSocketSend(pCtx, data, len, flags);
+    WssClientContext *pWssCtx = (WssClientContext *)user_data;
+    SSIZE_T r = wssClientSocketSend(pWssCtx, data, len, flags);
     if (r == -1) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             wslay_event_set_error(ctx, WSLAY_ERR_WOULDBLOCK);
@@ -206,8 +119,8 @@ SSIZE_T wslay_recv_callback(wslay_event_context_ptr ctx,
                       INT32 flags,
                       VOID *user_data) 
 {
-    WssClientContext *pCtx = (WssClientContext *)user_data;
-    SSIZE_T r = wssClientSocketRead(pCtx, data, len, flags);
+    WssClientContext *pWssCtx = (WssClientContext *)user_data;
+    SSIZE_T r = wssClientSocketRead(pWssCtx, data, len, flags);
     if (r == -1) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             wslay_event_set_error(ctx, WSLAY_ERR_WOULDBLOCK);
@@ -225,8 +138,8 @@ SSIZE_T wslay_recv_callback(wslay_event_context_ptr ctx,
 INT32 wslay_genmask_callback(wslay_event_context_ptr ctx, UINT8 *buf, SIZE_T len,
                      VOID *user_data) 
 {
-    WssClientContext *ws = (WssClientContext *)user_data;
-    wssClientGenerateRandomNumber((PCHAR)buf, len);
+    WssClientContext *pWssCtx = (WssClientContext *)user_data;
+    wssClientGenerateRandomNumber(buf, len);
     return 0;
 }
 
@@ -234,121 +147,96 @@ VOID wslay_msg_recv_callback(wslay_event_context_ptr ctx,
                           const struct wslay_event_on_msg_recv_arg *arg,
                           VOID *user_data) 
 {
-    WssClientContext *ws = (WssClientContext *)user_data;
+    WssClientContext *pWssCtx = (WssClientContext *)user_data;
     if (!wslay_is_ctrl_frame(arg->opcode)) {
-        ws->messageHandler(ws->pUserData, arg->msg, arg->msg_length);
+        pWssCtx->messageHandler(pWssCtx->pUserData, arg->msg, arg->msg_length);
     }else{
-        ws->ctrlMessageHandler(ws->pUserData, arg->opcode, arg->msg, arg->msg_length);
+        pWssCtx->ctrlMessageHandler(pWssCtx->pUserData, arg->opcode, arg->msg, arg->msg_length);
         if(arg->opcode == WSLAY_PONG){
-            ws->pingCounter = 0;
+            pWssCtx->pingCounter = 0;
         }
     }
 }
 
-SSIZE_T wslay_feed_body_callback(wslay_event_context_ptr ctx, UINT8 *data,
-                           SIZE_T len, INT32 flags, VOID *user_data)
-{
-    WssClientContext *pCtx = (WssClientContext *)user_data;
-    return wssClientFeedBody(pCtx, data, len);
-}
-
-
-/*-----------------------------------------------------------*/
-/**
- * @brief the following APIs need to be protected by client mutex.
-*/
-/*-----------------------------------------------------------*/
-
-
-INT32 wssClientWantRead(WssClientContext* pCtx)
+INT32 wssClientWantRead(WssClientContext* pWssCtx)
 {
     WSS_CLIENT_ENTER();
     INT32 retStatus = TRUE;
-    CLIENT_LOCK(pCtx);
-    retStatus = wslay_event_want_read(pCtx->event_ctx);
-    CLIENT_UNLOCK(pCtx);
+    CLIENT_LOCK(pWssCtx);
+    retStatus = wslay_event_want_read(pWssCtx->event_ctx);
+    CLIENT_UNLOCK(pWssCtx);
     WSS_CLIENT_EXIT();
     return retStatus;
 }
 
-INT32 wssClientOnReadEvent(WssClientContext* pCtx)
-{
-    WSS_CLIENT_ENTER();
-    INT32 retStatus = 0;
-    CLIENT_LOCK(pCtx);
-    if(wslay_event_get_read_enabled(pCtx->event_ctx) == 1)
-    {
-        retStatus = wslay_event_recv(pCtx->event_ctx);
-    }
-    CLIENT_UNLOCK(pCtx);
-    WSS_CLIENT_EXIT();
-    return retStatus;
-}
-
-static STATUS wssClientSend(WssClientContext* pCtx, struct wslay_event_msg* arg)
+STATUS wssClientOnReadEvent(WssClientContext* pWssCtx)
 {
     WSS_CLIENT_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
-    CLIENT_LOCK(pCtx);
-    // #YC_TBD, wslay will memcpy this message buffer, so we can release the message buffer.
-    // But this is a tradeoff. We can evaluate this design later.
-    if(wslay_event_get_write_enabled(pCtx->event_ctx) == 1)
+    CLIENT_LOCK(pWssCtx);
+    if(wslay_event_get_read_enabled(pWssCtx->event_ctx) == 1)
     {
-        // send the message out immediately.
-        CHK(wslay_event_queue_msg(pCtx->event_ctx, arg) == WSLAY_SUCCESS, STATUS_WSS_CLIENT_SEND_FAILED);
-        CHK(wslay_event_send(pCtx->event_ctx) == WSLAY_SUCCESS, STATUS_WSS_CLIENT_SEND_FAILED);
+        retStatus = wslay_event_recv(pWssCtx->event_ctx) == 0 ? STATUS_SUCCESS : STATUS_WSS_CLIENT_RECV_FAILED;
     }
-
-CleanUp:
-    CLIENT_UNLOCK(pCtx);
+    CLIENT_UNLOCK(pWssCtx);
     WSS_CLIENT_EXIT();
     return retStatus;
 }
 
-STATUS wssClientSendText(WssClientContext* pCtx, UINT8* buf, UINT32 len)
+static STATUS wssClientSend(WssClientContext* pWssCtx, struct wslay_event_msg* arg)
+{
+    WSS_CLIENT_ENTER();
+    STATUS retStatus = STATUS_SUCCESS;
+    CLIENT_LOCK(pWssCtx);
+    // #YC_TBD, wslay will memcpy this message buffer, so we can release the message buffer.
+    // But this is a tradeoff. We can evaluate this design later.
+    if(wslay_event_get_write_enabled(pWssCtx->event_ctx) == 1)
+    {
+        // send the message out immediately.
+        CHK(wslay_event_queue_msg(pWssCtx->event_ctx, arg) == WSLAY_SUCCESS, STATUS_WSS_CLIENT_SEND_FAILED);
+        CHK(wslay_event_send(pWssCtx->event_ctx) == WSLAY_SUCCESS, STATUS_WSS_CLIENT_SEND_FAILED);
+    }
+
+CleanUp:
+    CLIENT_UNLOCK(pWssCtx);
+    WSS_CLIENT_EXIT();
+    return retStatus;
+}
+
+STATUS wssClientSendText(WssClientContext* pWssCtx, UINT8* buf, UINT32 len)
 {
     struct wslay_event_msg arg;
     arg.opcode = WSLAY_TEXT_FRAME;
     arg.msg = buf;
     arg.msg_length = len;
-    return wssClientSend(pCtx, &arg);
+    return wssClientSend(pWssCtx, &arg);
 }
 
-STATUS wssClientSendBinary(WssClientContext* pCtx, UINT8* buf, UINT32 len)
+STATUS wssClientSendBinary(WssClientContext* pWssCtx, UINT8* buf, UINT32 len)
 {
     struct wslay_event_msg arg;
     arg.opcode = WSLAY_BINARY_FRAME;
     arg.msg = buf;
     arg.msg_length = len;
-    return wssClientSend(pCtx, &arg);
+    return wssClientSend(pWssCtx, &arg);
 }
 
-STATUS wssClientSendPing(WssClientContext* pCtx)
+STATUS wssClientSendPing(WssClientContext* pWssCtx)
 {
     struct wslay_event_msg arg;
     MEMSET(&arg, 0, sizeof(arg));
     arg.opcode = WSLAY_PING;
     arg.msg_length = 0;
     DLOGD("ping ==>");
-    return wssClientSend(pCtx, &arg);
+    return wssClientSend(pWssCtx, &arg);
 }
 
-
-
-/**
- * @brief create the context of wss client and initialize the wss client.
- * 
- * @param[in, out]
- * @param[in] pNetworkContext
- * 
- * @return
-*/
-VOID wssClientCreate(WssClientContext** ppWssClientCtx, NetworkContext_t * pNetworkContext, PVOID arg, MessageHandlerFunc pFunc,
+VOID wssClientCreate(WssClientContext** ppWssClientCtx, NetworkContext_t *pNetworkContext, PVOID arg, MessageHandlerFunc pFunc,
                      CtrlMessageHandlerFunc pCtrlFunc)
 {
     WSS_CLIENT_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
-    WssClientContext* pCtx = NULL;
+    WssClientContext* pWssCtx = NULL;
     struct wslay_event_callbacks callbacks = {
                                     wslay_recv_callback, /* wslay_event_recv_callback */
                                     wslay_send_callback, /* wslay_event_send_callback */
@@ -360,24 +248,24 @@ VOID wssClientCreate(WssClientContext** ppWssClientCtx, NetworkContext_t * pNetw
                                     };
 
     *ppWssClientCtx = NULL;
-    CHK(NULL != (pCtx = (WssClientContext*) MEMCALLOC(1, SIZEOF(WssClientContext))), STATUS_NOT_ENOUGH_MEMORY);
+    CHK(NULL != (pWssCtx = (WssClientContext*) MEMCALLOC(1, SIZEOF(WssClientContext))), STATUS_NOT_ENOUGH_MEMORY);
 
-    pCtx->event_callbacks = callbacks;
-    pCtx->pNetworkContext = pNetworkContext;
-    pCtx->pUserData = arg;
-    pCtx->messageHandler = pFunc;
-    pCtx->ctrlMessageHandler = pCtrlFunc;
+    pWssCtx->event_callbacks = callbacks;
+    pWssCtx->pNetworkContext = pNetworkContext;
+    pWssCtx->pUserData = arg;
+    pWssCtx->messageHandler = pFunc;
+    pWssCtx->ctrlMessageHandler = pCtrlFunc;
 
     // the initialization of the mutex 
-    pCtx->clientLock = MUTEX_CREATE(FALSE);
-    CHK(IS_VALID_MUTEX_VALUE(pCtx->clientLock), STATUS_INVALID_OPERATION);
-    pCtx->listenerLock = MUTEX_CREATE(FALSE);
-    CHK(IS_VALID_MUTEX_VALUE(pCtx->listenerLock), STATUS_INVALID_OPERATION);
+    pWssCtx->clientLock = MUTEX_CREATE(FALSE);
+    CHK(IS_VALID_MUTEX_VALUE(pWssCtx->clientLock), STATUS_INVALID_OPERATION);
+    pWssCtx->listenerLock = MUTEX_CREATE(FALSE);
+    CHK(IS_VALID_MUTEX_VALUE(pWssCtx->listenerLock), STATUS_INVALID_OPERATION);
 
-    pCtx->pingCounter = 0;
+    pWssCtx->pingCounter = 0;
     
-    wslay_event_context_client_init(&pCtx->event_ctx, &pCtx->event_callbacks, pCtx);
-    *ppWssClientCtx = pCtx;
+    wslay_event_context_client_init(&pWssCtx->event_ctx, &pWssCtx->event_callbacks, pWssCtx);
+    *ppWssClientCtx = pWssCtx;
 CleanUp:
     WSS_CLIENT_EXIT();
     return;
@@ -389,7 +277,7 @@ CleanUp:
  * 
  * @return
 */
-PVOID wssClientStart(WssClientContext* pWssClientCtx)
+PVOID wssClientStart(WssClientContext* pWssCtx)
 {
     WSS_CLIENT_ENTER();
     STATUS retStatus = STATUS_SUCCESS;
@@ -403,18 +291,18 @@ PVOID wssClientStart(WssClientContext* pWssClientCtx)
     UINT32 counter = 0;
 
     // Mark as started
-    pSignalingClient = (PSignalingClient)pWssClientCtx->pUserData;
+    pSignalingClient = (PSignalingClient)pWssCtx->pUserData;
         
-    LISTENER_LOCK(pWssClientCtx);
+    LISTENER_LOCK(pWssCtx);
 
-    wslay_event_config_set_callbacks(pWssClientCtx->event_ctx, &pWssClientCtx->event_callbacks);
-    mbedtls_ssl_conf_read_timeout(&(pWssClientCtx->pNetworkContext->conf), WSS_CLIENT_POLLING_INTERVAL);
+    wslay_event_config_set_callbacks(pWssCtx->event_ctx, &pWssCtx->event_callbacks);
+    mbedtls_ssl_conf_read_timeout(&(pWssCtx->pNetworkContext->conf), WSS_CLIENT_POLLING_INTERVAL);
 
-    nfds = pWssClientCtx->pNetworkContext->server_fd.fd;
+    nfds = pWssCtx->pNetworkContext->server_fd.fd;
     FD_ZERO(&rfds);
 
     // check the wss client want to read or write or not.
-    while (wssClientWantRead(pWssClientCtx)) {
+    while (wssClientWantRead(pWssCtx)) {
         // need to setup the timeout of epoll in order to let the wss cleint thread to write the buffer out.
 	    FD_SET(nfds, &rfds);
         // #YC_TBD, this may need to be modified.
@@ -429,20 +317,23 @@ PVOID wssClientStart(WssClientContext* pWssClientCtx)
 
         if(FD_ISSET(nfds, &rfds))
         {
-            wssClientOnReadEvent(pWssClientCtx);
+            if(wssClientOnReadEvent(pWssCtx))
+            {
+                DLOGD("on read event failed");    
+            }
         }
         // for ping-pong
-        if(pWssClientCtx->pingCounter > WSS_CLIENT_PING_MAX_ACC_NUM)
+        if(pWssCtx->pingCounter > WSS_CLIENT_PING_MAX_ACC_NUM)
         {
             DLOGD("need to cancel this wss connection");
-            pWssClientCtx->ctrlMessageHandler(pWssClientCtx->pUserData, WSLAY_CONNECTION_CLOSE, "connection lost", STRLEN("connection lost"));
+            pWssCtx->ctrlMessageHandler(pWssCtx->pUserData, WSLAY_CONNECTION_CLOSE, "connection lost", STRLEN("connection lost"));
         }
         
         counter++;
         if(counter == WSS_CLIENT_PING_PONG_COUNTER)
         {
-            CHK_STATUS(wssClientSendPing(pWssClientCtx));
-            pWssClientCtx->pingCounter++;
+            CHK_STATUS(wssClientSendPing(pWssCtx));
+            pWssCtx->pingCounter++;
             counter = 0;
         }
     }
@@ -453,40 +344,40 @@ CleanUp:
         ATOMIC_STORE(&pSignalingClient->result, (SIZE_T) SERVICE_CALL_UNKNOWN);
     }
 
-    LISTENER_UNLOCK(pWssClientCtx);
+    LISTENER_UNLOCK(pWssCtx);
     WSS_CLIENT_EXIT();
     return (PVOID)(ULONG_PTR) retStatus;
 }
 
 
-VOID wssClientClose(WssClientContext* pWssClientCtx)
+VOID wssClientClose(WssClientContext* pWssCtx)
 {
     INT32 retStatus = 0;
 
-    if (IS_VALID_MUTEX_VALUE(pWssClientCtx->clientLock)) {
-        CLIENT_LOCK(pWssClientCtx);
-        wslay_event_shutdown_read(pWssClientCtx->event_ctx);
-        wslay_event_shutdown_write(pWssClientCtx->event_ctx);
-        wslay_event_context_free(pWssClientCtx->event_ctx);
-        CLIENT_UNLOCK(pWssClientCtx);
+    if (IS_VALID_MUTEX_VALUE(pWssCtx->clientLock)) {
+        CLIENT_LOCK(pWssCtx);
+        wslay_event_shutdown_read(pWssCtx->event_ctx);
+        wslay_event_shutdown_write(pWssCtx->event_ctx);
+        wslay_event_context_free(pWssCtx->event_ctx);
+        CLIENT_UNLOCK(pWssCtx);
     }
 
-    if (IS_VALID_MUTEX_VALUE(pWssClientCtx->listenerLock)) {
-        LISTENER_LOCK(pWssClientCtx);
-        MUTEX_FREE(pWssClientCtx->listenerLock);
+    if (IS_VALID_MUTEX_VALUE(pWssCtx->listenerLock)) {
+        LISTENER_LOCK(pWssCtx);
+        MUTEX_FREE(pWssCtx->listenerLock);
     }
-    if (IS_VALID_MUTEX_VALUE(pWssClientCtx->clientLock)) {
-        MUTEX_FREE(pWssClientCtx->clientLock);
+    if (IS_VALID_MUTEX_VALUE(pWssCtx->clientLock)) {
+        MUTEX_FREE(pWssCtx->clientLock);
     }
 
-    if( pWssClientCtx->pNetworkContext != NULL )
+    if( pWssCtx->pNetworkContext != NULL )
     {
-        disconnectFromServer( pWssClientCtx->pNetworkContext );
-        terminateNetworkContext(pWssClientCtx->pNetworkContext);
-        MEMFREE( pWssClientCtx->pNetworkContext );
+        disconnectFromServer( pWssCtx->pNetworkContext );
+        terminateNetworkContext(pWssCtx->pNetworkContext);
+        MEMFREE( pWssCtx->pNetworkContext );
     }
 
-    MEMFREE(pWssClientCtx);
+    MEMFREE(pWssCtx);
     return;
 }
 /*-----------------------------------------------------------*/
