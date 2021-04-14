@@ -45,7 +45,6 @@ PCHAR httpParserGetHttpBodyLocation(PHttpResponseContext pHttpRspCtx);
 UINT32 httpParserGetHttpBodyLength(PHttpResponseContext pHttpRspCtx);
 STATUS httpParserStart(PHttpResponseContext* ppHttpRspCtx, PCHAR pBuf, UINT32 uLen, struct list_head* requiredHeader);
 STATUS httpParserDetroy(PHttpResponseContext pHttpRspCtx);
-
 STATUS httpPackSendBuf(PRequestInfo pRequestInfo, PCHAR pVerb, PCHAR pHost, UINT32 hostLen, PCHAR outputBuf, UINT32 bufLen, BOOL bWss,
                        PCHAR clientKey);
 #ifdef __cplusplus

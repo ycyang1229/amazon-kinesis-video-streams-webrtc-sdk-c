@@ -1,18 +1,3 @@
-/*
- * Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License").
- * You may not use this file except in compliance with the License.
- * A copy of the License is located at
- *
- *  http://aws.amazon.com/apache2.0
- *
- * or in the "license" file accompanying this file. This file is distributed
- * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing
- * permissions and limitations under the License.
- */
-
 #define LOG_CLASS "HttpHelper"
 #include "../Include_i.h"
 
@@ -53,11 +38,6 @@ int32_t httpParserAddRequiredHeader(struct list_head* head, char* field, UINT32 
     node->fieldLen = fieldLen;
     node->value = value;
     node->valueLen = valueLen;
-    // DLOGD("required: field = %s | len = %d | value = %s | len = %d",
-    //    node->field,
-    //    node->fieldLen,
-    //    node->value,
-    //    node->valueLen);
     list_add(&node->list, head);
     return 0;
 }
@@ -70,53 +50,15 @@ void httpParserDeleteAllHeader(struct list_head* head)
     list_for_each(listptr, head)
     {
         node = list_entry(listptr, HttpField, list);
-
-        // DLOGD("\nFree: field = %s | len = %d | value = %s | len = %d",
-        //        node->field,
-        //        node->fieldLen,
-        //        node->value,
-        //        node->valueLen);
         MEMFREE(node);
         node = NULL;
     }
     return;
 }
 
-static INT32 _on_message_begin(llhttp_t* httpParser)
-{
-    // DLOGD("on_message_begin");
-    return 0;
-}
-
-static INT32 _on_url(llhttp_t* httpParser, const char* at, size_t length)
-{
-    // DLOGD("on_url");
-    // char* buf = MEMALLOC(length+1);
-    // memcpy(buf, at, length);
-    // buf[length] = '\0';
-    // DLOGD("%s", buf);
-    return 0;
-}
-
-static INT32 _on_status(llhttp_t* httpParser, const char* at, size_t length)
-{
-    // DLOGD("on_status");
-    // char* buf = MEMALLOC(length+1);
-    // memcpy(buf, at, length);
-    // buf[length] = '\0';
-    // DLOGD("%s", buf);
-    return 0;
-}
-
 static INT32 _on_header_field(llhttp_t* httpParser, const char* at, size_t length)
 {
     HttpResponseContext* pCtx = (HttpResponseContext*) GET_USER_DATA(httpParser);
-    // DLOGD("on_header_field");
-    // char* buf = MEMALLOC(length+1);
-    // memcpy(buf, at, length);
-    // buf[length] = '\0';
-    // DLOGD("%s", buf);
-
     pCtx->curField.field = (char*) at;
     pCtx->curField.fieldLen = length;
     return 0;
@@ -125,70 +67,16 @@ static INT32 _on_header_field(llhttp_t* httpParser, const char* at, size_t lengt
 static INT32 _on_header_value(llhttp_t* httpParser, const char* at, size_t length)
 {
     HttpResponseContext* pCtx = (HttpResponseContext*) GET_USER_DATA(httpParser);
-    // DLOGD("on_header_value");
-    // char* buf = MEMALLOC(length+1);
-    // memcpy(buf, at, length);
-    // buf[length] = '\0';
-    // DLOGD("%s", buf);
     pCtx->curField.value = (char*) at;
     pCtx->curField.valueLen = length;
-    return 0;
-}
-
-static INT32 _on_headers_complete(llhttp_t* httpParser)
-{
-    // DLOGD("on_headers_complete");
     return 0;
 }
 
 static INT32 _on_body(llhttp_t* httpParser, const char* at, size_t length)
 {
     HttpResponseContext* pCtx = (HttpResponseContext*) GET_USER_DATA(httpParser);
-    // DLOGD("on_body");
-    // char* buf = MEMALLOC(length+1);
-    // memcpy(buf, at, length);
-    // buf[length] = '\0';
-    // DLOGD("%s", buf);
     pCtx->phttpBodyLoc = (char*) at;
     pCtx->httpBodyLen = length;
-    return 0;
-}
-
-static INT32 _on_message_complete(llhttp_t* httpParser)
-{
-    // DLOGD("on_message_complete");
-    // HttpResponseContext* pCtx = (HttpResponseContext*)GET_USER_DATA(httpParser);
-
-    return -1;
-}
-
-static INT32 _on_chunk_header(llhttp_t* httpParser)
-{
-    // DLOGD("on_chunk_header");
-    return 0;
-}
-
-static INT32 _on_chunk_complete(llhttp_t* httpParser)
-{
-    // DLOGD("on_chunk_complete");
-    return 0;
-}
-
-static INT32 _on_url_complete(llhttp_t* httpParser)
-{
-    // DLOGD("on_url_complete");
-    return 0;
-}
-
-static INT32 _on_status_complete(llhttp_t* httpParser)
-{
-    // DLOGD("on_status_complete");
-    return 0;
-}
-
-static INT32 _on_header_field_complete(llhttp_t* httpParser)
-{
-    // DLOGD("on_header_field_complete");
     return 0;
 }
 
@@ -232,17 +120,17 @@ STATUS httpParserStart(HttpResponseContext** ppHttpRspCtx, PCHAR pBuf, UINT32 uL
     llhttp_settings_t httpSettings = {
         NULL,                      //_on_message_begin, /* on_message_begin */
         NULL,                      //_on_url, /* on_url */
-        _on_status,                /* on_status */
+        NULL,                /* on_status */
         _on_header_field,          /* on_header_field */
         _on_header_value,          /* on_header_value */
-        _on_headers_complete,      /* on_headers_complete */
+        NULL,      /* on_headers_complete */
         _on_body,                  /* on_body */
         NULL,                      //_on_message_complete, /* on_message_complete */
         NULL,                      //_on_chunk_header, /* on_chunk_header */
         NULL,                      //_on_chunk_complete, /* on_chunk_complete */
         NULL,                      //_on_url_complete, /* on_url_complete */
-        _on_status_complete,       /* on_status_complete */
-        _on_header_field_complete, /* on_header_field_complete */
+        NULL,       /* on_status_complete */
+        NULL, /* on_header_field_complete */
         _on_header_value_complete  /* on_header_value_complete */
     };
     enum llhttp_errno httpErrno = HPE_OK;
@@ -272,13 +160,10 @@ STATUS httpParserStart(HttpResponseContext** ppHttpRspCtx, PCHAR pBuf, UINT32 uL
 STATUS httpParserDetroy(HttpResponseContext* pHttpRspCtx)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    // DLOGD("detroying required headers...");
     if (pHttpRspCtx != NULL && pHttpRspCtx->requiredHeader != NULL) {
         httpParserDeleteAllHeader(pHttpRspCtx->requiredHeader);
-        // DLOGD("all required headers is removed...");
         MEMFREE(pHttpRspCtx->requiredHeader);
     }
-    // DLOGD("detroying context...");
     MEMFREE(pHttpRspCtx);
     return retStatus;
 }
