@@ -11,6 +11,8 @@ extern "C" {
 #endif
 
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
+#include <gst/gst.h>
+#include <gst/app/gstappsink.h>
 
 #define NUMBER_OF_H264_FRAME_FILES               1500
 #define NUMBER_OF_OPUS_FRAME_FILES               618
@@ -112,6 +114,8 @@ typedef struct {
 
     UINT32 pregenerateCertTimerId;
     PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
+    GMainLoop* main_loop;
+    PCHAR pRtspUrl;
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef struct {
