@@ -1,6 +1,11 @@
 #include "Samples.h"
+
+// gstreamere related.
 #include <gst/gst.h>
 #include <gst/app/gstappsink.h>
+#include <gst/sdp/gstsdpmessage.h>
+#include <gst/gststructure.h>
+#include <gst/gstcaps.h>
 
 extern PSampleConfiguration gSampleConfiguration;
 
@@ -104,15 +109,13 @@ CleanUp:
         gst_sample_unref(sample);
     }
 
-    if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
-        DLOGD("*****EOS out****");
+    if ( ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag) || pSampleConfiguration->streamingSessionCount == 0) {
+        DLOGD("There is no streaming sessions, and we start terminating the rtspsrc.");
         if (pSampleConfiguration->main_loop != NULL) {
             g_main_loop_quit(pSampleConfiguration->main_loop);
         }
         ret = GST_FLOW_EOS;
     }
-
-    
 
     return ret;
 }
@@ -127,77 +130,66 @@ GstFlowReturn on_new_sample_audio(GstElement* sink, gpointer data)
     return on_new_sample(sink, data, DEFAULT_AUDIO_TRACK_ID);
 }
 
-#include <gst/sdp/gstsdpmessage.h>
-#include <gst/gststructure.h>
-#include <gst/gstcaps.h>
 // https://gstreamer.freedesktop.org/documentation/sdp/gstsdpmessage.html?gi-language=c#GstSDPMessage
-static void onSdp (GstElement * rtspsrc, GstSDPMessage * sdp, gpointer udata)
+static void onSdp(GstElement* rtspsrc, GstSDPMessage* sdp, gpointer udata)
 {
     DLOGD("****** on sdp works ******");
     guint i;
-    gchar * sdpString = gst_sdp_message_as_text (sdp);
+    gchar* sdpString = gst_sdp_message_as_text(sdp);
     DLOGD("sdpString:%s", sdpString);
-    guint attrLen = gst_sdp_message_attributes_len (sdp);
+    guint attrLen = gst_sdp_message_attributes_len(sdp);
     DLOGD("attrLen:%d", attrLen);
-    guint mediasLen = gst_sdp_message_medias_len (sdp);
+    guint mediasLen = gst_sdp_message_medias_len(sdp);
     DLOGD("mediasLen:%d", mediasLen);
 
-    for(i = 0; i < mediasLen; i++){
+    for (i = 0; i < mediasLen; i++) {
         const GstSDPMedia* sdpMedia = gst_sdp_message_get_media(sdp, i);
         guint media_conn_len = gst_sdp_media_connections_len(sdpMedia);
         DLOGD("media_conn_len:%d", media_conn_len);
-        gchar * mediaText = gst_sdp_media_as_text(sdpMedia);
+        gchar* mediaText = gst_sdp_media_as_text(sdpMedia);
         DLOGD("mediaText:%s", mediaText);
         const gchar* mediaDescription = gst_sdp_media_get_media(sdpMedia);
         DLOGD("mediaDescription:%s", mediaDescription);
-        GstCaps * caps;
-        gst_sdp_media_set_media_from_caps (caps, sdpMedia);
-        //gchar * capsString = gst_caps_serialize (caps, GST_SERIALIZE_FLAG_NONE);
-        //gchar * capsString = gst_caps_serialize (caps, 0);
-        //DLOGD("capsString:%s", capsString);
-        
+        GstCaps* caps;
+        gst_sdp_media_set_media_from_caps(caps, sdpMedia);
+        // gchar * capsString = gst_caps_serialize (caps, GST_SERIALIZE_FLAG_NONE);
+        // gchar * capsString = gst_caps_serialize (caps, 0);
+        // DLOGD("capsString:%s", capsString);
 
         guint mediaAttrLen = gst_sdp_media_attributes_len(sdpMedia);
         guint j;
-        for(j = 0; j < mediaAttrLen; j++){
-            const GstSDPAttribute * tmpAttr = gst_sdp_media_get_attribute (sdpMedia, j);
+        for (j = 0; j < mediaAttrLen; j++) {
+            const GstSDPAttribute* tmpAttr = gst_sdp_media_get_attribute(sdpMedia, j);
         }
-        
     }
-
 }
 
 static void onPadAdded(GstElement* element, GstPad* pad, gpointer user_data)
 {
-    gchar *name;
-    GstCaps * p_caps;
+    gchar* name;
+    GstCaps* p_caps;
     GstElement* nextElement;
-    GstElement* pipeline = (GstElement*)user_data;
+    GstElement* pipeline = (GstElement*) user_data;
     name = gst_pad_get_name(pad);
-    
+
     p_caps = gst_pad_get_pad_template_caps(pad);
 
-
-    gchar * description = gst_caps_to_string(p_caps);
+    gchar* description = gst_caps_to_string(p_caps);
     DLOGD("A new pad %s was created (%s)\n", name, description);
-    
+
     g_free(description);
 
-    if (strstr(name, "src_0") != NULL)
-    {
+    if (strstr(name, "src_0") != NULL) {
         DLOGD("------------------------ Video -------------------------------");
         nextElement = gst_bin_get_by_name(GST_BIN(pipeline), "videoQueue");
-    }
-    else if (strstr(name, "src_1") != NULL)
-    {
+    } else if (strstr(name, "src_1") != NULL) {
         DLOGD("------------------------ Audio -------------------------------");
         nextElement = gst_bin_get_by_name(GST_BIN(pipeline), "audioQueue");
     }
 
-    if (nextElement != NULL)
-    {
+    if (nextElement != NULL) {
         if (!gst_element_link_filtered(element, nextElement, p_caps))
-            //if (!gst_element_link_pads_filtered(element, name, nextElement, "sink", p_caps))
+        // if (!gst_element_link_pads_filtered(element, name, nextElement, "sink", p_caps))
         {
             DLOGD("Failed to link video element to src to sink");
         }
@@ -245,64 +237,63 @@ static void error_cb(GstBus* bus, GstMessage* msg, gpointer* data)
     g_main_loop_quit(pSampleConfiguration->main_loop);
 }
 
-#define STREAMING_VIDEO_ENABLE (1)
 // gst-launch-1.0 -v rtspsrc location="rtsp://admin:admin@192.168.193.224:8554/live.sdp" name=d d. ! queue ! rtph264depay ! h264parse ! avdec_h264 !
 // videoconvert ! xvimagesink sync=false d. ! queue ! rtppcmudepay ! mulawdec ! audioconvert ! autoaudiosink
-int gstreamer_rtsp_source_init(PVOID args, GstElement* pipeline)
+STATUS gstreamer_rtsp_source_init(PVOID args, GstElement* pipeline)
 {
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
-    GstElement *rtspSource, *tee;
-    GstElement *videoQueue, *videoDepay, *videoParse, *videoFilter, *videoAppSink;
-    GstElement *audioQueue, *audioDepay, *audioParse, *audioConvert, *audioResample, *audioEnc, *audioFilter, *audioAppSink;
-    GstPadTemplate *tee_src_pad_template;
-    GstPad *tee_audio_pad, *tee_video_pad;
-    GstPad *queue_audio_pad, *queue_video_pad;
+    STATUS retStatus = STATUS_SUCCESS;
+    GstElement* rtspSource = NULL;
+    GstElement *videoQueue = NULL, *videoDepay = NULL, *videoParse = NULL, *videoFilter = NULL, *videoAppSink = NULL;
+    GstElement *audioQueue = NULL, *audioDepay = NULL, *audioParse = NULL, *audioConvert = NULL, *audioResample = NULL, *audioEnc = NULL,
+               *audioFilter = NULL, *audioAppSink = NULL;
+
     // #gst
     // https://gstreamer.freedesktop.org/documentation/gstreamer/gstelementfactory.html#gst_element_factory_make
     // source
     rtspSource = gst_element_factory_make("rtspsrc", "rtspSource");
-    tee = gst_element_factory_make ("tee", "tee");
 
     // video
-    // " d. ! queue ! rtph264depay ! h264parse ! video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video"
-    videoQueue = gst_element_factory_make ("queue", "videoQueue");
+    // " d. ! queue ! rtph264depay ! h264parse ! video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE
+    // emit-signals=TRUE name=appsink-video"
+    videoQueue = gst_element_factory_make("queue", "videoQueue");
     videoDepay = gst_element_factory_make("rtph264depay", "videoDepay");
     videoParse = gst_element_factory_make("h264parse", "videoParse");
     videoFilter = gst_element_factory_make("capsfilter", "videoFilter");
     videoAppSink = gst_element_factory_make("appsink", "videoAppSink");
 
-    // audio 
-    // " d. ! queue ! rtppcmudepay ! mulawdec ! audioconvert ! audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio"
-    audioQueue = gst_element_factory_make ("queue", "audioQueue");
+    // audio
+    // " d. ! queue ! rtppcmudepay ! mulawdec ! audioconvert ! audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE
+    // emit-signals=TRUE name=appsink-audio"
+    audioQueue = gst_element_factory_make("queue", "audioQueue");
     audioDepay = gst_element_factory_make("rtppcmudepay", "audioDepay");
-    // https://gstreamer.freedesktop.org/documentation/mulaw/mulawdec.html?gi-language=c    
+    // https://gstreamer.freedesktop.org/documentation/mulaw/mulawdec.html?gi-language=c
     audioParse = gst_element_factory_make("mulawdec", "mulawdec");
-    audioConvert = gst_element_factory_make ("audioconvert", "audioConvert");
-    audioResample = gst_element_factory_make ("audioresample", "audioResample");
+    audioConvert = gst_element_factory_make("audioconvert", "audioConvert");
+    audioResample = gst_element_factory_make("audioresample", "audioResample");
     audioEnc = gst_element_factory_make("opusenc", "audioEnc");
     audioFilter = gst_element_factory_make("capsfilter", "audioFilter");
     audioAppSink = gst_element_factory_make("appsink", "audioAppSink");
 
-
-    if (!pipeline || !rtspSource || !videoDepay || !videoAppSink || !videoFilter || !videoParse) {
+    if (!pipeline || !rtspSource || !videoQueue || !videoDepay || !videoParse || !videoFilter || !videoAppSink) {
         DLOGE("Not all elements could be created.\n");
+        return 1;
+    }
+
+    if (!audioQueue || !audioDepay || !audioParse || !audioConvert || !audioResample || !audioEnc || !audioFilter || !audioAppSink) {
+        DLOGE("Not all audio elements could be created.\n");
         return 1;
     }
 
     // configure filter
     // https://gstreamer.freedesktop.org/documentation/gstreamer/gstcaps.html?gi-language=c#gst_caps_new_simple
-
     GstCaps* videoCaps = gst_caps_new_simple("video/x-h264", "stream-format", G_TYPE_STRING, "byte-stream", "alignment", G_TYPE_STRING, "au", NULL);
     GstCaps* audioCaps = gst_caps_new_simple("audio/x-opus", "rate", G_TYPE_INT, 48000, "channels", G_TYPE_INT, 2, NULL);
 
-/**
- *
- * https://fossies.org/linux/gst-plugins-good/tests/check/elements/rtp-payloading.c
- * rtp_pipeline_test (rtp_pcmu_frame_data, rtp_pcmu_frame_data_size, rtp_pcmu_frame_count, "audio/x-mulaw,channels=1,rate=8000", "rtppcmupay",
- * "rtppcmudepay", 0, 0, FALSE); rtp_pipeline_test (rtp_pcma_frame_data, rtp_pcma_frame_data_size, rtp_pcma_frame_count,
- * "audio/x-alaw,channels=1,rate=8000", "rtppcmapay", "rtppcmadepay", 0, 0, FALSE);
- *
- */
+    if (!videoCaps || !audioCaps) {
+        DLOGE("Not all caps elements could be created.\n");
+        return 1;
+    }
 
     // https://developer.gnome.org/gobject/stable/gobject-The-Base-Object-Type.html#g-object-set
     g_object_set(G_OBJECT(videoFilter), "caps", videoCaps, NULL);
@@ -316,100 +307,83 @@ int gstreamer_rtsp_source_init(PVOID args, GstElement* pipeline)
     g_object_set(G_OBJECT(audioAppSink), "emit-signals", TRUE, "sync", FALSE, NULL);
     g_signal_connect(audioAppSink, "new-sample", G_CALLBACK(on_new_sample_audio), pSampleConfiguration);
 
-
     // configure rtspsrc
     DLOGD("RTSP URL:%s", pSampleConfiguration->pRtspUrl);
-    g_object_set(G_OBJECT(rtspSource), "location", pSampleConfiguration->pRtspUrl, "short-header", TRUE, // Necessary for target camera
-                 NULL);
-    //g_signal_connect(rtspSource, "pad-added", G_CALLBACK(pad_added_cb), tee);
-    g_signal_connect(G_OBJECT(rtspSource), "pad-added", G_CALLBACK(onPadAdded), pipeline);
-    //g_signal_connect(G_OBJECT(rtspSource), "on-sdp", G_CALLBACK(onSdp), pipeline);
-    //
-    //g_object_set(G_OBJECT(rtspsrc), "location","192.168.50.246", "protocols", 4,NULL);
+    g_object_set(G_OBJECT(rtspSource), "location", pSampleConfiguration->pRtspUrl, "short-header", TRUE, NULL);
+    g_object_set(G_OBJECT(rtspSource), "latency", 0, NULL);
+    g_object_set(G_OBJECT(rtspSource), "debug", TRUE, NULL);
+    // g_object_set(G_OBJECT(rtspsrc), "location","192.168.50.246", "protocols", 4,NULL);
+    // g_object_set(G_OBJECT(rtspsrc), "user-id","admin", "user-pw","admin",NULL);
 
-    //g_object_set(G_OBJECT(rtspsrc), "user-id","admin", "user-pw","admin",NULL);
+    // g_signal_connect(rtspSource, "pad-added", G_CALLBACK(pad_added_cb), tee);
+    g_signal_connect(G_OBJECT(rtspSource), "pad-added", G_CALLBACK(onPadAdded), pipeline);
+    // g_signal_connect(G_OBJECT(rtspSource), "on-sdp", G_CALLBACK(onSdp), pipeline);
 
     /* build the pipeline */
     // https://developer.gnome.org/gstreamer/stable/GstBin.html#gst-bin-add-many
-    //gst_bin_add_many(GST_BIN(pipeline), rtspSource, videoDepay, videoParse, videoFilter, videoAppSink, NULL);
+    // gst_bin_add_many(GST_BIN(pipeline), rtspSource, videoDepay, videoParse, videoFilter, videoAppSink, NULL);
 
     /* Leave the actual source out - this will be done when the pad is added */
     // https://gstreamer.freedesktop.org/documentation/gstreamer/gstelement.html?gi-language=c#gst_element_link_many
-    //if (!gst_element_link_many(videoDepay, videoFilter, videoParse, videoAppSink, NULL)) {
+    // if (!gst_element_link_many(videoDepay, videoFilter, videoParse, videoAppSink, NULL)) {
     //    DLOGE("Elements could not be linked.\n");
     //    gst_object_unref(pipeline);
     //    return 1;
     //}
 
     /* Link all elements that can be automatically linked because they have "Always" pads */
-    gst_bin_add_many (GST_BIN (pipeline), rtspSource, 
-                        audioQueue, audioDepay, audioParse, audioConvert, audioResample, audioEnc, audioFilter, audioAppSink, NULL);
-    
-    //if (gst_element_link_many (rtspSource, tee, NULL) != TRUE) {
+    gst_bin_add_many(GST_BIN(pipeline), rtspSource, audioQueue, audioDepay, audioParse, audioConvert, audioResample, audioEnc, audioFilter,
+                     audioAppSink, NULL);
+
+    // if (gst_element_link_many (rtspSource, tee, NULL) != TRUE) {
     //    DLOGE ("Source could not be linked.\n");
     //    gst_object_unref (pipeline);
     //    return -1;
     //}
 
-    if (gst_element_link_many (audioQueue, audioDepay, audioParse, audioConvert, audioResample, audioEnc, audioFilter, audioAppSink, NULL) != TRUE ) {
-        DLOGE ("Audio elements could not be linked.\n");
-        gst_object_unref (pipeline);
+    if (gst_element_link_many(audioQueue, audioDepay, audioParse, audioConvert, audioResample, audioEnc, audioFilter, audioAppSink, NULL) != TRUE) {
+        DLOGE("Audio elements could not be linked.\n");
+        gst_object_unref(pipeline);
         return -1;
     }
 
-    gst_bin_add_many (GST_BIN (pipeline),  
-                        videoQueue, videoDepay, videoParse, videoFilter, videoAppSink, NULL);
+    gst_bin_add_many(GST_BIN(pipeline), videoQueue, videoDepay, videoParse, videoFilter, videoAppSink, NULL);
 
-    if (gst_element_link_many (videoQueue, videoDepay, videoParse, videoFilter, videoAppSink, NULL) != TRUE) {
-        DLOGE ("Video elements could not be linked.\n");
-        gst_object_unref (pipeline);
+    if (gst_element_link_many(videoQueue, videoDepay, videoParse, videoFilter, videoAppSink, NULL) != TRUE) {
+        DLOGE("Video elements could not be linked.\n");
+        gst_object_unref(pipeline);
         return -1;
     }
-    /* Manually link the Tee, which has "Request" pads */
-    #if 0
-    tee_src_pad_template = gst_element_class_get_pad_template (GST_ELEMENT_GET_CLASS (tee), "src%d");
-    tee_audio_pad = gst_element_request_pad (tee, tee_src_pad_template, NULL, NULL);
-    g_print ("Obtained request pad %s for audio branch.\n", gst_pad_get_name (tee_audio_pad));
-    queue_audio_pad = gst_element_get_static_pad (audioQueue, "sink");
-    tee_video_pad = gst_element_request_pad (tee, tee_src_pad_template, NULL, NULL);
-    g_print ("Obtained request pad %s for video branch.\n", gst_pad_get_name (tee_video_pad));
-    queue_video_pad = gst_element_get_static_pad (videoQueue, "sink");
-    if (gst_pad_link (tee_audio_pad, queue_audio_pad) != GST_PAD_LINK_OK ||
-        gst_pad_link (tee_video_pad, queue_video_pad) != GST_PAD_LINK_OK) {
-        DLOGE ("Tee could not be linked.\n");
-        gst_object_unref (pipeline);
-        return -1;
-    }
-    gst_object_unref (queue_audio_pad);
-    gst_object_unref (queue_video_pad);
-    #endif
 
-    return 0;
+CleanUp:
+
+    return retStatus;
 }
 
-int gstreamer_init(PVOID args)
+STATUS gstreamer_init(PVOID args)
 {
+    STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
     /* init GStreamer */
-    // gst_init(&argc, &argv);
-    GstElement* pipeline;
-    int ret;
+    GstElement* pipeline = NULL;
+    GstBus* bus = NULL;
     GstStateChangeReturn gst_ret;
     // Reset first frame pts
     // data->first_pts = GST_CLOCK_TIME_NONE;
 
     DLOGI("Streaming from rtsp source");
-    // #rtsp
     // https://gstreamer.freedesktop.org/documentation/gstreamer/gstpipeline.html?gi-language=c#gst_pipeline_new
-    pipeline = gst_pipeline_new("rtsp-kinesis-pipeline");
-    ret = gstreamer_rtsp_source_init(pSampleConfiguration, pipeline);
+    CHK((pipeline = gst_pipeline_new("rtsp-kinesis-pipeline")) != NULL, STATUS_NULL_ARG);
 
-    if (ret != 0) {
-        return ret;
+    retStatus = gstreamer_rtsp_source_init(pSampleConfiguration, pipeline);
+
+    if (retStatus != 0) {
+        DLOGD("gstreamer_rtsp_source_init failed. %d", retStatus);
+        return retStatus;
     }
 
     /* Instruct the bus to emit signals for each received message, and connect to the interesting signals */
-    GstBus* bus = gst_element_get_bus(pipeline);
+    CHK((bus = gst_element_get_bus(pipeline)) != NULL, STATUS_NULL_ARG);
     gst_bus_add_signal_watch(bus);
     g_signal_connect(G_OBJECT(bus), "message::error", (GCallback) error_cb, pSampleConfiguration);
     gst_object_unref(bus);
@@ -425,13 +399,17 @@ int gstreamer_init(PVOID args)
     pSampleConfiguration->main_loop = g_main_loop_new(NULL, FALSE);
     g_main_loop_run(pSampleConfiguration->main_loop);
 
+CleanUp:
+
     /* free resources */
+    DLOGD("Release the Gstreamer resources.");
     gst_bus_remove_signal_watch(bus);
     gst_element_set_state(pipeline, GST_STATE_NULL);
     gst_object_unref(pipeline);
+
     g_main_loop_unref(pSampleConfiguration->main_loop);
     pSampleConfiguration->main_loop = NULL;
-    return 0;
+    return retStatus;
 }
 
 PVOID sendGstreamerAudioVideo(PVOID args)
@@ -443,7 +421,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     GError* error = NULL;
     CHAR launchString[2048];
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
-
+    DLOGD("init");
     if (pSampleConfiguration == NULL) {
         printf("[KVS GStreamer Master] sendGstreamerAudioVideo(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
         goto CleanUp;
@@ -453,14 +431,14 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     SNPRINTF(launchString, 2048, "rtspsrc location=%s name=d" 
             " d. ! queue ! rtph264depay ! h264parse ! video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video"
             " d. ! queue ! rtppcmudepay ! mulawdec ! audioconvert ! audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio", pSampleConfiguration->pRtspUrl);
-    #if 0
+#if 0
     pipeline = gst_parse_launch("rtspsrc location=rtsp://admin:admin@192.168.193.224:8554/live.sdp name=d d. ! queue ! rtph264depay ! h264parse ! video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
                                             "emit-signals=TRUE name=appsink-video d. ! queue ! rtppcmudepay ! mulawdec ! audioconvert ! audioresample ! mulawenc !"
                                             "audio/x-mulaw,channels=1,rate=8000 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
                                             &error);
-    #else
+#else
     pipeline = gst_parse_launch(launchString, &error);
-    #endif
+#endif
 
     if (pipeline == NULL) {
         printf("[KVS GStreamer Master] sendGstreamerAudioVideo(): Failed to launch gstreamer, operation returned status code: 0x%08x \n",
@@ -513,8 +491,6 @@ PVOID sendGstreamerAudioVideo(PVOID args)
 
     return (PVOID)(ULONG_PTR) retStatus;
 #endif
-
-
 
     gstreamer_init(args);
     return (PVOID)(ULONG_PTR) retStatus;

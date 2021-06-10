@@ -173,7 +173,8 @@ PVOID mediaSenderRoutine(PVOID customData)
     }
 
 CleanUp:
-
+    // clean the media thread.
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
     CHK_LOG_ERR(retStatus);
     return NULL;
 }
