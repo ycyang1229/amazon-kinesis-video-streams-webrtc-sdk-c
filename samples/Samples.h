@@ -48,8 +48,12 @@ extern "C" {
 #define IOT_CORE_ROLE_ALIAS          ((PCHAR) "AWS_IOT_CORE_ROLE_ALIAS")
 #define IOT_CORE_THING_NAME          ((PCHAR) "AWS_IOT_CORE_THING_NAME")
 
+#define ECS_AUTH_TOKEN           ((PCHAR) "AWS_CONTAINER_AUTHORIZATION_TOKEN")
+#define ECS_CREDENTIALS_FULL_URI ((PCHAR) "AWS_CONTAINER_CREDENTIALS_FULL_URI")
+
 /* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
-#define IOT_CORE_ENABLE_CREDENTIALS 1
+//#define IOT_CORE_ENABLE_CREDENTIALS 1
+#define ECS_ENABLE_CREDENTIALS 1
 
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,

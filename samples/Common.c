@@ -462,7 +462,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     // Declare that we support H264,Profile=42E01F,level-asymmetry-allowed=1,packetization-mode=1 and Opus
     CHK_STATUS(addSupportedCodec(pSampleStreamingSession->pPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
-    CHK_STATUS(addSupportedCodec(pSampleStreamingSession->pPeerConnection, RTC_CODEC_OPUS));
+    CHK_STATUS(addSupportedCodec(pSampleStreamingSession->pPeerConnection, RTC_CODEC_MULAW));
 
     // Add a SendRecv Transceiver of type video
     videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
@@ -478,7 +478,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     // Add a SendRecv Transceiver of type video
     audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
-    audioTrack.codec = RTC_CODEC_OPUS;
+    audioTrack.codec = RTC_CODEC_MULAW;
     audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
     STRCPY(audioTrack.streamId, "myKvsVideoStream");
     STRCPY(audioTrack.trackId, "myAudioTrack");
@@ -691,8 +691,12 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
-
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
+#ifdef ECS_ENABLE_CREDENTIALS
+    PCHAR pEcsToken, pEcsCredentialFullUri;
+    CHK_ERR((pEcsToken = getenv(ECS_AUTH_TOKEN)) != NULL, STATUS_INVALID_OPERATION, "AWS_CONTAINER_AUTHORIZATION_TOKEN must be set");
+    CHK_ERR((pEcsCredentialFullUri = getenv(ECS_CREDENTIALS_FULL_URI)) != NULL, STATUS_INVALID_OPERATION,
+            "AWS_CONTAINER_CREDENTIALS_FULL_URI must be set");
+#elif defined(IOT_CORE_ENABLE_CREDENTIALS)
     PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreThingName;
     CHK_ERR((pIotCoreThingName = getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
     CHK_ERR((pIotCoreCredentialEndPoint = getenv(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
@@ -723,8 +727,9 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     }
 
     SET_LOGGER_LOG_LEVEL(logLevel);
-
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
+#ifdef ECS_ENABLE_CREDENTIALS
+    CHK_STATUS(createLwsEcsCredentialProvider(pEcsCredentialFullUri, pEcsToken, &pSampleConfiguration->pCredentialProvider));
+#elif defined(IOT_CORE_ENABLE_CREDENTIALS)
     CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
                                               pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
 #else
@@ -1045,8 +1050,9 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
     if (IS_VALID_CVAR_VALUE(pSampleConfiguration->cvar)) {
         CVAR_FREE(pSampleConfiguration->cvar);
     }
-
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
+#ifdef ECS_ENABLE_CREDENTIALS
+    freeEcsCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+#elif defined(IOT_CORE_ENABLE_CREDENTIALS)
     freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 #else
     freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
