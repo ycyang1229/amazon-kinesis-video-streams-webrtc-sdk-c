@@ -686,7 +686,9 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR pAccessKey, pSecretKey, pSessionToken, pLogLevel;
     PSampleConfiguration pSampleConfiguration = NULL;
+    PRtspCameraConfiguration pRtspCameraConfiguration = NULL;
     UINT32 logLevel = LOG_LEVEL_DEBUG;
+    PCHAR pRtspChannel, pRtspUri, pRtspUsername, pRtspPassword;
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
 
@@ -708,6 +710,20 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK_ERR((pAccessKey = getenv(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
     CHK_ERR((pSecretKey = getenv(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
 #endif
+
+    pRtspCameraConfiguration = &pSampleConfiguration->rtspCameraConfiguration;
+    CHK_ERR((pRtspChannel = getenv(RTSP_CHANNEL)) != NULL, STATUS_INVALID_OPERATION, "RTSP_CHANNEL must be set");
+    CHK_ERR((pRtspUri = getenv(RTSP_URI)) != NULL, STATUS_INVALID_OPERATION, "RTSP_URI must be set");
+    CHK_ERR((pRtspUsername = getenv(RTSP_USERNAME)) != NULL, STATUS_INVALID_OPERATION, "RTSP_USERNAME must be set");
+    CHK_ERR((pRtspPassword = getenv(RTSP_PASSWORD)) != NULL, STATUS_INVALID_OPERATION, "RTSP_PASSWORD must be set");
+    CHK(STRNLEN(pRtspChannel, MAX_URI_CHAR_LEN + 1) <= MAX_URI_CHAR_LEN && STRNLEN(pRtspUri, MAX_CHANNEL_NAME_LEN + 1) <= MAX_CHANNEL_NAME_LEN &&
+            STRNLEN(pRtspUsername, SAMPLE_RTSP_USERNAME_LEN + 1) <= SAMPLE_RTSP_USERNAME_LEN &&
+            STRNLEN(pRtspPassword, SAMPLE_RTSP_PASSWORD_LEN + 1) <= SAMPLE_RTSP_PASSWORD_LEN,
+        STATUS_INVALID_ARG);
+    STRNCPY(pRtspCameraConfiguration->uri, pRtspUri, MAX_URI_CHAR_LEN);
+    STRNCPY(pRtspCameraConfiguration->channel, pRtspChannel, MAX_CHANNEL_NAME_LEN);
+    STRNCPY(pRtspCameraConfiguration->username, pRtspUsername, SAMPLE_RTSP_USERNAME_LEN);
+    STRNCPY(pRtspCameraConfiguration->password, pRtspPassword, SAMPLE_RTSP_PASSWORD_LEN);
 
     pSessionToken = getenv(SESSION_TOKEN_ENV_VAR);
     pSampleConfiguration->enableFileLogging = FALSE;

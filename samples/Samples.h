@@ -42,6 +42,9 @@ extern "C" {
 #define SAMPLE_HASH_TABLE_BUCKET_COUNT  50
 #define SAMPLE_HASH_TABLE_BUCKET_LENGTH 2
 
+#define SAMPLE_RTSP_USERNAME_LEN MAX_CHANNEL_NAME_LEN
+#define SAMPLE_RTSP_PASSWORD_LEN MAX_CHANNEL_NAME_LEN
+
 #define IOT_CORE_CREDENTIAL_ENDPOINT ((PCHAR) "AWS_IOT_CORE_CREDENTIAL_ENDPOINT")
 #define IOT_CORE_CERT                ((PCHAR) "AWS_IOT_CORE_CERT")
 #define IOT_CORE_PRIVATE_KEY         ((PCHAR) "AWS_IOT_CORE_PRIVATE_KEY")
@@ -51,9 +54,14 @@ extern "C" {
 #define ECS_AUTH_TOKEN           ((PCHAR) "AWS_CONTAINER_AUTHORIZATION_TOKEN")
 #define ECS_CREDENTIALS_FULL_URI ((PCHAR) "AWS_CONTAINER_CREDENTIALS_FULL_URI")
 
+#define RTSP_CHANNEL  ((PCHAR) "AWS_RTSP_CHANNEL")
+#define RTSP_URI      ((PCHAR) "AWS_RTSP_URI")
+#define RTSP_USERNAME ((PCHAR) "AWS_RTSP_USERNAME")
+#define RTSP_PASSWORD ((PCHAR) "AWS_RTSP_PASSWORD")
+
 /* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
 //#define IOT_CORE_ENABLE_CREDENTIALS 1
-#define ECS_ENABLE_CREDENTIALS 1
+//#define ECS_ENABLE_CREDENTIALS 1
 
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
@@ -71,6 +79,13 @@ typedef struct {
     UINT64 prevPacketsDiscardedOnSend;
     UINT64 prevTs;
 } RtcMetricsHistory, *PRtcMetricsHistory;
+
+typedef struct {
+    CHAR uri[MAX_URI_CHAR_LEN];
+    CHAR channel[MAX_CHANNEL_NAME_LEN];
+    CHAR username[SAMPLE_RTSP_USERNAME_LEN];
+    CHAR password[SAMPLE_RTSP_PASSWORD_LEN];
+} RtspCameraConfiguration, *PRtspCameraConfiguration;
 
 typedef struct {
     volatile ATOMIC_BOOL appTerminateFlag;
@@ -115,11 +130,10 @@ typedef struct {
     RtcStats rtcIceCandidatePairMetrics;
 
     MUTEX signalingSendMessageLock;
-
     UINT32 pregenerateCertTimerId;
     PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
     GMainLoop* main_loop;
-    PCHAR pRtspUrl;
+    RtspCameraConfiguration rtspCameraConfiguration;
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef struct {

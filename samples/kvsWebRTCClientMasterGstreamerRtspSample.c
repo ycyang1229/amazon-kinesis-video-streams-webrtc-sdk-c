@@ -464,6 +464,7 @@ static void busMsgCallback(GstBus* bus, GstMessage* msg, gpointer* data)
 STATUS gstreamer_rtsp_source_init(PVOID args, GstElement* pipeline)
 {
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    PRtspCameraConfiguration pRtspCameraConfiguration = NULL;
     STATUS retStatus = STATUS_SUCCESS;
     GstElement* rtspSource = NULL;
     GstElement *videoQueue = NULL, *videoDepay = NULL, *videoParse = NULL, *videoFilter = NULL, *videoAppSink = NULL;
@@ -530,14 +531,16 @@ STATUS gstreamer_rtsp_source_init(PVOID args, GstElement* pipeline)
     g_signal_connect(audioAppSink, "new-sample", G_CALLBACK(on_new_sample_audio), pSampleConfiguration);
 
     // configure rtspsrc
-    DLOGD("RTSP URL:%s", pSampleConfiguration->pRtspUrl);
-    g_object_set(G_OBJECT(rtspSource), "location", pSampleConfiguration->pRtspUrl, "short-header", TRUE, NULL);
+    pRtspCameraConfiguration = &pSampleConfiguration->rtspCameraConfiguration;
+    DLOGD("RTSP URL:%s", pRtspCameraConfiguration->uri);
+    g_object_set(G_OBJECT(rtspSource), "location", pRtspCameraConfiguration->uri, "short-header", TRUE, NULL);
     g_object_set(G_OBJECT(rtspSource), "latency", 0, NULL);
     g_object_set(G_OBJECT(rtspSource), "drop-on-latency", TRUE, NULL);
     g_object_set(G_OBJECT(rtspSource), "ntp-sync", TRUE, NULL);
     g_object_set(G_OBJECT(rtspSource), "debug", TRUE, NULL);
-    // g_object_set(G_OBJECT(rtspsrc), "protocols", 4,NULL);
-    // g_object_set(G_OBJECT(rtspsrc), "user-id","admin", "user-pw","admin",NULL);
+    // g_object_set(G_OBJECT(rtspSource), "protocols", 4,NULL);
+    g_object_set(G_OBJECT(rtspSource), "user-id", pRtspCameraConfiguration->username, NULL);
+    g_object_set(G_OBJECT(rtspSource), "user-pw", pRtspCameraConfiguration->password, NULL);
 
     // g_signal_connect(rtspSource, "pad-added", G_CALLBACK(pad_added_cb), tee);
     g_signal_connect(G_OBJECT(rtspSource), "on-sdp", G_CALLBACK(rtspsrcOnSdp), pipeline);
@@ -938,7 +941,7 @@ INT32 main(INT32 argc, CHAR* argv[])
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = NULL;
-    PCHAR pChannelName;
+    PCHAR pRtspChannel;
 
     SET_INSTRUMENTED_ALLOCATORS();
 
@@ -946,15 +949,15 @@ INT32 main(INT32 argc, CHAR* argv[])
 
     // do trickle-ice by default
     printf("[KVS GStreamer Master] Using trickleICE by default\n");
-    pChannelName = argc > 1 ? argv[1] : SAMPLE_CHANNEL_NAME;
+    CHK_ERR((pRtspChannel = getenv(RTSP_CHANNEL)) != NULL, STATUS_INVALID_OPERATION, "RTSP_CHANNEL must be set");
 
-    retStatus = createSampleConfiguration(pChannelName, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, &pSampleConfiguration);
+    retStatus = createSampleConfiguration(pRtspChannel, SIGNALING_CHANNEL_ROLE_TYPE_MASTER, TRUE, TRUE, &pSampleConfiguration);
     if (retStatus != STATUS_SUCCESS) {
         printf("[KVS GStreamer Master] createSampleConfiguration(): operation returned status code: 0x%08x \n", retStatus);
         goto CleanUp;
     }
 
-    printf("[KVS GStreamer Master] Created signaling channel %s\n", pChannelName);
+    printf("[KVS GStreamer Master] Created signaling channel %s\n", pRtspChannel);
 
     if (pSampleConfiguration->enableFileLogging) {
         retStatus =
@@ -966,47 +969,16 @@ INT32 main(INT32 argc, CHAR* argv[])
     }
 
     pSampleConfiguration->videoSource = sendGstreamerAudioVideo;
-    pSampleConfiguration->mediaType = SAMPLE_STREAMING_VIDEO_ONLY;
-    pSampleConfiguration->receiveAudioVideoSource = receiveGstreamerAudioVideo;
+    pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
     pSampleConfiguration->onDataChannel = onDataChannel;
     pSampleConfiguration->customData = (UINT64) pSampleConfiguration;
     pSampleConfiguration->useTestSrc = FALSE;
-    if (argc > 2) {
-        UINT32 len = STRLEN(argv[2]);
-        pSampleConfiguration->pRtspUrl = MEMALLOC(len + 1);
-        MEMCPY(pSampleConfiguration->pRtspUrl, argv[2], len);
-        pSampleConfiguration->pRtspUrl[len] = '\0';
-    } else {
-        goto CleanUp;
-    }
+
     /* Initialize GStreamer */
     // #gst
     // https://gstreamer.freedesktop.org/documentation/gstreamer/gst.html?gi-language=c#gst_init
     gst_init(&argc, &argv);
     printf("[KVS Gstreamer Master] Finished initializing GStreamer\n");
-    pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
-#if 0
-    if (argc > 2) {
-        if (STRCMP(argv[2], "video-only") == 0) {
-            
-            printf("[KVS Gstreamer Master] Streaming video only\n");
-        } else if (STRCMP(argv[2], "audio-video") == 0) {
-            pSampleConfiguration->mediaType = SAMPLE_STREAMING_AUDIO_VIDEO;
-            printf("[KVS Gstreamer Master] Streaming audio and video\n");
-        } else {
-            printf("[KVS Gstreamer Master] Unrecognized streaming type. Default to video-only\n");
-        }
-    } else {
-        printf("[KVS Gstreamer Master] Streaming video only\n");
-    }
-#endif
-
-    if (argc > 3) {
-        if (STRCMP(argv[3], "testsrc") == 0) {
-            printf("[KVS GStreamer Master] Using test source in GStreamer\n");
-            pSampleConfiguration->useTestSrc = TRUE;
-        }
-    }
 
     switch (pSampleConfiguration->mediaType) {
         case SAMPLE_STREAMING_VIDEO_ONLY:
@@ -1045,7 +1017,7 @@ INT32 main(INT32 argc, CHAR* argv[])
     }
     printf("[KVS GStreamer Master] Signaling client connection to socket established\n");
 
-    printf("[KVS Gstreamer Master] Beginning streaming...check the stream over channel %s\n", pChannelName);
+    printf("[KVS Gstreamer Master] Beginning streaming...check the stream over channel %s\n", pRtspChannel);
 
     gSampleConfiguration = pSampleConfiguration;
 
