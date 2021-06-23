@@ -11,7 +11,13 @@
 extern PSampleConfiguration gSampleConfiguration;
 
 // #define VERBOSE
-
+/**
+ * @brief   
+ * 
+ * @param[in]
+ * 
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+*/
 GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
 {
     GstBuffer* buffer;
@@ -24,6 +30,8 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
     Frame frame;
     STATUS status;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) data;
+    PGstConfiguration pGstConfiguration = &pSampleConfiguration->gstConfiguration;
+
     PSampleStreamingSession pSampleStreamingSession = NULL;
     PRtcRtpTransceiver pRtcRtpTransceiver = NULL;
     UINT32 i;
@@ -112,8 +120,8 @@ CleanUp:
 
     if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag) || pSampleConfiguration->streamingSessionCount == 0) {
         DLOGD("There is no streaming sessions, and we start terminating the rtspsrc.");
-        if (pSampleConfiguration->main_loop != NULL) {
-            g_main_loop_quit(pSampleConfiguration->main_loop);
+        if (pGstConfiguration->mainLoop != NULL) {
+            g_main_loop_quit(pGstConfiguration->mainLoop);
         }
         ret = GST_FLOW_EOS;
     }
@@ -130,7 +138,13 @@ GstFlowReturn on_new_sample_audio(GstElement* sink, gpointer data)
 {
     return on_new_sample(sink, data, DEFAULT_AUDIO_TRACK_ID);
 }
-
+/**
+ * @brief   
+ * 
+ * @param[in]
+ * 
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+*/
 // https://gstreamer.freedesktop.org/documentation/sdp/gstsdpmessage.html?gi-language=c#GstSDPMessage
 static void rtspsrcOnSdp(GstElement* rtspsrc, GstSDPMessage* sdp, gpointer user_data)
 {
@@ -315,14 +329,26 @@ static void rtspsrcOnPadAdded(GstElement* element, GstPad* pad, gpointer user_da
     g_free(pad_name);
     gst_caps_unref(template_caps);
 }
-
+/**
+ * @brief   
+ * 
+ * @param[in]
+ * 
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+*/
 static void rtspsrcOnNoMorePads(GstElement* element, gpointer user_data)
 {
     DLOGD("%d", __LINE__);
     GstElement* pipeline = user_data;
     GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(pipeline), GST_DEBUG_GRAPH_SHOW_ALL, "rtsp-kinesis-pipeline");
 }
-
+/**
+ * @brief   
+ * 
+ * @param[in]
+ * 
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+*/
 static void rtspsrcOnPadRemoved(GstElement* element, GstPad* pad, gpointer user_data)
 {
     DLOGD("%d", __LINE__);
@@ -341,7 +367,13 @@ static void rtspsrcOnPadRemoved(GstElement* element, GstPad* pad, gpointer user_
     MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     CVAR_BROADCAST(pSampleConfiguration->cvar);
 }
-
+/**
+ * @brief   
+ * 
+ * @param[in]
+ * 
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+*/
 /* This function is called when an error message is posted on the bus */
 static void busMsgErrorCallback(GstBus* bus, GstMessage* msg, gpointer* data)
 {
@@ -354,6 +386,7 @@ static void busMsgErrorCallback(GstBus* bus, GstMessage* msg, gpointer* data)
     */
     gchar* debug_info;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) data;
+    PGstConfiguration pGstConfiguration = &pSampleConfiguration->gstConfiguration;
     UINT32 i;
 
     /* Print error details on the screen */
@@ -366,7 +399,7 @@ static void busMsgErrorCallback(GstBus* bus, GstMessage* msg, gpointer* data)
     g_clear_error(&err);
     g_free(debug_info);
 
-    g_main_loop_quit(pSampleConfiguration->main_loop);
+    g_main_loop_quit(pGstConfiguration->mainLoop);
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     // #YC_TBD, need to consider how to turn  down one streaming session.
     for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
@@ -376,12 +409,19 @@ static void busMsgErrorCallback(GstBus* bus, GstMessage* msg, gpointer* data)
     MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
     CVAR_BROADCAST(pSampleConfiguration->cvar);
 }
-
+/**
+ * @brief   
+ * 
+ * @param[in]
+ * 
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+*/
 static void busMsgEosCallback(GstBus* bus, GstMessage* msg, gpointer* data)
 {
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) data;
+    PGstConfiguration pGstConfiguration = &pSampleConfiguration->gstConfiguration;
     UINT32 i;
-    g_main_loop_quit(pSampleConfiguration->main_loop);
+    g_main_loop_quit(pGstConfiguration->mainLoop);
     // #YC_TBD, need to consider how to turn  down one streaming session.
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     // #YC_TBD, need to consider how to turn  down one streaming session.
@@ -393,7 +433,13 @@ static void busMsgEosCallback(GstBus* bus, GstMessage* msg, gpointer* data)
     CVAR_BROADCAST(pSampleConfiguration->cvar);
     return;
 }
-
+/**
+ * @brief   
+ * 
+ * @param[in]
+ * 
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+*/
 static void print_one_tag(const GstTagList* list, const gchar* tag, gpointer user_data)
 {
     int i, num;
@@ -428,7 +474,13 @@ static void print_one_tag(const GstTagList* list, const gchar* tag, gpointer use
         }
     }
 }
-
+/**
+ * @brief   
+ * 
+ * @param[in]
+ * 
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+*/
 static void busMsgTagsCallback(GstBus* bus, GstMessage* msg, gpointer* data)
 {
     GstTagList* tags = NULL;
@@ -439,7 +491,13 @@ static void busMsgTagsCallback(GstBus* bus, GstMessage* msg, gpointer* data)
     gst_tag_list_unref(tags);
     return;
 }
-
+/**
+ * @brief   
+ * 
+ * @param[in]
+ * 
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+*/
 static void busMsgCallback(GstBus* bus, GstMessage* msg, gpointer* data)
 {
     DLOGD("bus msg callback(0x%x)", GST_MESSAGE_TYPE(msg));
@@ -458,10 +516,84 @@ static void busMsgCallback(GstBus* bus, GstMessage* msg, gpointer* data)
     }
     return;
 }
+/**
+ * @brief   
+ *          https://gstreamer.freedesktop.org/documentation/rtp/index.html?gi-language=c
+ *          https://gstreamer.freedesktop.org/documentation/videoparsersbad/index.html?gi-language=c
+ * 
+ * @param[in]
+ * 
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+*/
+STATUS gstreamerVideoPiplne(SampleStreamingVideoFormat format)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    GstElement *videoDepay = NULL, *videoParse = NULL;
+
+    if(format == SAMPLE_STREAMING_VIDEO_FORMAT_H264){
+        videoDepay = gst_element_factory_make("rtph264depay", "videoDepay");
+        videoParse = gst_element_factory_make("h264parse", "videoParse");
+    }else if(format == SAMPLE_STREAMING_VIDEO_FORMAT_H265){
+        videoDepay = gst_element_factory_make("rtph265depay", "videoDepay");
+        videoParse = gst_element_factory_make("h265parse", "videoParse");
+    }else if(format == SAMPLE_STREAMING_VIDEO_FORMAT_MPEG){
+        videoDepay = gst_element_factory_make("rtpjpegdepay", "videoDepay");
+        videoParse = gst_element_factory_make("jpeg2000parse", "videoParse");
+    }else if(format == SAMPLE_STREAMING_VIDEO_FORMAT_VP8){
+        videoDepay = gst_element_factory_make("rtpvp8depay", "videoDepay");
+        videoParse = gst_element_factory_make("jpeg2000parse", "videoParse");
+    }else if(format == SAMPLE_STREAMING_VIDEO_FORMAT_VP9){
+        videoDepay = gst_element_factory_make("rtpvp9depay", "videoDepay");
+        videoParse = gst_element_factory_make("vp9parse", "videoParse");
+    }else{
+        DLOGD("unsupported video type");
+    }
+
+    return STATUS_SUCCESS;
+}
+
+
+/**
+ * @brief   
+ *          https://gstreamer.freedesktop.org/documentation/rtp/index.html?gi-language=c
+ *          https://gstreamer.freedesktop.org/documentation/videoparsersbad/index.html?gi-language=c
+*/
+STATUS gstreamerAudioPiplne(SampleStreamingAudioFormat format)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    GstElement *audioDepay = NULL, *audioParse = NULL;
+
+    if(format == SAMPLE_STREAMING_AUDIO_FORMAT_OPUS){
+        audioDepay = gst_element_factory_make("rtpopusdepay", "audioDepay");
+        audioParse = gst_element_factory_make("opusdec", "mulawdec");
+    }else if(format == SAMPLE_STREAMING_AUDIO_FORMAT_PCMU){
+        audioDepay = gst_element_factory_make("rtppcmudepay", "audioDepay");
+        audioParse = gst_element_factory_make("mulawdec", "mulawdec");
+    }else if(format == SAMPLE_STREAMING_AUDIO_FORMAT_PCMA){
+        audioDepay = gst_element_factory_make("rtppcmadepay", "audioDepay");
+        audioParse = gst_element_factory_make("alawdec", "mulawdec");
+    }else if(format == SAMPLE_STREAMING_AUDIO_FORMAT_G722){
+        audioDepay = gst_element_factory_make("rtpg722depay", "audioDepay");
+        audioParse = gst_element_factory_make("avdec_g722", "mulawdec");
+    }else{
+        DLOGD("unsupported audio type");
+    }
+
+    return STATUS_SUCCESS;
+}
+
+
 
 // gst-launch-1.0 -v rtspsrc location="rtsp://admin:admin@192.168.193.224:8554/live.sdp" name=d d. ! queue ! rtph264depay ! h264parse ! avdec_h264 !
 // videoconvert ! xvimagesink sync=false d. ! queue ! rtppcmudepay ! mulawdec ! audioconvert ! autoaudiosink
-STATUS gstreamer_rtsp_source_init(PVOID args, GstElement* pipeline)
+/**
+ * @brief   
+ * 
+ * @param[in]
+ * 
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+*/
+STATUS gstreamerRtspsrcInit(PVOID args, GstElement* pipeline)
 {
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
     PRtspCameraConfiguration pRtspCameraConfiguration = NULL;
@@ -577,9 +709,9 @@ STATUS gstreamer_rtsp_source_init(PVOID args, GstElement* pipeline)
         return -1;
     }
 
-    gst_bin_add_many(GST_BIN(pipeline), videoDepay, videoParse, videoFilter, videoAppSink, NULL);
+    gst_bin_add_many(GST_BIN(pipeline), videoDepay, videoFilter, videoAppSink, NULL);
 
-    if (gst_element_link_many(videoDepay, videoParse, videoFilter, videoAppSink, NULL) != TRUE) {
+    if (gst_element_link_many(videoDepay, videoFilter, videoAppSink, NULL) != TRUE) {
         DLOGE("Video elements could not be linked.\n");
         gst_object_unref(pipeline);
         return -1;
@@ -590,25 +722,26 @@ CleanUp:
     return retStatus;
 }
 
-STATUS gstreamer_init(PVOID args)
+STATUS gstreamerInit(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
+    PGstConfiguration pGstConfiguration = &pSampleConfiguration->gstConfiguration;
+
     /* init GStreamer */
     GstElement* pipeline = NULL;
     GstBus* bus = NULL;
-    GstStateChangeReturn gst_ret;
-    // Reset first frame pts
-    // data->first_pts = GST_CLOCK_TIME_NONE;
+    GstStateChangeReturn gstRetStatus;
+
 
     DLOGI("Streaming from rtsp source");
     // https://gstreamer.freedesktop.org/documentation/gstreamer/gstpipeline.html?gi-language=c#gst_pipeline_new
     CHK((pipeline = gst_pipeline_new("rtsp-kinesis-pipeline")) != NULL, STATUS_NULL_ARG);
 
-    retStatus = gstreamer_rtsp_source_init(pSampleConfiguration, pipeline);
+    retStatus = gstreamerRtspsrcInit(pSampleConfiguration, pipeline);
 
     if (retStatus != 0) {
-        DLOGD("gstreamer_rtsp_source_init failed. %d", retStatus);
+        DLOGD("gstreamerRtspsrcInit failed. %d", retStatus);
         return retStatus;
     }
 
@@ -622,15 +755,16 @@ STATUS gstreamer_init(PVOID args)
     gst_object_unref(bus);
 
     /* start streaming */
-    gst_ret = gst_element_set_state(pipeline, GST_STATE_PLAYING);
-    if (gst_ret == GST_STATE_CHANGE_FAILURE) {
+    gstRetStatus = gst_element_set_state(pipeline, GST_STATE_PLAYING);
+    if (gstRetStatus == GST_STATE_CHANGE_FAILURE) {
         DLOGE("Unable to set the pipeline to the playing state.\n");
         gst_object_unref(pipeline);
         return 1;
     }
 
-    pSampleConfiguration->main_loop = g_main_loop_new(NULL, FALSE);
-    g_main_loop_run(pSampleConfiguration->main_loop);
+    pGstConfiguration->mainLoop = g_main_loop_new(NULL, FALSE);
+    // start running the main loop, and it is blocking call.
+    g_main_loop_run(pGstConfiguration->mainLoop);
 
 CleanUp:
 
@@ -640,11 +774,15 @@ CleanUp:
     gst_element_set_state(pipeline, GST_STATE_NULL);
     gst_object_unref(pipeline);
 
-    g_main_loop_unref(pSampleConfiguration->main_loop);
-    pSampleConfiguration->main_loop = NULL;
+    g_main_loop_unref(pGstConfiguration->mainLoop);
+    pGstConfiguration->mainLoop = NULL;
     return retStatus;
 }
-
+/**
+ * @brief the handler of video and audio.
+ * 
+ * 
+*/
 PVOID sendGstreamerAudioVideo(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -725,7 +863,7 @@ PVOID sendGstreamerAudioVideo(PVOID args)
     return (PVOID)(ULONG_PTR) retStatus;
 #endif
 
-    gstreamer_init(args);
+    gstreamerInit(args);
     return (PVOID)(ULONG_PTR) retStatus;
     /**
      * Use x264enc as its available on mac, pi, ubuntu and windows

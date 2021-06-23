@@ -141,13 +141,15 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief the thread of media sender.
+*/
 PVOID mediaSenderRoutine(PVOID customData)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
     TID videoSenderTid = INVALID_TID_VALUE, audioSenderTid = INVALID_TID_VALUE;
-
+    // #YC_TBD.
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->connected) && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
@@ -173,7 +175,7 @@ PVOID mediaSenderRoutine(PVOID customData)
     }
 
 CleanUp:
-    // clean the media thread.
+    // clean the flag of the media thread.
     ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
     CHK_LOG_ERR(retStatus);
     return NULL;

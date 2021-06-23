@@ -61,12 +61,32 @@ extern "C" {
 
 /* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
 //#define IOT_CORE_ENABLE_CREDENTIALS 1
-#define ECS_ENABLE_CREDENTIALS 1
+//#define ECS_ENABLE_CREDENTIALS 1
 
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
     SAMPLE_STREAMING_AUDIO_VIDEO,
 } SampleStreamingMediaType;
+
+
+
+typedef enum {
+    SAMPLE_STREAMING_VIDEO_FORMAT_H264 = (1 << 0),
+    SAMPLE_STREAMING_VIDEO_FORMAT_H265 = (1 << 1),
+    SAMPLE_STREAMING_VIDEO_FORMAT_MPEG = (1 << 2),//!< motion jpeg
+    SAMPLE_STREAMING_VIDEO_FORMAT_VP8 = (1 << 3),
+    SAMPLE_STREAMING_VIDEO_FORMAT_VP9 = (1 << 4),
+    SAMPLE_STREAMING_VIDEO_FORMAT_NA
+} SampleStreamingVideoFormat;
+
+
+typedef enum {
+    SAMPLE_STREAMING_AUDIO_FORMAT_OPUS = (1 << 0),
+    SAMPLE_STREAMING_AUDIO_FORMAT_PCMU = (1 << 1),//!< G.711
+    SAMPLE_STREAMING_AUDIO_FORMAT_PCMA = (1 << 2),
+    SAMPLE_STREAMING_AUDIO_FORMAT_G722 = (1 << 3),//!< G.722
+    SAMPLE_STREAMING_AUDIO_FORMAT_NA
+} SampleStreamingAudioFormat;
 
 typedef struct __SampleStreamingSession SampleStreamingSession;
 typedef struct __SampleStreamingSession* PSampleStreamingSession;
@@ -81,16 +101,21 @@ typedef struct {
 } RtcMetricsHistory, *PRtcMetricsHistory;
 
 typedef struct {
-    CHAR uri[MAX_URI_CHAR_LEN];
-    CHAR channel[MAX_CHANNEL_NAME_LEN];
-    CHAR username[SAMPLE_RTSP_USERNAME_LEN];
-    CHAR password[SAMPLE_RTSP_PASSWORD_LEN];
+    GMainLoop* mainLoop;//!< the main runner for gstreamer.
+    GstElement* pipeline;//!< the pipeline for the rtsp url.
+} GstConfiguration, *PGstConfiguration;
+
+typedef struct {
+    CHAR uri[MAX_URI_CHAR_LEN]; //!< the rtsp url.
+    CHAR channel[MAX_CHANNEL_NAME_LEN];//!< the signaling channgel for the rtsp url.
+    CHAR username[SAMPLE_RTSP_USERNAME_LEN];//!< the username to login the rtsp url.
+    CHAR password[SAMPLE_RTSP_PASSWORD_LEN];//!< the password to login the rtsp url.
 } RtspCameraConfiguration, *PRtspCameraConfiguration;
 
 typedef struct {
     volatile ATOMIC_BOOL appTerminateFlag;
     volatile ATOMIC_BOOL interrupted;
-    volatile ATOMIC_BOOL mediaThreadStarted;
+    volatile ATOMIC_BOOL mediaThreadStarted;//!< the flag to identify the status of the media thread.
     volatile ATOMIC_BOOL recreateSignalingClient;
     volatile ATOMIC_BOOL connected;
     BOOL useTestSrc;
@@ -132,7 +157,7 @@ typedef struct {
     MUTEX signalingSendMessageLock;
     UINT32 pregenerateCertTimerId;
     PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
-    GMainLoop* main_loop;
+    GstConfiguration gstConfiguration;
     RtspCameraConfiguration rtspCameraConfiguration;
 } SampleConfiguration, *PSampleConfiguration;
 
