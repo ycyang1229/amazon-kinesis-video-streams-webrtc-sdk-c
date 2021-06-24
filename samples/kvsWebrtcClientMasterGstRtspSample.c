@@ -10,14 +10,36 @@
 
 extern PSampleConfiguration gSampleConfiguration;
 
+#define GST_STRUCT_FIELD_MEDIA         "media"
+#define GST_STRUCT_FIELD_MEDIA_VIDEO   "video"
+#define GST_STRUCT_FIELD_MEDIA_AUDIO   "audio"
+#define GST_STRUCT_FIELD_ENCODING      "encoding-name"
+#define GST_STRUCT_FIELD_ENCODING_H264 "H264"
+#define GST_STRUCT_FIELD_ENCODING_PCMU "PCMU"
+#define GST_STRUCT_FIELD_PAYLOAD_TYPE  "payload"
+#define GST_STRUCT_FIELD_CLOCK_RATE    "clock-rate"
+
 // #define VERBOSE
+
+STATUS gstreamerCloseRtspsrc(PSampleConfiguration pSampleConfiguration)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    DLOGD("closing rtsp src.");
+    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    PGstConfiguration pGstConfiguration = &pSampleConfiguration->gstConfiguration;
+    if (pGstConfiguration->mainLoop != NULL) {
+        g_main_loop_quit(pGstConfiguration->mainLoop);
+    }
+    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    return retStatus;
+}
 /**
- * @brief   
- * 
+ * @brief
+ *
  * @param[in]
- * 
+ *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
-*/
+ */
 GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
 {
     GstBuffer* buffer;
@@ -88,15 +110,12 @@ GstFlowReturn on_new_sample(GstElement* sink, gpointer data, UINT64 trackid)
 
             if (trackid == DEFAULT_AUDIO_TRACK_ID) {
                 pRtcRtpTransceiver = pSampleStreamingSession->pAudioRtcRtpTransceiver;
-                frame.presentationTs = buf_pts * DEFAULT_TIME_UNIT_IN_NANOS; // pSampleStreamingSession->audioTimestamp;
+                frame.presentationTs = buf_pts * DEFAULT_TIME_UNIT_IN_NANOS;
                 frame.decodingTs = frame.presentationTs;
-                pSampleStreamingSession->audioTimestamp +=
-                    SAMPLE_AUDIO_FRAME_DURATION; // assume audio frame size is 20ms, which is default in opusenc
             } else {
                 pRtcRtpTransceiver = pSampleStreamingSession->pVideoRtcRtpTransceiver;
-                frame.presentationTs = buf_pts * DEFAULT_TIME_UNIT_IN_NANOS; // pSampleStreamingSession->videoTimestamp;
+                frame.presentationTs = buf_pts * DEFAULT_TIME_UNIT_IN_NANOS;
                 frame.decodingTs = frame.presentationTs;
-                pSampleStreamingSession->videoTimestamp += SAMPLE_VIDEO_FRAME_DURATION; // assume video fps is 30
             }
             status = writeFrame(pRtcRtpTransceiver, &frame);
             if (status != STATUS_SRTP_NOT_READY_YET && status != STATUS_SUCCESS) {
@@ -117,15 +136,14 @@ CleanUp:
     if (sample != NULL) {
         gst_sample_unref(sample);
     }
-
-    if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag) || pSampleConfiguration->streamingSessionCount == 0) {
-        DLOGD("There is no streaming sessions, and we start terminating the rtspsrc.");
-        if (pGstConfiguration->mainLoop != NULL) {
-            g_main_loop_quit(pGstConfiguration->mainLoop);
-        }
+    // #gstreamerCloseRtspsrc
+    // MUTEX_LOCK(pSampleConfiguration->streamingSessionListReadLock);
+    // DLOGD("pSampleConfiguration->streamingSessionCount:%d", pSampleConfiguration->streamingSessionCount);
+    if (ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag) || ATOMIC_LOAD_BOOL(&pSampleConfiguration->terminateGstFlag)) {
+        gstreamerCloseRtspsrc(pSampleConfiguration);
         ret = GST_FLOW_EOS;
     }
-
+    // MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
     return ret;
 }
 
@@ -139,12 +157,12 @@ GstFlowReturn on_new_sample_audio(GstElement* sink, gpointer data)
     return on_new_sample(sink, data, DEFAULT_AUDIO_TRACK_ID);
 }
 /**
- * @brief   
- * 
+ * @brief
+ *
  * @param[in]
- * 
+ *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
-*/
+ */
 // https://gstreamer.freedesktop.org/documentation/sdp/gstsdpmessage.html?gi-language=c#GstSDPMessage
 static void rtspsrcOnSdp(GstElement* rtspsrc, GstSDPMessage* sdp, gpointer user_data)
 {
@@ -165,8 +183,8 @@ static void rtspsrcOnSdp(GstElement* rtspsrc, GstSDPMessage* sdp, gpointer user_
         DLOGD("mediaText:%s", mediaText);
         const gchar* mediaDescription = gst_sdp_media_get_media(sdpMedia);
         DLOGD("mediaDescription:%s", mediaDescription);
-        GstCaps* caps;
-        gst_sdp_media_set_media_from_caps(caps, sdpMedia);
+        // GstCaps* caps;
+        // gst_sdp_media_set_media_from_caps(caps, sdpMedia);
         // gchar * capsString = gst_caps_serialize (caps, GST_SERIALIZE_FLAG_NONE);
         // gchar * capsString = gst_caps_serialize (caps, 0);
         // DLOGD("capsString:%s", capsString);
@@ -179,6 +197,13 @@ static void rtspsrcOnSdp(GstElement* rtspsrc, GstSDPMessage* sdp, gpointer user_
     }
 }
 
+/**
+ * @brief
+ *
+ * @param[in]
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 //
 // http://hk.uwenku.com/question/p-mekcwwlb-bno.html
 /**
@@ -234,146 +259,406 @@ static void rtspsrcNewManager(GstElement* object, GstElement* arg0, gpointer use
 {
     DLOGD("%d", __LINE__);
 }
-
-/* callback when each RTSP stream has been created */
-static void pad_added_cb(GstElement* element, GstPad* pad, GstElement* target)
+STATUS gstreamerDummySink(PSampleConfiguration pSampleConfiguration)
 {
-    GstPad* target_sink = gst_element_get_static_pad(GST_ELEMENT(target), "sink");
-    GstPadLinkReturn link_ret;
-    gchar* pad_name = gst_pad_get_name(pad);
-    DLOGD("New pad found: %s\n", pad_name);
+    STATUS retStatus = STATUS_SUCCESS;
+    GstElement* pipeline = (GstElement*) pSampleConfiguration->gstConfiguration.pipeline;
+    GstElement* dummySink = NULL;
+    dummySink = gst_element_factory_make("fakesink", "dummySink");
+    CHK(dummySink != NULL, STATUS_GST_DUMMY_SINK);
+    gst_bin_add_many(GST_BIN(pipeline), dummySink, NULL);
 
-    link_ret = gst_pad_link(pad, target_sink);
+    return retStatus;
+CleanUp:
+    // release the resource when we fail to create the pipeline.
+    gst_caps_unref(dummySink);
+    return retStatus;
+}
+/**
+ * @brief
+ *          https://gstreamer.freedesktop.org/documentation/rtp/index.html?gi-language=c
+ *          https://gstreamer.freedesktop.org/documentation/videoparsersbad/index.html?gi-language=c
+ *          // " d. ! queue ! rtph264depay ! h264parse ! video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE
+ *          // emit-signals=TRUE name=appsink-video"
+ *
+ * @param[in]
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+STATUS gstreamerVideoSink(PSampleConfiguration pSampleConfiguration, SampleStreamingVideoFormat format)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    GstElement* pipeline = (GstElement*) pSampleConfiguration->gstConfiguration.pipeline;
+    GstElement* videoQueue = NULL;
+    GstElement *videoDepay = NULL, *videoFilter = NULL, *videoAppSink = NULL;
+    GstElement* videoParse = NULL; //!< may not need this.
 
-    if (link_ret == GST_PAD_LINK_OK) {
-        DLOGI("Pad link successful");
+    videoQueue = gst_element_factory_make("queue", "videoQueue");
+    if (format == SAMPLE_STREAMING_VIDEO_FORMAT_H264) {
+        // https://gstreamer.freedesktop.org/documentation/rtp/rtph264depay.html?gi-language=c#rtph264depay-page
+        videoDepay = gst_element_factory_make("rtph264depay", "videoDepay");
+        // https://gstreamer.freedesktop.org/documentation/videoparsersbad/h264parse.html?gi-language=c
+        // videoParse = gst_element_factory_make("h264parse", "videoParse");
+    } else if (format == SAMPLE_STREAMING_VIDEO_FORMAT_H265) {
+        // https://gstreamer.freedesktop.org/documentation/rtp/rtph265depay.html?gi-language=c
+        videoDepay = gst_element_factory_make("rtph265depay", "videoDepay");
+        // https://gstreamer.freedesktop.org/documentation/videoparsersbad/h265parse.html?gi-language=c
+        videoParse = gst_element_factory_make("h265parse", "videoParse");
+    } else if (format == SAMPLE_STREAMING_VIDEO_FORMAT_MPEG) {
+        // https://gstreamer.freedesktop.org/documentation/rtp/rtpjpegdepay.html?gi-language=c
+        videoDepay = gst_element_factory_make("rtpjpegdepay", "videoDepay");
+        // https://gstreamer.freedesktop.org/documentation/jpegformat/jpegparse.html?gi-language=c
+        videoParse = gst_element_factory_make("jpegparse", "videoParse");
+    } else if (format == SAMPLE_STREAMING_VIDEO_FORMAT_VP8) {
+        // https://gstreamer.freedesktop.org/documentation/rtp/rtpvp8depay.html?gi-language=c
+        videoDepay = gst_element_factory_make("rtpvp8depay", "videoDepay");
+        // https://gstreamer.freedesktop.org/documentation/vpx/vp8dec.html?gi-language=c
+        videoParse = gst_element_factory_make("vp8dec", "videoParse");
+    } else if (format == SAMPLE_STREAMING_VIDEO_FORMAT_VP9) {
+        videoDepay = gst_element_factory_make("rtpvp9depay", "videoDepay");
+        videoParse = gst_element_factory_make("vp9parse", "videoParse");
     } else {
-        DLOGI("Pad link failed");
+        DLOGD("unsupported video type");
     }
 
-    gst_object_unref(target_sink);
-    g_free(pad_name);
+    videoFilter = gst_element_factory_make("capsfilter", "videoFilter");
+    videoAppSink = gst_element_factory_make("appsink", "videoAppSink");
+    // configure filter
+    // https://gstreamer.freedesktop.org/documentation/gstreamer/gstcaps.html?gi-language=c#gst_caps_new_simple
+    GstCaps* videoCaps = gst_caps_new_simple("video/x-h264", "stream-format", G_TYPE_STRING, "byte-stream", "alignment", G_TYPE_STRING, "au", NULL);
+    CHK(videoQueue != NULL, STATUS_GST_VIDEO_ELEMENT);
+    CHK(videoDepay != NULL && videoFilter != NULL && videoAppSink != NULL && videoCaps != NULL, STATUS_GST_VIDEO_ELEMENT);
+    // CHK(videoParse != NULL, STATUS_GST_VIDEO_ELEMENT);
+
+    // https://developer.gnome.org/gobject/stable/gobject-The-Base-Object-Type.html#g-object-set
+    g_object_set(G_OBJECT(videoFilter), "caps", videoCaps, NULL);
+    gst_caps_unref(videoCaps);
+    videoCaps = NULL;
+
+    // configure appsink
+    g_object_set(G_OBJECT(videoAppSink), "emit-signals", TRUE, "sync", FALSE, NULL);
+    g_signal_connect(videoAppSink, "new-sample", G_CALLBACK(on_new_sample_video), pSampleConfiguration);
+    // link all the elements.
+    gst_bin_add_many(GST_BIN(pipeline), videoQueue, videoDepay, videoFilter, videoAppSink, NULL);
+    CHK(gst_element_link_many(videoQueue, videoDepay, videoFilter, videoAppSink, NULL), STATUS_GST_VIDEO_ELEMENT);
+    //{
+    //    DLOGE("Video elements could not be linked.\n");
+    //    gst_object_unref(pipeline);
+    //    return -1;
+    //}
+    return retStatus;
+CleanUp:
+    DLOGD("error");
+    // release the resource when we fail to create the pipeline.
+    gst_caps_unref(videoDepay);
+    gst_caps_unref(videoParse);
+    gst_caps_unref(videoCaps);
+    gst_caps_unref(videoFilter);
+    gst_caps_unref(videoAppSink);
+    return retStatus;
 }
 
-static void rtspsrcOnPadAdded(GstElement* element, GstPad* pad, gpointer user_data)
+/**
+ * @brief
+ *          https://gstreamer.freedesktop.org/documentation/rtp/index.html?gi-language=c
+ *          https://gstreamer.freedesktop.org/documentation/videoparsersbad/index.html?gi-language=c
+ *          audio
+ *          " d. ! queue ! rtppcmudepay ! mulawdec ! audioconvert ! audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE
+ *          emit-signals=TRUE name=appsink-audio"
+ */
+STATUS gstreamerAudioSink(PSampleConfiguration pSampleConfiguration, SampleStreamingAudioFormat format)
 {
-    gchar* pad_name = NULL;
+    STATUS retStatus = STATUS_SUCCESS;
+    GstElement* pipeline = (GstElement*) pSampleConfiguration->gstConfiguration.pipeline;
+    GstElement* audioQueue = NULL;
+    GstElement *audioDepay = NULL, *audioFilter = NULL, *audioAppSink = NULL;
+    GstElement *audioParse = NULL, *audioConvert = NULL, *audioResample = NULL, *audioEnc = NULL;
+
+    audioQueue = gst_element_factory_make("queue", "audioQueue");
+    if (format == SAMPLE_STREAMING_AUDIO_FORMAT_OPUS) {
+        audioDepay = gst_element_factory_make("rtpopusdepay", "audioDepay");
+        // https://gstreamer.freedesktop.org/documentation/mulaw/mulawdec.html?gi-language=c
+        audioParse = gst_element_factory_make("opusdec", "audioParse");
+    } else if (format == SAMPLE_STREAMING_AUDIO_FORMAT_PCMU) {
+        audioDepay = gst_element_factory_make("rtppcmudepay", "audioDepay");
+        // audioParse = gst_element_factory_make("mulawdec", "audioParse");
+    } else if (format == SAMPLE_STREAMING_AUDIO_FORMAT_PCMA) {
+        audioDepay = gst_element_factory_make("rtppcmadepay", "audioDepay");
+        audioParse = gst_element_factory_make("alawdec", "audioParse");
+    } else if (format == SAMPLE_STREAMING_AUDIO_FORMAT_G722) {
+        audioDepay = gst_element_factory_make("rtpg722depay", "audioDepay");
+        audioParse = gst_element_factory_make("avdec_g722", "audioParse");
+    } else {
+        DLOGD("unsupported audio type");
+    }
+
+    // audioConvert = gst_element_factory_make("audioconvert", "audioConvert");
+    // audioResample = gst_element_factory_make("audioresample", "audioResample");
+    // audioEnc = gst_element_factory_make("opusenc", "audioEnc");
+    // audioEnc = gst_element_factory_make("mulawenc", "audioEnc");
+    audioFilter = gst_element_factory_make("capsfilter", "audioFilter");
+    audioAppSink = gst_element_factory_make("appsink", "audioAppSink");
+    // GstCaps* audioCaps = gst_caps_new_simple("audio/x-opus", "rate", G_TYPE_INT, 48000, "channels", G_TYPE_INT, 2, NULL);
+    GstCaps* audioCaps = gst_caps_new_simple("audio/x-mulaw", "rate", G_TYPE_INT, 8000, "channels", G_TYPE_INT, 1, NULL);
+
+    CHK(audioQueue != NULL, STATUS_GST_AUDIO_ELEMENT);
+    CHK(audioDepay != NULL && audioFilter != NULL && audioAppSink != NULL, STATUS_GST_AUDIO_ELEMENT);
+    // CHK(audioParse != NULL && audioConvert != NULL && audioResample != NULL && audioEnc != NULL, STATUS_GST_AUDIO_ELEMENT);
+    CHK(audioCaps != NULL, STATUS_GST_AUDIO_ELEMENT);
+    g_object_set(G_OBJECT(audioFilter), "caps", audioCaps, NULL);
+    gst_caps_unref(audioCaps);
+    audioCaps = NULL;
+
+    g_object_set(G_OBJECT(audioAppSink), "emit-signals", TRUE, "sync", FALSE, NULL);
+    g_signal_connect(audioAppSink, "new-sample", G_CALLBACK(on_new_sample_audio), pSampleConfiguration);
+
+    // gst_bin_add_many(GST_BIN(pipeline), audioQueue, audioDepay, audioParse, audioConvert, audioResample, audioEnc, audioFilter, audioAppSink,
+    // NULL);
+    gst_bin_add_many(GST_BIN(pipeline), audioQueue, audioDepay, audioFilter, audioAppSink, NULL);
+
+    // CHK(gst_element_link_many(audioQueue, audioDepay, audioParse, audioConvert, audioResample, audioEnc, audioFilter, audioAppSink, NULL),
+    CHK(gst_element_link_many(audioQueue, audioDepay, audioFilter, audioAppSink, NULL), STATUS_GST_AUDIO_ELEMENT);
+
+    //    DLOGE("Audio elements could not be linked.\n");
+    //    gst_object_unref(pipeline);
+    //    return -1;
+    //}
+
+    return retStatus;
+CleanUp:
+    // release the resource when we fail to create the pipeline.
+    gst_caps_unref(audioDepay);
+    gst_caps_unref(audioFilter);
+    gst_caps_unref(audioAppSink);
+    gst_caps_unref(audioParse);
+    gst_caps_unref(audioConvert);
+    gst_caps_unref(audioResample);
+    gst_caps_unref(audioEnc);
+    gst_caps_unref(audioCaps);
+    return retStatus;
+}
+
+/**
+ * @brief   the callback is invoked when there is no coming.
+ *
+ * @param[in]
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+static void rtspsrcOnPadAddedProbe(GstElement* element, GstPad* pad, gpointer user_data)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) user_data;
+    PGstConfiguration pGstConfiguration = &pSampleConfiguration->gstConfiguration;
+    PGstStreamConf pGstStreamConf = NULL;
+    GstElement* pipeline = (GstElement*) pGstConfiguration->pipeline;
+    gchar* srcPadName = NULL;
     GstCaps* template_caps = NULL;
     GstCaps* current_caps = NULL;
     GstStructure* new_pad_struct = NULL;
     const gchar* new_pad_type = NULL;
 
-    GstElement* nextElement;
-    GstElement* pipeline = (GstElement*) user_data;
+    GstElement* nextElement = NULL;
+
     BOOL video = FALSE;
     BOOL audio = FALSE;
 
-    pad_name = gst_pad_get_name(pad);
+    srcPadName = gst_pad_get_name(pad);
     template_caps = gst_pad_get_pad_template_caps(pad);
-    DLOGD("A new pad template %s was created\n", pad_name);
+    DLOGD("A new pad template %s was created\n", srcPadName);
 
     current_caps = gst_pad_get_current_caps(pad);
-    guint new_pad_caps_num = gst_caps_get_size(current_caps);
-    DLOGD("new_pad_caps_num:%d", new_pad_caps_num);
-    guint i;
-    for (i = 0; i < new_pad_caps_num; i++) {
+    guint curCapsNum = gst_caps_get_size(current_caps);
+    DLOGD("curCapsNum:%d", curCapsNum);
+
+    for (guint i = 0; i < curCapsNum; i++) {
         new_pad_struct = gst_caps_get_structure(current_caps, i);
         new_pad_type = gst_structure_get_name(new_pad_struct);
         DLOGD("new_pad_type(%d):%s", i, new_pad_type);
 
-        if (gst_structure_has_field(new_pad_struct, "media") == TRUE) {
-            DLOGD("media");
-            const gchar* media_value = gst_structure_get_string(new_pad_struct, "media");
+        if (gst_structure_has_field(new_pad_struct, GST_STRUCT_FIELD_MEDIA) == TRUE) {
+            const gchar* media_value = gst_structure_get_string(new_pad_struct, GST_STRUCT_FIELD_MEDIA);
             DLOGD("media_value:%s", media_value);
-            if (STRCMP(media_value, "video") == 0) {
+            if (STRCMP(media_value, GST_STRUCT_FIELD_MEDIA_VIDEO) == 0) {
                 video = TRUE;
+                pGstStreamConf = &pGstConfiguration->videoStream;
+            } else if (STRCMP(media_value, GST_STRUCT_FIELD_MEDIA_AUDIO) == 0) {
+                audio = TRUE;
+                pGstStreamConf = &pGstConfiguration->audioStream;
             }
-            if (STRCMP(media_value, "audio") == 0) {
+        }
+        if (gst_structure_has_field(new_pad_struct, GST_STRUCT_FIELD_ENCODING) == TRUE) {
+            const gchar* encoding_name = gst_structure_get_string(new_pad_struct, GST_STRUCT_FIELD_ENCODING);
+            DLOGD("encoding_name:%s", encoding_name);
+            STRCPY(pGstStreamConf->encodingName, encoding_name);
+        }
+        if (gst_structure_has_field(new_pad_struct, GST_STRUCT_FIELD_PAYLOAD_TYPE) == TRUE) {
+            gint media_value;
+            gst_structure_get_int(new_pad_struct, GST_STRUCT_FIELD_PAYLOAD_TYPE, &media_value);
+            DLOGD("payload:%d", media_value);
+            pGstStreamConf->payloadType = media_value;
+        }
+        if (gst_structure_has_field(new_pad_struct, GST_STRUCT_FIELD_CLOCK_RATE) == TRUE) {
+            gint media_value;
+            gst_structure_get_int(new_pad_struct, GST_STRUCT_FIELD_CLOCK_RATE, &media_value);
+            DLOGD("clock-rate:%d", media_value);
+            pGstStreamConf->clockRate = media_value;
+        }
+    }
+    gst_caps_unref(current_caps);
+
+    CHK_STATUS(gstreamerDummySink(pSampleConfiguration));
+    nextElement = gst_bin_get_by_name(GST_BIN(pipeline), "dummySink");
+    CHK(nextElement != NULL, STATUS_NULL_ARG);
+    CHK(gst_element_link_filtered(element, nextElement, template_caps) == TRUE, STATUS_GST_LINK_ELEMENT);
+
+    pGstConfiguration->streamNum++;
+CleanUp:
+
+    gst_object_unref(nextElement);
+    g_free(srcPadName);
+    gst_caps_unref(template_caps);
+    CHK_LOG_ERR(retStatus);
+}
+
+static void rtspsrcOnNoMorePadsProbe(GstElement* element, gpointer user_data)
+{
+    DLOGD("%d", __LINE__);
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) user_data;
+    gstreamerCloseRtspsrc(pSampleConfiguration);
+}
+
+/**
+ * @brief   the callback is invoked when there is no coming.
+ *
+ * @param[in]
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
+static void rtspsrcOnPadAdded(GstElement* element, GstPad* pad, gpointer user_data)
+{
+    STATUS retStatus = STATUS_SUCCESS;
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) user_data;
+    PGstConfiguration pGstConfiguration = &pSampleConfiguration->gstConfiguration;
+    GstElement* pipeline = (GstElement*) pGstConfiguration->pipeline;
+    gchar* srcPadName = NULL;
+    GstCaps* template_caps = NULL;
+    GstCaps* current_caps = NULL;
+    GstStructure* new_pad_struct = NULL;
+    const gchar* new_pad_type = NULL;
+
+    GstElement* nextElement = NULL;
+
+    BOOL video = FALSE;
+    BOOL audio = FALSE;
+
+    srcPadName = gst_pad_get_name(pad);
+    template_caps = gst_pad_get_pad_template_caps(pad);
+    DLOGD("A new pad template %s was created\n", srcPadName);
+
+    current_caps = gst_pad_get_current_caps(pad);
+    guint curCapsNum = gst_caps_get_size(current_caps);
+    DLOGD("curCapsNum:%d", curCapsNum);
+
+    for (guint i = 0; i < curCapsNum; i++) {
+        new_pad_struct = gst_caps_get_structure(current_caps, i);
+        new_pad_type = gst_structure_get_name(new_pad_struct);
+        DLOGD("new_pad_type(%d):%s", i, new_pad_type);
+
+        if (gst_structure_has_field(new_pad_struct, GST_STRUCT_FIELD_MEDIA) == TRUE) {
+            const gchar* media_value = gst_structure_get_string(new_pad_struct, GST_STRUCT_FIELD_MEDIA);
+            DLOGD("media_value:%s", media_value);
+            if (STRCMP(media_value, GST_STRUCT_FIELD_MEDIA_VIDEO) == 0) {
+                video = TRUE;
+            } else if (STRCMP(media_value, GST_STRUCT_FIELD_MEDIA_AUDIO) == 0) {
                 audio = TRUE;
             }
         }
-        if (gst_structure_has_field(new_pad_struct, "encoding-name") == TRUE) {
-            DLOGD("encoding-name");
-            const gchar* encoding_name = gst_structure_get_string(new_pad_struct, "encoding-name");
+        if (gst_structure_has_field(new_pad_struct, GST_STRUCT_FIELD_ENCODING) == TRUE) {
+            const gchar* encoding_name = gst_structure_get_string(new_pad_struct, GST_STRUCT_FIELD_ENCODING);
             DLOGD("encoding_name:%s", encoding_name);
         }
-
-        if (gst_structure_has_field(new_pad_struct, "payload") == TRUE) {
-            DLOGD("payload");
-            GType payload_type = gst_structure_get_field_type(new_pad_struct, "payload");
-            DLOGD("payload_type:%d", payload_type);
+        if (gst_structure_has_field(new_pad_struct, GST_STRUCT_FIELD_PAYLOAD_TYPE) == TRUE) {
             gint media_value;
-            gst_structure_get_int(new_pad_struct, "payload", &media_value);
+            gst_structure_get_int(new_pad_struct, GST_STRUCT_FIELD_PAYLOAD_TYPE, &media_value);
             DLOGD("payload:%d", media_value);
+        }
+        if (gst_structure_has_field(new_pad_struct, GST_STRUCT_FIELD_CLOCK_RATE) == TRUE) {
+            gint media_value;
+            gst_structure_get_int(new_pad_struct, GST_STRUCT_FIELD_CLOCK_RATE, &media_value);
+            DLOGD("clock-rate:%d", media_value);
         }
     }
     gst_caps_unref(current_caps);
 
     if (video == TRUE) {
+        // #YC_TBD, can not do audio only for webrtc, need to check later.
         DLOGD("------------------------ Video -------------------------------");
-        nextElement = gst_bin_get_by_name(GST_BIN(pipeline), "videoDepay");
+        CHK_STATUS(gstreamerVideoSink(pSampleConfiguration, SAMPLE_STREAMING_VIDEO_FORMAT_H264));
+        nextElement = gst_bin_get_by_name(GST_BIN(pipeline), "videoQueue");
     } else if (audio == TRUE) {
         DLOGD("------------------------ Audio -------------------------------");
-        nextElement = gst_bin_get_by_name(GST_BIN(pipeline), "audioDepay");
+        CHK_STATUS(gstreamerAudioSink(pSampleConfiguration, SAMPLE_STREAMING_AUDIO_FORMAT_PCMU));
+        nextElement = gst_bin_get_by_name(GST_BIN(pipeline), "audioQueue");
+    } else {
+        DLOGW("------------------------ Unsupported format -------------------------------");
+        CHK_STATUS(gstreamerDummySink(pSampleConfiguration));
+        nextElement = gst_bin_get_by_name(GST_BIN(pipeline), "dummyQueue");
     }
 
-    if (nextElement != NULL) {
-        if (!gst_element_link_filtered(element, nextElement, template_caps))
-        // if (!gst_element_link_pads_filtered(element, pad_name, nextElement, "sink", template_caps))
-        {
-            DLOGD("Failed to link video element to src to sink");
-        }
-        gst_object_unref(nextElement);
-    }
+    CHK(nextElement != NULL, STATUS_GST_EMPTY_ELEMENT);
+    CHK(gst_element_link_filtered(element, nextElement, template_caps) == TRUE, STATUS_GST_LINK_ELEMENT);
 
-    g_free(pad_name);
+    // pGstConfiguration->streamNum++;
+    gst_element_set_state(pipeline, GST_STATE_PLAYING);
+    DLOGD("success");
+CleanUp:
+
+    gst_object_unref(nextElement);
+    g_free(srcPadName);
     gst_caps_unref(template_caps);
+    CHK_LOG_ERR(retStatus);
 }
 /**
- * @brief   
- * 
+ * @brief   the callback is invoked when there is no coming.
+ *
  * @param[in]
- * 
+ *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
-*/
+ */
 static void rtspsrcOnNoMorePads(GstElement* element, gpointer user_data)
 {
     DLOGD("%d", __LINE__);
-    GstElement* pipeline = user_data;
-    GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(pipeline), GST_DEBUG_GRAPH_SHOW_ALL, "rtsp-kinesis-pipeline");
+    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) user_data;
+    GstElement* pipeline = (GstElement*) pSampleConfiguration->gstConfiguration.pipeline;
+
+    // GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(pipeline), GST_DEBUG_GRAPH_SHOW_ALL, "rtsp-kinesis-pipeline");
+    // gst_element_set_state(pipeline, GST_STATE_PLAYING);
 }
 /**
- * @brief   
- * 
+ * @brief
+ *
  * @param[in]
- * 
+ *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
-*/
+ */
 static void rtspsrcOnPadRemoved(GstElement* element, GstPad* pad, gpointer user_data)
 {
     DLOGD("%d", __LINE__);
     UINT32 i;
     BOOL locked = FALSE;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) user_data;
-
-    // #YC_TBD, need to consider how to turn  down one streaming session.
-
-    // #YC_TBD, need to consider how to turn  down one streaming session.
-    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-        DLOGD("terminate the streaming session(%d)", i);
-        ATOMIC_STORE_BOOL(&pSampleConfiguration->sampleStreamingSessionList[i]->terminateFlag, TRUE);
-    }
-    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    CVAR_BROADCAST(pSampleConfiguration->cvar);
+    PGstConfiguration pGstConfiguration = &pSampleConfiguration->gstConfiguration;
+    // pGstConfiguration->streamNum--;
+    gstreamerCloseRtspsrc(pSampleConfiguration);
 }
 /**
- * @brief   
- * 
+ * @brief
+ *
  * @param[in]
- * 
+ *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
-*/
+ */
 /* This function is called when an error message is posted on the bus */
 static void busMsgErrorCallback(GstBus* bus, GstMessage* msg, gpointer* data)
 {
@@ -386,8 +671,6 @@ static void busMsgErrorCallback(GstBus* bus, GstMessage* msg, gpointer* data)
     */
     gchar* debug_info;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) data;
-    PGstConfiguration pGstConfiguration = &pSampleConfiguration->gstConfiguration;
-    UINT32 i;
 
     /* Print error details on the screen */
 
@@ -399,47 +682,28 @@ static void busMsgErrorCallback(GstBus* bus, GstMessage* msg, gpointer* data)
     g_clear_error(&err);
     g_free(debug_info);
 
-    g_main_loop_quit(pGstConfiguration->mainLoop);
-    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    // #YC_TBD, need to consider how to turn  down one streaming session.
-    for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-        DLOGD("terminate the streaming session(%d)", i);
-        ATOMIC_STORE_BOOL(&pSampleConfiguration->sampleStreamingSessionList[i]->terminateFlag, TRUE);
-    }
-    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    CVAR_BROADCAST(pSampleConfiguration->cvar);
+    gstreamerCloseRtspsrc(pSampleConfiguration);
 }
 /**
- * @brief   
- * 
+ * @brief
+ *
  * @param[in]
- * 
+ *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
-*/
+ */
 static void busMsgEosCallback(GstBus* bus, GstMessage* msg, gpointer* data)
 {
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) data;
-    PGstConfiguration pGstConfiguration = &pSampleConfiguration->gstConfiguration;
-    UINT32 i;
-    g_main_loop_quit(pGstConfiguration->mainLoop);
-    // #YC_TBD, need to consider how to turn  down one streaming session.
-    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    // #YC_TBD, need to consider how to turn  down one streaming session.
-    for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
-        DLOGD("terminate the streaming session(%d)", i);
-        ATOMIC_STORE_BOOL(&pSampleConfiguration->sampleStreamingSessionList[i]->terminateFlag, TRUE);
-    }
-    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
-    CVAR_BROADCAST(pSampleConfiguration->cvar);
+    gstreamerCloseRtspsrc(pSampleConfiguration);
     return;
 }
 /**
- * @brief   
- * 
+ * @brief
+ *
  * @param[in]
- * 
+ *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
-*/
+ */
 static void print_one_tag(const GstTagList* list, const gchar* tag, gpointer user_data)
 {
     int i, num;
@@ -475,12 +739,12 @@ static void print_one_tag(const GstTagList* list, const gchar* tag, gpointer use
     }
 }
 /**
- * @brief   
- * 
+ * @brief
+ *
  * @param[in]
- * 
+ *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
-*/
+ */
 static void busMsgTagsCallback(GstBus* bus, GstMessage* msg, gpointer* data)
 {
     GstTagList* tags = NULL;
@@ -492,12 +756,12 @@ static void busMsgTagsCallback(GstBus* bus, GstMessage* msg, gpointer* data)
     return;
 }
 /**
- * @brief   
- * 
+ * @brief
+ *
  * @param[in]
- * 
+ *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
-*/
+ */
 static void busMsgCallback(GstBus* bus, GstMessage* msg, gpointer* data)
 {
     DLOGD("bus msg callback(0x%x)", GST_MESSAGE_TYPE(msg));
@@ -509,158 +773,34 @@ static void busMsgCallback(GstBus* bus, GstMessage* msg, gpointer* data)
             busMsgEosCallback(bus, msg, data);
             break;
         case GST_MESSAGE_TAG:
-            busMsgTagsCallback(bus, msg, data);
+            // busMsgTagsCallback(bus, msg, data);
             break;
         default:
             break;
     }
     return;
 }
+
 /**
- * @brief   
- *          https://gstreamer.freedesktop.org/documentation/rtp/index.html?gi-language=c
- *          https://gstreamer.freedesktop.org/documentation/videoparsersbad/index.html?gi-language=c
- * 
+ * @brief
+ *          gst-launch-1.0 -v rtspsrc location="rtsp://admin:admin@192.168.193.224:8554/live.sdp" name=d d. ! queue ! rtph264depay ! h264parse !
+ * avdec_h264 ! videoconvert ! xvimagesink sync=false d. ! queue ! rtppcmudepay ! mulawdec ! audioconvert ! autoaudiosink
+ *
  * @param[in]
- * 
+ *
  * @return STATUS code of the execution. STATUS_SUCCESS on success
-*/
-STATUS gstreamerVideoPiplne(SampleStreamingVideoFormat format)
+ */
+STATUS gstreamerRtspsrcInit(PSampleConfiguration pSampleConfiguration, GstElement* pipeline, BOOL enableProbe)
 {
-    STATUS retStatus = STATUS_SUCCESS;
-    GstElement *videoDepay = NULL, *videoParse = NULL;
-
-    if(format == SAMPLE_STREAMING_VIDEO_FORMAT_H264){
-        videoDepay = gst_element_factory_make("rtph264depay", "videoDepay");
-        videoParse = gst_element_factory_make("h264parse", "videoParse");
-    }else if(format == SAMPLE_STREAMING_VIDEO_FORMAT_H265){
-        videoDepay = gst_element_factory_make("rtph265depay", "videoDepay");
-        videoParse = gst_element_factory_make("h265parse", "videoParse");
-    }else if(format == SAMPLE_STREAMING_VIDEO_FORMAT_MPEG){
-        videoDepay = gst_element_factory_make("rtpjpegdepay", "videoDepay");
-        videoParse = gst_element_factory_make("jpeg2000parse", "videoParse");
-    }else if(format == SAMPLE_STREAMING_VIDEO_FORMAT_VP8){
-        videoDepay = gst_element_factory_make("rtpvp8depay", "videoDepay");
-        videoParse = gst_element_factory_make("jpeg2000parse", "videoParse");
-    }else if(format == SAMPLE_STREAMING_VIDEO_FORMAT_VP9){
-        videoDepay = gst_element_factory_make("rtpvp9depay", "videoDepay");
-        videoParse = gst_element_factory_make("vp9parse", "videoParse");
-    }else{
-        DLOGD("unsupported video type");
-    }
-
-    return STATUS_SUCCESS;
-}
-
-
-/**
- * @brief   
- *          https://gstreamer.freedesktop.org/documentation/rtp/index.html?gi-language=c
- *          https://gstreamer.freedesktop.org/documentation/videoparsersbad/index.html?gi-language=c
-*/
-STATUS gstreamerAudioPiplne(SampleStreamingAudioFormat format)
-{
-    STATUS retStatus = STATUS_SUCCESS;
-    GstElement *audioDepay = NULL, *audioParse = NULL;
-
-    if(format == SAMPLE_STREAMING_AUDIO_FORMAT_OPUS){
-        audioDepay = gst_element_factory_make("rtpopusdepay", "audioDepay");
-        audioParse = gst_element_factory_make("opusdec", "mulawdec");
-    }else if(format == SAMPLE_STREAMING_AUDIO_FORMAT_PCMU){
-        audioDepay = gst_element_factory_make("rtppcmudepay", "audioDepay");
-        audioParse = gst_element_factory_make("mulawdec", "mulawdec");
-    }else if(format == SAMPLE_STREAMING_AUDIO_FORMAT_PCMA){
-        audioDepay = gst_element_factory_make("rtppcmadepay", "audioDepay");
-        audioParse = gst_element_factory_make("alawdec", "mulawdec");
-    }else if(format == SAMPLE_STREAMING_AUDIO_FORMAT_G722){
-        audioDepay = gst_element_factory_make("rtpg722depay", "audioDepay");
-        audioParse = gst_element_factory_make("avdec_g722", "mulawdec");
-    }else{
-        DLOGD("unsupported audio type");
-    }
-
-    return STATUS_SUCCESS;
-}
-
-
-
-// gst-launch-1.0 -v rtspsrc location="rtsp://admin:admin@192.168.193.224:8554/live.sdp" name=d d. ! queue ! rtph264depay ! h264parse ! avdec_h264 !
-// videoconvert ! xvimagesink sync=false d. ! queue ! rtppcmudepay ! mulawdec ! audioconvert ! autoaudiosink
-/**
- * @brief   
- * 
- * @param[in]
- * 
- * @return STATUS code of the execution. STATUS_SUCCESS on success
-*/
-STATUS gstreamerRtspsrcInit(PVOID args, GstElement* pipeline)
-{
-    PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
     PRtspCameraConfiguration pRtspCameraConfiguration = NULL;
     STATUS retStatus = STATUS_SUCCESS;
     GstElement* rtspSource = NULL;
-    GstElement *videoQueue = NULL, *videoDepay = NULL, *videoParse = NULL, *videoFilter = NULL, *videoAppSink = NULL;
-    GstElement *audioQueue = NULL, *audioDepay = NULL, *audioParse = NULL, *audioConvert = NULL, *audioResample = NULL, *audioEnc = NULL,
-               *audioFilter = NULL, *audioAppSink = NULL;
-
     // #gst
     // https://gstreamer.freedesktop.org/documentation/gstreamer/gstelementfactory.html#gst_element_factory_make
     // source
     rtspSource = gst_element_factory_make("rtspsrc", "rtspSource");
-    // https://gstreamer.freedesktop.org/documentation/rtp/index.html?gi-language=c
-    // video
-    // " d. ! queue ! rtph264depay ! h264parse ! video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE
-    // emit-signals=TRUE name=appsink-video"
-    videoDepay = gst_element_factory_make("rtph264depay", "videoDepay");
-    videoParse = gst_element_factory_make("h264parse", "videoParse");
-    videoFilter = gst_element_factory_make("capsfilter", "videoFilter");
-    videoAppSink = gst_element_factory_make("appsink", "videoAppSink");
 
-    // audio
-    // " d. ! queue ! rtppcmudepay ! mulawdec ! audioconvert ! audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE
-    // emit-signals=TRUE name=appsink-audio"
-    audioDepay = gst_element_factory_make("rtppcmudepay", "audioDepay");
-    // https://gstreamer.freedesktop.org/documentation/mulaw/mulawdec.html?gi-language=c
-    audioParse = gst_element_factory_make("mulawdec", "mulawdec");
-    audioConvert = gst_element_factory_make("audioconvert", "audioConvert");
-    audioResample = gst_element_factory_make("audioresample", "audioResample");
-    // audioEnc = gst_element_factory_make("opusenc", "audioEnc");
-    audioEnc = gst_element_factory_make("mulawenc", "audioEnc");
-    audioFilter = gst_element_factory_make("capsfilter", "audioFilter");
-    audioAppSink = gst_element_factory_make("appsink", "audioAppSink");
-
-    if (!pipeline || !rtspSource || !videoDepay || !videoParse || !videoFilter || !videoAppSink) {
-        DLOGE("Not all elements could be created.\n");
-        return 1;
-    }
-
-    if (!audioDepay || !audioParse || !audioConvert || !audioResample || !audioEnc || !audioFilter || !audioAppSink) {
-        DLOGE("Not all audio elements could be created.\n");
-        return 1;
-    }
-
-    // configure filter
-    // https://gstreamer.freedesktop.org/documentation/gstreamer/gstcaps.html?gi-language=c#gst_caps_new_simple
-    GstCaps* videoCaps = gst_caps_new_simple("video/x-h264", "stream-format", G_TYPE_STRING, "byte-stream", "alignment", G_TYPE_STRING, "au", NULL);
-    // GstCaps* audioCaps = gst_caps_new_simple("audio/x-opus", "rate", G_TYPE_INT, 48000, "channels", G_TYPE_INT, 2, NULL);
-    GstCaps* audioCaps = gst_caps_new_simple("audio/x-mulaw", "rate", G_TYPE_INT, 8000, "channels", G_TYPE_INT, 1, NULL);
-
-    if (!videoCaps || !audioCaps) {
-        DLOGE("Not all caps elements could be created.\n");
-        return 1;
-    }
-
-    // https://developer.gnome.org/gobject/stable/gobject-The-Base-Object-Type.html#g-object-set
-    g_object_set(G_OBJECT(videoFilter), "caps", videoCaps, NULL);
-    gst_caps_unref(videoCaps);
-    g_object_set(G_OBJECT(audioFilter), "caps", audioCaps, NULL);
-    gst_caps_unref(audioCaps);
-
-    // configure appsink
-    g_object_set(G_OBJECT(videoAppSink), "emit-signals", TRUE, "sync", FALSE, NULL);
-    g_signal_connect(videoAppSink, "new-sample", G_CALLBACK(on_new_sample_video), pSampleConfiguration);
-    g_object_set(G_OBJECT(audioAppSink), "emit-signals", TRUE, "sync", FALSE, NULL);
-    g_signal_connect(audioAppSink, "new-sample", G_CALLBACK(on_new_sample_audio), pSampleConfiguration);
+    CHK(pipeline != NULL && rtspSource != NULL, STATUS_NULL_ARG);
 
     // configure rtspsrc
     pRtspCameraConfiguration = &pSampleConfiguration->rtspCameraConfiguration;
@@ -674,93 +814,61 @@ STATUS gstreamerRtspsrcInit(PVOID args, GstElement* pipeline)
     g_object_set(G_OBJECT(rtspSource), "user-id", pRtspCameraConfiguration->username, NULL);
     g_object_set(G_OBJECT(rtspSource), "user-pw", pRtspCameraConfiguration->password, NULL);
 
+    // setup the callbacks.
     // g_signal_connect(rtspSource, "pad-added", G_CALLBACK(pad_added_cb), tee);
-    g_signal_connect(G_OBJECT(rtspSource), "on-sdp", G_CALLBACK(rtspsrcOnSdp), pipeline);
-    g_signal_connect(G_OBJECT(rtspSource), "select-stream", G_CALLBACK(rtspsrcOnSelectStream), pipeline);
-    g_signal_connect(G_OBJECT(rtspSource), "new-manager", G_CALLBACK(rtspsrcNewManager), pipeline);
-    g_signal_connect(G_OBJECT(rtspSource), "pad-added", G_CALLBACK(rtspsrcOnPadAdded), pipeline);
-    g_signal_connect(G_OBJECT(rtspSource), "no-more-pads", G_CALLBACK(rtspsrcOnNoMorePads), pipeline);
-    g_signal_connect(G_OBJECT(rtspSource), "pad-removed", G_CALLBACK(rtspsrcOnPadRemoved), pSampleConfiguration);
-
-    /* build the pipeline */
-    // https://developer.gnome.org/gstreamer/stable/GstBin.html#gst-bin-add-many
-    // gst_bin_add_many(GST_BIN(pipeline), rtspSource, videoDepay, videoParse, videoFilter, videoAppSink, NULL);
-
-    /* Leave the actual source out - this will be done when the pad is added */
-    // https://gstreamer.freedesktop.org/documentation/gstreamer/gstelement.html?gi-language=c#gst_element_link_many
-    // if (!gst_element_link_many(videoDepay, videoFilter, videoParse, videoAppSink, NULL)) {
-    //    DLOGE("Elements could not be linked.\n");
-    //    gst_object_unref(pipeline);
-    //    return 1;
-    //}
+    if (enableProbe == FALSE) {
+        DLOGD("initializing rtspsrc");
+        // g_signal_connect(G_OBJECT(rtspSource), "on-sdp", G_CALLBACK(rtspsrcOnSdp), pipeline);
+        // g_signal_connect(G_OBJECT(rtspSource), "select-stream", G_CALLBACK(rtspsrcOnSelectStream), pipeline);
+        // g_signal_connect(G_OBJECT(rtspSource), "new-manager", G_CALLBACK(rtspsrcNewManager), pipeline);
+        g_signal_connect(G_OBJECT(rtspSource), "pad-added", G_CALLBACK(rtspsrcOnPadAdded), pSampleConfiguration);
+        g_signal_connect(G_OBJECT(rtspSource), "no-more-pads", G_CALLBACK(rtspsrcOnNoMorePads), pSampleConfiguration);
+        g_signal_connect(G_OBJECT(rtspSource), "pad-removed", G_CALLBACK(rtspsrcOnPadRemoved), pSampleConfiguration);
+    } else {
+        DLOGD("probing rtspsrc");
+        // g_signal_connect(G_OBJECT(rtspSource), "on-sdp", G_CALLBACK(rtspsrcOnSdp), pipeline);
+        g_signal_connect(G_OBJECT(rtspSource), "pad-added", G_CALLBACK(rtspsrcOnPadAddedProbe), pSampleConfiguration);
+        g_signal_connect(G_OBJECT(rtspSource), "no-more-pads", G_CALLBACK(rtspsrcOnNoMorePadsProbe), pSampleConfiguration);
+    }
 
     gst_bin_add_many(GST_BIN(pipeline), rtspSource, NULL);
-    gst_bin_add_many(GST_BIN(pipeline), audioDepay, audioParse, audioConvert, audioResample, audioEnc, audioFilter, audioAppSink, NULL);
-
-    // if (gst_element_link_many (rtspSource, tee, NULL) != TRUE) {
-    //    DLOGE ("Source could not be linked.\n");
-    //    gst_object_unref (pipeline);
-    //    return -1;
-    //}
-
-    if (gst_element_link_many(audioDepay, audioParse, audioConvert, audioResample, audioEnc, audioFilter, audioAppSink, NULL) != TRUE) {
-        DLOGE("Audio elements could not be linked.\n");
-        gst_object_unref(pipeline);
-        return -1;
-    }
-
-    gst_bin_add_many(GST_BIN(pipeline), videoDepay, videoFilter, videoAppSink, NULL);
-
-    if (gst_element_link_many(videoDepay, videoFilter, videoAppSink, NULL) != TRUE) {
-        DLOGE("Video elements could not be linked.\n");
-        gst_object_unref(pipeline);
-        return -1;
-    }
+    return retStatus;
 
 CleanUp:
 
+    gst_object_unref(pipeline);
     return retStatus;
 }
 
-STATUS gstreamerInit(PVOID args)
+PVOID sendGstreamerProbe(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
     PGstConfiguration pGstConfiguration = &pSampleConfiguration->gstConfiguration;
-
     /* init GStreamer */
     GstElement* pipeline = NULL;
     GstBus* bus = NULL;
     GstStateChangeReturn gstRetStatus;
 
+    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     DLOGI("Streaming from rtsp source");
     // https://gstreamer.freedesktop.org/documentation/gstreamer/gstpipeline.html?gi-language=c#gst_pipeline_new
-    CHK((pipeline = gst_pipeline_new("rtsp-kinesis-pipeline")) != NULL, STATUS_NULL_ARG);
+    CHK((pipeline = gst_pipeline_new("kinesis-rtsp-probe")) != NULL, STATUS_NULL_ARG);
+    pGstConfiguration->pipeline = pipeline;
 
-    retStatus = gstreamerRtspsrcInit(pSampleConfiguration, pipeline);
-
-    if (retStatus != 0) {
-        DLOGD("gstreamerRtspsrcInit failed. %d", retStatus);
-        return retStatus;
-    }
+    CHK(gstreamerRtspsrcInit(pSampleConfiguration, pipeline, TRUE) == STATUS_SUCCESS, STATUS_NULL_ARG);
 
     /* Instruct the bus to emit signals for each received message, and connect to the interesting signals */
     CHK((bus = gst_element_get_bus(pipeline)) != NULL, STATUS_NULL_ARG);
     gst_bus_add_signal_watch(bus);
-    // g_signal_connect(G_OBJECT(bus), "message::error", (GCallback) busMsgErrorCallback, pSampleConfiguration);
-    // g_signal_connect(G_OBJECT(bus), "message::eos", G_CALLBACK (busMsgEosCallback), NULL);
+    g_signal_connect(G_OBJECT(bus), "message::error", G_CALLBACK(busMsgErrorCallback), pSampleConfiguration);
+    g_signal_connect(G_OBJECT(bus), "message::eos", G_CALLBACK(busMsgEosCallback), NULL);
     // g_signal_connect(G_OBJECT(bus), "message::tags", G_CALLBACK (busMsgTagsCallback), NULL);
-    g_signal_connect(G_OBJECT(bus), "message", G_CALLBACK(busMsgCallback), pSampleConfiguration);
-    gst_object_unref(bus);
+    // g_signal_connect(G_OBJECT(bus), "message", G_CALLBACK(busMsgCallback), pSampleConfiguration);
 
     /* start streaming */
-    gstRetStatus = gst_element_set_state(pipeline, GST_STATE_PLAYING);
-    if (gstRetStatus == GST_STATE_CHANGE_FAILURE) {
-        DLOGE("Unable to set the pipeline to the playing state.\n");
-        gst_object_unref(pipeline);
-        return 1;
-    }
+    CHK(gst_element_set_state(pipeline, GST_STATE_PLAYING) != GST_STATE_CHANGE_FAILURE, STATUS_NULL_ARG);
 
     pGstConfiguration->mainLoop = g_main_loop_new(NULL, FALSE);
     // start running the main loop, and it is blocking call.
@@ -772,200 +880,79 @@ CleanUp:
     DLOGD("Release the Gstreamer resources.");
     gst_bus_remove_signal_watch(bus);
     gst_element_set_state(pipeline, GST_STATE_NULL);
+    gst_object_unref(bus);
     gst_object_unref(pipeline);
-
+    pGstConfiguration->pipeline = NULL;
     g_main_loop_unref(pGstConfiguration->mainLoop);
     pGstConfiguration->mainLoop = NULL;
-    return retStatus;
+
+    return (PVOID)(ULONG_PTR) retStatus;
 }
+
 /**
  * @brief the handler of video and audio.
- * 
- * 
-*/
+ *          example: "rtspsrc location=%s name=d"
+ *             " d. ! queue ! rtph264depay ! h264parse ! video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE
+ * emit-signals=TRUE name=appsink-video" " d. ! queue ! rtppcmudepay ! mulawdec ! audioconvert ! audioresample ! opusenc !
+ * audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio"
+ *
+ * @param[in]
+ *
+ * @return STATUS code of the execution. STATUS_SUCCESS on success
+ */
 PVOID sendGstreamerAudioVideo(PVOID args)
 {
     STATUS retStatus = STATUS_SUCCESS;
-    GstElement *appsinkVideo = NULL, *appsinkAudio = NULL, *pipeline = NULL;
-    GstBus* bus;
-    GstMessage* msg;
-    GError* error = NULL;
-    CHAR launchString[2048];
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) args;
-    DLOGD("init");
-    if (pSampleConfiguration == NULL) {
-        printf("[KVS GStreamer Master] sendGstreamerAudioVideo(): operation returned status code: 0x%08x \n", STATUS_NULL_ARG);
-        goto CleanUp;
-    }
-#if 0
-    MEMSET(launchString, 0, 2048);
-    SNPRINTF(launchString, 2048, "rtspsrc location=%s name=d" 
-            " d. ! queue ! rtph264depay ! h264parse ! video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video"
-            " d. ! queue ! rtppcmudepay ! mulawdec ! audioconvert ! audioresample ! opusenc ! audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio", pSampleConfiguration->pRtspUrl);
-#if 0
-    pipeline = gst_parse_launch("rtspsrc location=rtsp://admin:admin@192.168.193.224:8554/live.sdp name=d d. ! queue ! rtph264depay ! h264parse ! video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
-                                            "emit-signals=TRUE name=appsink-video d. ! queue ! rtppcmudepay ! mulawdec ! audioconvert ! audioresample ! mulawenc !"
-                                            "audio/x-mulaw,channels=1,rate=8000 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                            &error);
-#else
-    pipeline = gst_parse_launch(launchString, &error);
-#endif
+    PGstConfiguration pGstConfiguration = &pSampleConfiguration->gstConfiguration;
+    /* init GStreamer */
+    GstElement* pipeline = NULL;
+    GstBus* bus = NULL;
+    GstStateChangeReturn gstRetStatus;
+    UINT32 i;
 
-    if (pipeline == NULL) {
-        printf("[KVS GStreamer Master] sendGstreamerAudioVideo(): Failed to launch gstreamer, operation returned status code: 0x%08x \n",
-               STATUS_INTERNAL_ERROR);
-        goto CleanUp;
-    }
-    // #gst
-    // https://gstreamer.freedesktop.org/documentation/gstreamer/gstbin.html?gi-language=c#gst_bin_get_by_name
-    appsinkVideo = gst_bin_get_by_name(GST_BIN(pipeline), "appsink-video");
-    appsinkAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsink-audio");
+    CHK(pSampleConfiguration != NULL, STATUS_NULL_ARG);
 
-    if (!(appsinkVideo != NULL || appsinkAudio != NULL)) {
-        printf("[KVS GStreamer Master] sendGstreamerAudioVideo(): cant find appsink, operation returned status code: 0x%08x \n",
-               STATUS_INTERNAL_ERROR);
-        goto CleanUp;
-    }
+    DLOGI("Streaming from rtsp source");
+    // https://gstreamer.freedesktop.org/documentation/gstreamer/gstpipeline.html?gi-language=c#gst_pipeline_new
+    CHK((pipeline = gst_pipeline_new("kinesis-rtsp-pipeline")) != NULL, STATUS_NULL_ARG);
+    pGstConfiguration->pipeline = pipeline;
 
-    if (appsinkVideo != NULL) {
-        g_signal_connect(appsinkVideo, "new-sample", G_CALLBACK(on_new_sample_video), (gpointer) pSampleConfiguration);
-    }
+    CHK(gstreamerRtspsrcInit(pSampleConfiguration, pipeline, FALSE) == STATUS_SUCCESS, STATUS_NULL_ARG);
 
-    if (appsinkAudio != NULL) {
-        g_signal_connect(appsinkAudio, "new-sample", G_CALLBACK(on_new_sample_audio), (gpointer) pSampleConfiguration);
-    }
-    // #gst
-    // https://gstreamer.freedesktop.org/documentation/gstreamer/gstelement.html?gi-language=c#gst_element_set_state
-    gst_element_set_state(pipeline, GST_STATE_PLAYING);
+    /* Instruct the bus to emit signals for each received message, and connect to the interesting signals */
+    CHK((bus = gst_element_get_bus(pipeline)) != NULL, STATUS_NULL_ARG);
+    gst_bus_add_signal_watch(bus);
+    g_signal_connect(G_OBJECT(bus), "message::error", (GCallback) busMsgErrorCallback, pSampleConfiguration);
+    g_signal_connect(G_OBJECT(bus), "message::eos", G_CALLBACK(busMsgEosCallback), pSampleConfiguration);
+    // g_signal_connect(G_OBJECT(bus), "message::tags", G_CALLBACK (busMsgTagsCallback), NULL);
+    // g_signal_connect(G_OBJECT(bus), "message", G_CALLBACK(busMsgCallback), pSampleConfiguration);
 
-    /* block until error or EOS */
-    // https://gstreamer.freedesktop.org/documentation/gstreamer/gstelement.html?gi-language=c#gst_element_get_bus
-    bus = gst_element_get_bus(pipeline);
-    // https://gstreamer.freedesktop.org/documentation/gstreamer/gstbus.html?gi-language=c#gst_bus_timed_pop_filtered
-    msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
+    /* start streaming */
+    CHK(gst_element_set_state(pipeline, GST_STATE_PLAYING) != GST_STATE_CHANGE_FAILURE, STATUS_NULL_ARG);
 
-    DLOGD("*****out*****");
-    /* Free resources */
-    if (msg != NULL) {
-        gst_message_unref(msg);
-    }
-    gst_object_unref(bus);
-    gst_element_set_state(pipeline, GST_STATE_NULL);
-    gst_object_unref(pipeline);
-
-//CleanUp:
-
-    if (error != NULL) {
-        printf("%s", error->message);
-        g_clear_error(&error);
-    }
-
-    return (PVOID)(ULONG_PTR) retStatus;
-#endif
-
-    gstreamerInit(args);
-    return (PVOID)(ULONG_PTR) retStatus;
-    /**
-     * Use x264enc as its available on mac, pi, ubuntu and windows
-     * mac pipeline fails if resolution is not 720p
-     *
-     * For alaw
-     * audiotestsrc is-live=TRUE ! queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample !
-     * audio/x-raw, rate=8000, channels=1, format=S16LE, layout=interleaved ! alawenc ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio
-     *
-     * For VP8
-     * videotestsrc is-live=TRUE ! video/x-raw,width=1280,height=720,framerate=30/1 !
-     * vp8enc error-resilient=partitions keyframe-max-dist=10 auto-alt-ref=true cpu-used=5 deadline=1 !
-     * appsink sync=TRUE emit-signals=TRUE name=appsink-video
-     */
-    // #gst
-    // https://gstreamer.freedesktop.org/documentation/gstreamer/gstparse.html?gi-language=c#gst_parse_launch
-    switch (pSampleConfiguration->mediaType) {
-        case SAMPLE_STREAMING_VIDEO_ONLY:
-            if (pSampleConfiguration->useTestSrc) {
-                pipeline = gst_parse_launch(
-                    "videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=30/1 ! "
-                    "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                    "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video",
-                    &error);
-            } else {
-                pipeline = gst_parse_launch(
-                    "autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=[30/1,10000000/333333] ! "
-                    "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                    "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE name=appsink-video",
-                    &error);
-            }
-            break;
-
-        case SAMPLE_STREAMING_AUDIO_VIDEO:
-            if (pSampleConfiguration->useTestSrc) {
-                pipeline = gst_parse_launch("videotestsrc is-live=TRUE ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=30/1 ! "
-                                            "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                                            "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE "
-                                            "emit-signals=TRUE name=appsink-video audiotestsrc is-live=TRUE ! "
-                                            "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
-                                            "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                            &error);
-            } else {
-                pipeline =
-                    gst_parse_launch("autovideosrc ! queue ! videoconvert ! video/x-raw,width=1280,height=720,framerate=[30/1,10000000/333333] ! "
-                                     "x264enc bframes=0 speed-preset=veryfast bitrate=512 byte-stream=TRUE tune=zerolatency ! "
-                                     "video/x-h264,stream-format=byte-stream,alignment=au,profile=baseline ! appsink sync=TRUE emit-signals=TRUE "
-                                     "name=appsink-video autoaudiosrc ! "
-                                     "queue leaky=2 max-size-buffers=400 ! audioconvert ! audioresample ! opusenc ! "
-                                     "audio/x-opus,rate=48000,channels=2 ! appsink sync=TRUE emit-signals=TRUE name=appsink-audio",
-                                     &error);
-            }
-            break;
-    }
-
-    if (pipeline == NULL) {
-        printf("[KVS GStreamer Master] sendGstreamerAudioVideo(): Failed to launch gstreamer, operation returned status code: 0x%08x \n",
-               STATUS_INTERNAL_ERROR);
-        goto CleanUp;
-    }
-    // #gst
-    // https://gstreamer.freedesktop.org/documentation/gstreamer/gstbin.html?gi-language=c#gst_bin_get_by_name
-    appsinkVideo = gst_bin_get_by_name(GST_BIN(pipeline), "appsink-video");
-    appsinkAudio = gst_bin_get_by_name(GST_BIN(pipeline), "appsink-audio");
-
-    if (!(appsinkVideo != NULL || appsinkAudio != NULL)) {
-        printf("[KVS GStreamer Master] sendGstreamerAudioVideo(): cant find appsink, operation returned status code: 0x%08x \n",
-               STATUS_INTERNAL_ERROR);
-        goto CleanUp;
-    }
-
-    if (appsinkVideo != NULL) {
-        g_signal_connect(appsinkVideo, "new-sample", G_CALLBACK(on_new_sample_video), (gpointer) pSampleConfiguration);
-    }
-
-    if (appsinkAudio != NULL) {
-        g_signal_connect(appsinkAudio, "new-sample", G_CALLBACK(on_new_sample_audio), (gpointer) pSampleConfiguration);
-    }
-    // #gst
-    // https://gstreamer.freedesktop.org/documentation/gstreamer/gstelement.html?gi-language=c#gst_element_set_state
-    gst_element_set_state(pipeline, GST_STATE_PLAYING);
-
-    /* block until error or EOS */
-    // https://gstreamer.freedesktop.org/documentation/gstreamer/gstelement.html?gi-language=c#gst_element_get_bus
-    bus = gst_element_get_bus(pipeline);
-    // https://gstreamer.freedesktop.org/documentation/gstreamer/gstbus.html?gi-language=c#gst_bus_timed_pop_filtered
-    msg = gst_bus_timed_pop_filtered(bus, GST_CLOCK_TIME_NONE, GST_MESSAGE_ERROR | GST_MESSAGE_EOS);
-
-    /* Free resources */
-    if (msg != NULL) {
-        gst_message_unref(msg);
-    }
-    gst_object_unref(bus);
-    gst_element_set_state(pipeline, GST_STATE_NULL);
-    gst_object_unref(pipeline);
+    pGstConfiguration->mainLoop = g_main_loop_new(NULL, FALSE);
+    // start running the main loop, and it is blocking call.
+    g_main_loop_run(pGstConfiguration->mainLoop);
 
 CleanUp:
-
-    if (error != NULL) {
-        printf("%s", error->message);
-        g_clear_error(&error);
+    // close all the streaming session.
+    MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    for (i = 0; i < pSampleConfiguration->streamingSessionCount; ++i) {
+        DLOGD("terminate the streaming session(%d)", i);
+        ATOMIC_STORE_BOOL(&pSampleConfiguration->sampleStreamingSessionList[i]->terminateFlag, TRUE);
     }
+    MUTEX_UNLOCK(pSampleConfiguration->sampleConfigurationObjLock);
+    CVAR_BROADCAST(pSampleConfiguration->cvar);
+    /* free resources */
+    DLOGD("Release the Gstreamer resources.");
+    gst_bus_remove_signal_watch(bus);
+    gst_element_set_state(pipeline, GST_STATE_NULL);
+    gst_object_unref(bus);
+    gst_object_unref(pipeline);
+    pGstConfiguration->pipeline = NULL;
+    g_main_loop_unref(pGstConfiguration->mainLoop);
+    pGstConfiguration->mainLoop = NULL;
 
     return (PVOID)(ULONG_PTR) retStatus;
 }
@@ -1115,8 +1102,9 @@ INT32 main(INT32 argc, CHAR* argv[])
     /* Initialize GStreamer */
     // #gst
     // https://gstreamer.freedesktop.org/documentation/gstreamer/gst.html?gi-language=c#gst_init
-    gst_init(&argc, &argv);
     printf("[KVS Gstreamer Master] Finished initializing GStreamer\n");
+    gst_init(&argc, &argv);
+    // sendGstreamerProbe(pSampleConfiguration);
 
     switch (pSampleConfiguration->mediaType) {
         case SAMPLE_STREAMING_VIDEO_ONLY:

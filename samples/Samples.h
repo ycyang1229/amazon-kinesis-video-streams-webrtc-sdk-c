@@ -14,6 +14,20 @@ extern "C" {
 #include <gst/gst.h>
 #include <gst/app/gstappsink.h>
 
+#define STATUS_SAMPLE_BASE   0x70000000
+#define STATUS_SAMPLE_FAILED STATUS_SAMPLE_BASE + 0x00000001
+
+#define STATUS_GST_BASE          STATUS_SAMPLE_BASE + 0x01000000
+#define STATUS_GST_FAILED        STATUS_GST_BASE + 0x00000001
+#define STATUS_GST_DUMMY_SINK    STATUS_GST_BASE + 0x00000002
+#define STATUS_GST_VIDEO_SINK    STATUS_GST_BASE + 0x00000003
+#define STATUS_GST_AUDIO_SINK    STATUS_GST_BASE + 0x00000004
+#define STATUS_GST_LINK_ELEMENT  STATUS_GST_BASE + 0x00000005
+#define STATUS_GST_VIDEO_ELEMENT STATUS_GST_BASE + 0x00000006
+#define STATUS_GST_AUDIO_ELEMENT STATUS_GST_BASE + 0x00000007
+#define STATUS_GST_DUMMY_ELEMENT STATUS_GST_BASE + 0x00000008
+#define STATUS_GST_EMPTY_ELEMENT STATUS_GST_BASE + 0x00000009
+
 #define NUMBER_OF_H264_FRAME_FILES               1500
 #define NUMBER_OF_OPUS_FRAME_FILES               618
 #define DEFAULT_FPS_VALUE                        25
@@ -68,23 +82,20 @@ typedef enum {
     SAMPLE_STREAMING_AUDIO_VIDEO,
 } SampleStreamingMediaType;
 
-
-
 typedef enum {
     SAMPLE_STREAMING_VIDEO_FORMAT_H264 = (1 << 0),
     SAMPLE_STREAMING_VIDEO_FORMAT_H265 = (1 << 1),
-    SAMPLE_STREAMING_VIDEO_FORMAT_MPEG = (1 << 2),//!< motion jpeg
+    SAMPLE_STREAMING_VIDEO_FORMAT_MPEG = (1 << 2), //!< motion jpeg
     SAMPLE_STREAMING_VIDEO_FORMAT_VP8 = (1 << 3),
     SAMPLE_STREAMING_VIDEO_FORMAT_VP9 = (1 << 4),
     SAMPLE_STREAMING_VIDEO_FORMAT_NA
 } SampleStreamingVideoFormat;
 
-
 typedef enum {
     SAMPLE_STREAMING_AUDIO_FORMAT_OPUS = (1 << 0),
-    SAMPLE_STREAMING_AUDIO_FORMAT_PCMU = (1 << 1),//!< G.711
+    SAMPLE_STREAMING_AUDIO_FORMAT_PCMU = (1 << 1), //!< G.711
     SAMPLE_STREAMING_AUDIO_FORMAT_PCMA = (1 << 2),
-    SAMPLE_STREAMING_AUDIO_FORMAT_G722 = (1 << 3),//!< G.722
+    SAMPLE_STREAMING_AUDIO_FORMAT_G722 = (1 << 3), //!< G.722
     SAMPLE_STREAMING_AUDIO_FORMAT_NA
 } SampleStreamingAudioFormat;
 
@@ -100,24 +111,35 @@ typedef struct {
     UINT64 prevTs;
 } RtcMetricsHistory, *PRtcMetricsHistory;
 
+#define GST_ENCODING_NAME_MAX_LEN 256
 typedef struct {
-    GMainLoop* mainLoop;//!< the main runner for gstreamer.
-    GstElement* pipeline;//!< the pipeline for the rtsp url.
+    CHAR encodingName[GST_ENCODING_NAME_MAX_LEN];
+    UINT32 payloadType;
+    UINT32 clockRate;
+} GstStreamConf, *PGstStreamConf;
+
+typedef struct {
+    GMainLoop* mainLoop;  //!< the main runner for gstreamer.
+    GstElement* pipeline; //!< the pipeline for the rtsp url.
+    GstStreamConf videoStream;
+    GstStreamConf audioStream;
+    UINT32 streamNum;
 } GstConfiguration, *PGstConfiguration;
 
 typedef struct {
-    CHAR uri[MAX_URI_CHAR_LEN]; //!< the rtsp url.
-    CHAR channel[MAX_CHANNEL_NAME_LEN];//!< the signaling channgel for the rtsp url.
-    CHAR username[SAMPLE_RTSP_USERNAME_LEN];//!< the username to login the rtsp url.
-    CHAR password[SAMPLE_RTSP_PASSWORD_LEN];//!< the password to login the rtsp url.
+    CHAR uri[MAX_URI_CHAR_LEN];              //!< the rtsp url.
+    CHAR channel[MAX_CHANNEL_NAME_LEN];      //!< the signaling channgel for the rtsp url.
+    CHAR username[SAMPLE_RTSP_USERNAME_LEN]; //!< the username to login the rtsp url.
+    CHAR password[SAMPLE_RTSP_PASSWORD_LEN]; //!< the password to login the rtsp url.
 } RtspCameraConfiguration, *PRtspCameraConfiguration;
 
 typedef struct {
     volatile ATOMIC_BOOL appTerminateFlag;
     volatile ATOMIC_BOOL interrupted;
-    volatile ATOMIC_BOOL mediaThreadStarted;//!< the flag to identify the status of the media thread.
+    volatile ATOMIC_BOOL mediaThreadStarted; //!< the flag to identify the status of the media thread.
     volatile ATOMIC_BOOL recreateSignalingClient;
     volatile ATOMIC_BOOL connected;
+    volatile ATOMIC_BOOL terminateGstFlag;
     BOOL useTestSrc;
     ChannelInfo channelInfo;
     PCHAR pCaCertPath;

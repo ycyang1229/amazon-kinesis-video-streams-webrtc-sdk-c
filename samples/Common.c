@@ -143,7 +143,7 @@ CleanUp:
 }
 /**
  * @brief the thread of media sender.
-*/
+ */
 PVOID mediaSenderRoutine(PVOID customData)
 {
     STATUS retStatus = STATUS_SUCCESS;
@@ -450,6 +450,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     // if we're the viewer, we control the trickle ice mode
     pSampleStreamingSession->remoteCanTrickleIce = !isMaster && pSampleConfiguration->trickleIce;
 
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->terminateGstFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, FALSE);
 
@@ -795,6 +796,7 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, FALSE);
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->terminateGstFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, FALSE);
 
@@ -1158,6 +1160,9 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
 
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
+                if (pSampleConfiguration->streamingSessionCount == 0) {
+                    ATOMIC_STORE_BOOL(&pSampleConfiguration->terminateGstFlag, TRUE);
+                }
             }
         }
 
