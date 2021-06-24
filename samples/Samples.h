@@ -75,7 +75,7 @@ extern "C" {
 
 /* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
 //#define IOT_CORE_ENABLE_CREDENTIALS 1
-//#define ECS_ENABLE_CREDENTIALS 1
+#define ECS_ENABLE_CREDENTIALS 1
 
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
