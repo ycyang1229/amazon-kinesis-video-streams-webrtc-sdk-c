@@ -149,7 +149,6 @@ PVOID mediaSenderRoutine(PVOID customData)
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
     TID videoSenderTid = INVALID_TID_VALUE, audioSenderTid = INVALID_TID_VALUE;
-    // #YC_TBD.
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->connected) && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
@@ -438,6 +437,10 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     pSampleStreamingSession = (PSampleStreamingSession) MEMCALLOC(1, SIZEOF(SampleStreamingSession));
     CHK(pSampleStreamingSession != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
+    if (pSampleConfiguration->createStreamingSessionPreHook != NULL) {
+        pSampleConfiguration->createStreamingSessionPreHook(pSampleConfiguration, pSampleStreamingSession);
+    }
+
     if (isMaster) {
         STRCPY(pSampleStreamingSession->peerId, peerId);
     } else {
@@ -450,7 +453,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     // if we're the viewer, we control the trickle ice mode
     pSampleStreamingSession->remoteCanTrickleIce = !isMaster && pSampleConfiguration->trickleIce;
 
-    ATOMIC_STORE_BOOL(&pSampleConfiguration->terminateGstFlag, FALSE);
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->terminateCodecFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, FALSE);
 
@@ -464,13 +467,16 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     }
 
     // Declare that we support H264,Profile=42E01F,level-asymmetry-allowed=1,packetization-mode=1 and Opus
-    CHK_STATUS(addSupportedCodec(pSampleStreamingSession->pPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
-    CHK_STATUS(addSupportedCodec(pSampleStreamingSession->pPeerConnection, RTC_CODEC_MULAW));
+    if (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->codecConfigLatched)) {
+        DLOGE("codec is not setup.");
+    }
+    CHK_STATUS(addSupportedCodec(pSampleStreamingSession->pPeerConnection, pSampleConfiguration->codecConfiguration.videoStream.codec));
+    CHK_STATUS(addSupportedCodec(pSampleStreamingSession->pPeerConnection, pSampleConfiguration->codecConfiguration.audioStream.codec));
 
     // Add a SendRecv Transceiver of type video
     videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
-    videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
-    videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    videoTrack.codec = pSampleConfiguration->codecConfiguration.videoStream.codec;
+    videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
     STRCPY(videoTrack.streamId, "myKvsVideoStream");
     STRCPY(videoTrack.trackId, "myVideoTrack");
     CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &videoTrack, &videoRtpTransceiverInit,
@@ -481,8 +487,8 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     // Add a SendRecv Transceiver of type video
     audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
-    audioTrack.codec = RTC_CODEC_MULAW;
-    audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    audioTrack.codec = pSampleConfiguration->codecConfiguration.audioStream.codec;
+    audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
     STRCPY(audioTrack.streamId, "myKvsVideoStream");
     STRCPY(audioTrack.trackId, "myAudioTrack");
     CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &audioTrack, &audioRtpTransceiverInit,
@@ -495,6 +501,11 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
                                                          sampleSenderBandwidthEstimationHandler));
     pSampleStreamingSession->firstFrame = TRUE;
     pSampleStreamingSession->startUpLatency = 0;
+
+    if (pSampleConfiguration->createStreamingSessionPostHook != NULL) {
+        pSampleConfiguration->createStreamingSessionPostHook(pSampleConfiguration, pSampleStreamingSession);
+    }
+
 CleanUp:
 
     if (STATUS_FAILED(retStatus) && pSampleStreamingSession != NULL) {
@@ -524,6 +535,10 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
 
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, TRUE);
 
+    if (pSampleConfiguration->freeStreamingSessionPreHook != NULL) {
+        pSampleConfiguration->freeStreamingSessionPreHook(pSampleConfiguration, pSampleStreamingSession);
+    }
+
     if (pSampleStreamingSession->shutdownCallback != NULL) {
         pSampleStreamingSession->shutdownCallback(pSampleStreamingSession->shutdownCallbackCustomData, pSampleStreamingSession);
     }
@@ -548,6 +563,9 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
     CHK_LOG_ERR(freePeerConnection(&pSampleStreamingSession->pPeerConnection));
     SAFE_MEMFREE(pSampleStreamingSession);
 
+    if (pSampleConfiguration->freeStreamingSessionPostHook != NULL) {
+        pSampleConfiguration->freeStreamingSessionPostHook(pSampleConfiguration, pSampleStreamingSession);
+    }
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
@@ -796,9 +814,12 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     ATOMIC_STORE_BOOL(&pSampleConfiguration->interrupted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, FALSE);
-    ATOMIC_STORE_BOOL(&pSampleConfiguration->terminateGstFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, FALSE);
+
+    pSampleConfiguration->codecConfLock = MUTEX_CREATE(TRUE);
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->terminateCodecFlag, FALSE);
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->codecConfigLatched, FALSE);
 
     CHK_STATUS(timerQueueCreate(&pSampleConfiguration->timerQueueHandle));
 
@@ -1067,6 +1088,10 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         MUTEX_FREE(pSampleConfiguration->signalingSendMessageLock);
     }
 
+    if (IS_VALID_MUTEX_VALUE(pSampleConfiguration->codecConfLock)) {
+        MUTEX_FREE(pSampleConfiguration->codecConfLock);
+    }
+
     if (IS_VALID_CVAR_VALUE(pSampleConfiguration->cvar)) {
         CVAR_FREE(pSampleConfiguration->cvar);
     }
@@ -1160,9 +1185,6 @@ STATUS sessionCleanupWait(PSampleConfiguration pSampleConfiguration)
                 MUTEX_UNLOCK(pSampleConfiguration->streamingSessionListReadLock);
 
                 CHK_STATUS(freeSampleStreamingSession(&pSampleStreamingSession));
-                if (pSampleConfiguration->streamingSessionCount == 0) {
-                    ATOMIC_STORE_BOOL(&pSampleConfiguration->terminateGstFlag, TRUE);
-                }
             }
         }
 
