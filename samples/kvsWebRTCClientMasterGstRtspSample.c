@@ -413,17 +413,7 @@ static void rtspsrcOnPadAddedProbe(GstElement* element, GstPad* pad, gpointer ud
                 pCodecStreamConf->codec = -1;
                 // h264
                 if (STRCMP(encoding_name, GST_STRUCT_FIELD_ENCODING_H264) == 0) {
-                    if (gst_structure_has_field(srcPadStructure, GST_STRUCT_FIELD_PKT_MODE) == TRUE &&
-                        gst_structure_has_field(srcPadStructure, GST_STRUCT_FIELD_PROFILE_LV_ID) == TRUE) {
-                        gchar* pkt_mode_string = gst_structure_get_string(srcPadStructure, GST_STRUCT_FIELD_PKT_MODE);
-                        gchar* profile_lv_id_string = gst_structure_get_string(srcPadStructure, GST_STRUCT_FIELD_PROFILE_LV_ID);
-                        UINT32 pkt_mode, profile_lv_id;
-                        STRTOUI32(pkt_mode_string, pkt_mode_string + STRLEN(pkt_mode_string), 10, &pkt_mode);
-                        STRTOUI32(profile_lv_id_string, profile_lv_id_string + STRLEN(profile_lv_id_string), 16, &profile_lv_id);
-                        if (pkt_mode == 1 && profile_lv_id == 0x42001F) {
-                            pCodecStreamConf->codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
-                        }
-                    }
+                    pCodecStreamConf->codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
                     // vp8
                 } else if (STRCMP(encoding_name, GST_STRUCT_FIELD_ENCODING_VP8) == 0) {
                     pCodecStreamConf->codec = RTC_CODEC_VP8;
