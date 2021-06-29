@@ -141,13 +141,14 @@ CleanUp:
 
     return retStatus;
 }
-
+/**
+ * @brief the thread of media sender.
+ */
 PVOID mediaSenderRoutine(PVOID customData)
 {
     STATUS retStatus = STATUS_SUCCESS;
     PSampleConfiguration pSampleConfiguration = (PSampleConfiguration) customData;
     TID videoSenderTid = INVALID_TID_VALUE, audioSenderTid = INVALID_TID_VALUE;
-
     MUTEX_LOCK(pSampleConfiguration->sampleConfigurationObjLock);
     while (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->connected) && !ATOMIC_LOAD_BOOL(&pSampleConfiguration->appTerminateFlag)) {
         CVAR_WAIT(pSampleConfiguration->cvar, pSampleConfiguration->sampleConfigurationObjLock, 5 * HUNDREDS_OF_NANOS_IN_A_SECOND);
@@ -173,7 +174,8 @@ PVOID mediaSenderRoutine(PVOID customData)
     }
 
 CleanUp:
-
+    // clean the flag of the media thread.
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->mediaThreadStarted, FALSE);
     CHK_LOG_ERR(retStatus);
     return NULL;
 }
@@ -435,6 +437,10 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     pSampleStreamingSession = (PSampleStreamingSession) MEMCALLOC(1, SIZEOF(SampleStreamingSession));
     CHK(pSampleStreamingSession != NULL, STATUS_NOT_ENOUGH_MEMORY);
 
+    if (pSampleConfiguration->createStreamingSessionPreHook != NULL) {
+        pSampleConfiguration->createStreamingSessionPreHook(pSampleConfiguration, pSampleStreamingSession);
+    }
+
     if (isMaster) {
         STRCPY(pSampleStreamingSession->peerId, peerId);
     } else {
@@ -447,6 +453,7 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     // if we're the viewer, we control the trickle ice mode
     pSampleStreamingSession->remoteCanTrickleIce = !isMaster && pSampleConfiguration->trickleIce;
 
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->terminateCodecFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->candidateGatheringDone, FALSE);
 
@@ -460,13 +467,16 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
     }
 
     // Declare that we support H264,Profile=42E01F,level-asymmetry-allowed=1,packetization-mode=1 and Opus
-    CHK_STATUS(addSupportedCodec(pSampleStreamingSession->pPeerConnection, RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE));
-    CHK_STATUS(addSupportedCodec(pSampleStreamingSession->pPeerConnection, RTC_CODEC_OPUS));
+    if (!ATOMIC_LOAD_BOOL(&pSampleConfiguration->codecConfigLatched)) {
+        DLOGE("codec is not setup.");
+    }
+    CHK_STATUS(addSupportedCodec(pSampleStreamingSession->pPeerConnection, pSampleConfiguration->codecConfiguration.videoStream.codec));
+    CHK_STATUS(addSupportedCodec(pSampleStreamingSession->pPeerConnection, pSampleConfiguration->codecConfiguration.audioStream.codec));
 
     // Add a SendRecv Transceiver of type video
     videoTrack.kind = MEDIA_STREAM_TRACK_KIND_VIDEO;
-    videoTrack.codec = RTC_CODEC_H264_PROFILE_42E01F_LEVEL_ASYMMETRY_ALLOWED_PACKETIZATION_MODE;
-    videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    videoTrack.codec = pSampleConfiguration->codecConfiguration.videoStream.codec;
+    videoRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
     STRCPY(videoTrack.streamId, "myKvsVideoStream");
     STRCPY(videoTrack.trackId, "myVideoTrack");
     CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &videoTrack, &videoRtpTransceiverInit,
@@ -477,8 +487,8 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
 
     // Add a SendRecv Transceiver of type video
     audioTrack.kind = MEDIA_STREAM_TRACK_KIND_AUDIO;
-    audioTrack.codec = RTC_CODEC_OPUS;
-    audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDRECV;
+    audioTrack.codec = pSampleConfiguration->codecConfiguration.audioStream.codec;
+    audioRtpTransceiverInit.direction = RTC_RTP_TRANSCEIVER_DIRECTION_SENDONLY;
     STRCPY(audioTrack.streamId, "myKvsVideoStream");
     STRCPY(audioTrack.trackId, "myAudioTrack");
     CHK_STATUS(addTransceiver(pSampleStreamingSession->pPeerConnection, &audioTrack, &audioRtpTransceiverInit,
@@ -491,6 +501,11 @@ STATUS createSampleStreamingSession(PSampleConfiguration pSampleConfiguration, P
                                                          sampleSenderBandwidthEstimationHandler));
     pSampleStreamingSession->firstFrame = TRUE;
     pSampleStreamingSession->startUpLatency = 0;
+
+    if (pSampleConfiguration->createStreamingSessionPostHook != NULL) {
+        pSampleConfiguration->createStreamingSessionPostHook(pSampleConfiguration, pSampleStreamingSession);
+    }
+
 CleanUp:
 
     if (STATUS_FAILED(retStatus) && pSampleStreamingSession != NULL) {
@@ -520,6 +535,10 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
 
     ATOMIC_STORE_BOOL(&pSampleStreamingSession->terminateFlag, TRUE);
 
+    if (pSampleConfiguration->freeStreamingSessionPreHook != NULL) {
+        pSampleConfiguration->freeStreamingSessionPreHook(pSampleConfiguration, pSampleStreamingSession);
+    }
+
     if (pSampleStreamingSession->shutdownCallback != NULL) {
         pSampleStreamingSession->shutdownCallback(pSampleStreamingSession->shutdownCallbackCustomData, pSampleStreamingSession);
     }
@@ -544,6 +563,9 @@ STATUS freeSampleStreamingSession(PSampleStreamingSession* ppSampleStreamingSess
     CHK_LOG_ERR(freePeerConnection(&pSampleStreamingSession->pPeerConnection));
     SAFE_MEMFREE(pSampleStreamingSession);
 
+    if (pSampleConfiguration->freeStreamingSessionPostHook != NULL) {
+        pSampleConfiguration->freeStreamingSessionPostHook(pSampleConfiguration, pSampleStreamingSession);
+    }
 CleanUp:
 
     CHK_LOG_ERR(retStatus);
@@ -685,14 +707,21 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     STATUS retStatus = STATUS_SUCCESS;
     PCHAR pAccessKey, pSecretKey, pSessionToken, pLogLevel;
     PSampleConfiguration pSampleConfiguration = NULL;
+    PRtspCameraConfiguration pRtspCameraConfiguration = NULL;
     UINT32 logLevel = LOG_LEVEL_DEBUG;
+    PCHAR pRtspChannel, pRtspUri, pRtspUsername, pRtspPassword;
 
     CHK(ppSampleConfiguration != NULL, STATUS_NULL_ARG);
 
     CHK(NULL != (pSampleConfiguration = (PSampleConfiguration) MEMCALLOC(1, SIZEOF(SampleConfiguration))), STATUS_NOT_ENOUGH_MEMORY);
-
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
+#ifdef ECS_ENABLE_CREDENTIALS
+    PCHAR pEcsToken, pEcsCredentialFullUri;
+    CHK_ERR((pEcsToken = getenv(ECS_AUTH_TOKEN)) != NULL, STATUS_INVALID_OPERATION, "AWS_CONTAINER_AUTHORIZATION_TOKEN must be set");
+    CHK_ERR((pEcsCredentialFullUri = getenv(ECS_CREDENTIALS_FULL_URI)) != NULL, STATUS_INVALID_OPERATION,
+            "AWS_CONTAINER_CREDENTIALS_FULL_URI must be set");
+#elif defined(IOT_CORE_ENABLE_CREDENTIALS)
     PCHAR pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pIotCoreRoleAlias, pIotCoreThingName;
+    CHK_ERR((pIotCoreThingName = getenv(IOT_CORE_THING_NAME)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_THING_NAME must be set");
     CHK_ERR((pIotCoreCredentialEndPoint = getenv(IOT_CORE_CREDENTIAL_ENDPOINT)) != NULL, STATUS_INVALID_OPERATION,
             "AWS_IOT_CORE_CREDENTIAL_ENDPOINT must be set");
     CHK_ERR((pIotCoreCert = getenv(IOT_CORE_CERT)) != NULL, STATUS_INVALID_OPERATION, "AWS_IOT_CORE_CERT must be set");
@@ -702,6 +731,20 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     CHK_ERR((pAccessKey = getenv(ACCESS_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_ACCESS_KEY_ID must be set");
     CHK_ERR((pSecretKey = getenv(SECRET_KEY_ENV_VAR)) != NULL, STATUS_INVALID_OPERATION, "AWS_SECRET_ACCESS_KEY must be set");
 #endif
+
+    pRtspCameraConfiguration = &pSampleConfiguration->rtspCameraConfiguration;
+    CHK_ERR((pRtspChannel = getenv(RTSP_CHANNEL)) != NULL, STATUS_INVALID_OPERATION, "RTSP_CHANNEL must be set");
+    CHK_ERR((pRtspUri = getenv(RTSP_URI)) != NULL, STATUS_INVALID_OPERATION, "RTSP_URI must be set");
+    CHK_ERR((pRtspUsername = getenv(RTSP_USERNAME)) != NULL, STATUS_INVALID_OPERATION, "RTSP_USERNAME must be set");
+    CHK_ERR((pRtspPassword = getenv(RTSP_PASSWORD)) != NULL, STATUS_INVALID_OPERATION, "RTSP_PASSWORD must be set");
+    CHK(STRNLEN(pRtspChannel, MAX_URI_CHAR_LEN + 1) <= MAX_URI_CHAR_LEN && STRNLEN(pRtspUri, MAX_CHANNEL_NAME_LEN + 1) <= MAX_CHANNEL_NAME_LEN &&
+            STRNLEN(pRtspUsername, SAMPLE_RTSP_USERNAME_LEN + 1) <= SAMPLE_RTSP_USERNAME_LEN &&
+            STRNLEN(pRtspPassword, SAMPLE_RTSP_PASSWORD_LEN + 1) <= SAMPLE_RTSP_PASSWORD_LEN,
+        STATUS_INVALID_ARG);
+    STRNCPY(pRtspCameraConfiguration->uri, pRtspUri, MAX_URI_CHAR_LEN);
+    STRNCPY(pRtspCameraConfiguration->channel, pRtspChannel, MAX_CHANNEL_NAME_LEN);
+    STRNCPY(pRtspCameraConfiguration->username, pRtspUsername, SAMPLE_RTSP_USERNAME_LEN);
+    STRNCPY(pRtspCameraConfiguration->password, pRtspPassword, SAMPLE_RTSP_PASSWORD_LEN);
 
     pSessionToken = getenv(SESSION_TOKEN_ENV_VAR);
     pSampleConfiguration->enableFileLogging = FALSE;
@@ -721,15 +764,11 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     }
 
     SET_LOGGER_LOG_LEVEL(logLevel);
-
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
-    CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint,
-                                              pIotCoreCert,
-                                              pIotCorePrivateKey,
-                                              pSampleConfiguration->pCaCertPath,
-                                              pIotCoreRoleAlias,
-                                              channelName,
-                                              &pSampleConfiguration->pCredentialProvider));
+#ifdef ECS_ENABLE_CREDENTIALS
+    CHK_STATUS(createLwsEcsCredentialProvider(pEcsCredentialFullUri, pEcsToken, &pSampleConfiguration->pCredentialProvider));
+#elif defined(IOT_CORE_ENABLE_CREDENTIALS)
+    CHK_STATUS(createLwsIotCredentialProvider(pIotCoreCredentialEndPoint, pIotCoreCert, pIotCorePrivateKey, pSampleConfiguration->pCaCertPath,
+                                              pIotCoreRoleAlias, pIotCoreThingName, &pSampleConfiguration->pCredentialProvider));
 #else
     CHK_STATUS(
         createStaticCredentialProvider(pAccessKey, 0, pSecretKey, 0, pSessionToken, 0, MAX_UINT64, &pSampleConfiguration->pCredentialProvider));
@@ -777,6 +816,10 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     ATOMIC_STORE_BOOL(&pSampleConfiguration->appTerminateFlag, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->recreateSignalingClient, FALSE);
     ATOMIC_STORE_BOOL(&pSampleConfiguration->connected, FALSE);
+
+    pSampleConfiguration->codecConfLock = MUTEX_CREATE(TRUE);
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->terminateCodecFlag, FALSE);
+    ATOMIC_STORE_BOOL(&pSampleConfiguration->codecConfigLatched, FALSE);
 
     CHK_STATUS(timerQueueCreate(&pSampleConfiguration->timerQueueHandle));
 
@@ -1045,16 +1088,20 @@ STATUS freeSampleConfiguration(PSampleConfiguration* ppSampleConfiguration)
         MUTEX_FREE(pSampleConfiguration->signalingSendMessageLock);
     }
 
+    if (IS_VALID_MUTEX_VALUE(pSampleConfiguration->codecConfLock)) {
+        MUTEX_FREE(pSampleConfiguration->codecConfLock);
+    }
+
     if (IS_VALID_CVAR_VALUE(pSampleConfiguration->cvar)) {
         CVAR_FREE(pSampleConfiguration->cvar);
     }
-
-#ifdef IOT_CORE_ENABLE_CREDENTIALS
+#ifdef ECS_ENABLE_CREDENTIALS
+    freeEcsCredentialProvider(&pSampleConfiguration->pCredentialProvider);
+#elif defined(IOT_CORE_ENABLE_CREDENTIALS)
     freeIotCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 #else
     freeStaticCredentialProvider(&pSampleConfiguration->pCredentialProvider);
 #endif
-
 
     if (IS_VALID_TIMER_QUEUE_HANDLE(pSampleConfiguration->timerQueueHandle)) {
         if (pSampleConfiguration->iceCandidatePairStatsTimerId != MAX_UINT32) {
