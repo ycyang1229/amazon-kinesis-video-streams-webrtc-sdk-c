@@ -2,11 +2,18 @@ cmake_minimum_required(VERSION 2.8)
 
 project(libkvsCommonLws-download NONE)
 
+SET(PATCH_COMMAND "")
+
+if (NOT WIN32)
+    set(PATCH_COMMAND ${PATCH_COMMAND} git apply --ignore-whitespace ${CMAKE_CURRENT_LIST_DIR}/libkvsCommonLws-ecs-support.patch)
+endif()
+
 include(ExternalProject)
 
 ExternalProject_Add(libkvsCommonLws-download
-    GIT_REPOSITORY    https://github.com/ycyang1229/amazon-kinesis-video-streams-producer-c.git
-    GIT_TAG           ecs-support
+    GIT_REPOSITORY    https://github.com/awslabs/amazon-kinesis-video-streams-producer-c.git
+    GIT_TAG           a8091d1a140fbdcb260ba3c8302aa2e4712d2d91
+    PATCH_COMMAND     ${PATCH_COMMAND}
     PREFIX            ${CMAKE_CURRENT_BINARY_DIR}/build
     CMAKE_ARGS        
       -DCMAKE_INSTALL_PREFIX=${OPEN_SRC_INSTALL_PREFIX}
