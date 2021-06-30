@@ -18,12 +18,7 @@ if(GST_FOUND)
   endif()
 
   pkg_check_modules(GLIB2 REQUIRED glib-2.0)
-  #pkg_check_modules(GST_APP REQUIRED gstreamer-app-1.0)
-  pkg_check_modules(GST_APP REQUIRED gstreamer-1.0
-        gstreamer-sdp-1.0
-        gstreamer-app-1.0
-        gstreamer-video-1.0
-        )
+  pkg_check_modules(GST_APP REQUIRED gstreamer-app-1.0 gstreamer-sdp-1.0)
   pkg_check_modules(GOBJ2 REQUIRED gobject-2.0)
   message("gstreamer found. Will build gstreamer samples")
 
