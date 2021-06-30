@@ -18,7 +18,7 @@ if(GST_FOUND)
   endif()
 
   pkg_check_modules(GLIB2 REQUIRED glib-2.0)
-  pkg_check_modules(GST_APP REQUIRED gstreamer-app-1.0)
+  pkg_check_modules(GST_APP REQUIRED gstreamer-app-1.0 gstreamer-sdp-1.0)
   pkg_check_modules(GOBJ2 REQUIRED gobject-2.0)
   message("gstreamer found. Will build gstreamer samples")
 
@@ -71,6 +71,17 @@ if(GST_FOUND)
   target_link_libraries(kvsWebrtcClientMasterGstSample kvsWebrtcClient kvsWebrtcSignalingClient ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets)
 
   install(TARGETS kvsWebrtcClientMasterGstSample
+    RUNTIME DESTINATION bin
+  )
+
+  add_executable(
+    kvsWebrtcClientMasterGstRtspSample
+    Common.c
+    kvsWebRTCClientMasterGstRtspSample.c
+  )
+  target_link_libraries(kvsWebrtcClientMasterGstRtspSample kvsWebrtcClient kvsWebrtcSignalingClient ${GST_SAMPLE_LIBRARIES} kvsCommonLws kvspicUtils websockets)
+
+  install(TARGETS kvsWebrtcClientMasterGstRtspSample
     RUNTIME DESTINATION bin
   )
 endif()

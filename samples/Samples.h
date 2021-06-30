@@ -11,6 +11,24 @@ extern "C" {
 #endif
 
 #include <com/amazonaws/kinesis/video/webrtcclient/Include.h>
+#include <gst/gst.h>
+#include <gst/app/gstappsink.h>
+
+#define STATUS_SAMPLE_BASE   0x70000000
+#define STATUS_SAMPLE_FAILED STATUS_SAMPLE_BASE + 0x00000001
+
+#define STATUS_GST_BASE              STATUS_SAMPLE_BASE + 0x01000000
+#define STATUS_GST_FAILED            STATUS_GST_BASE + 0x00000001
+#define STATUS_GST_DUMMY_SINK        STATUS_GST_BASE + 0x00000002
+#define STATUS_GST_VIDEO_SINK        STATUS_GST_BASE + 0x00000003
+#define STATUS_GST_AUDIO_SINK        STATUS_GST_BASE + 0x00000004
+#define STATUS_GST_LINK_ELEMENT      STATUS_GST_BASE + 0x00000005
+#define STATUS_GST_VIDEO_ELEMENT     STATUS_GST_BASE + 0x00000006
+#define STATUS_GST_AUDIO_ELEMENT     STATUS_GST_BASE + 0x00000007
+#define STATUS_GST_DUMMY_ELEMENT     STATUS_GST_BASE + 0x00000008
+#define STATUS_GST_EMPTY_ELEMENT     STATUS_GST_BASE + 0x00000009
+#define STATUS_GST_UNSUPPORTED_VIDEO STATUS_GST_BASE + 0x0000000A
+#define STATUS_GST_UNSUPPORTED_AUDIO STATUS_GST_BASE + 0x0000000B
 
 #define NUMBER_OF_H264_FRAME_FILES               1500
 #define NUMBER_OF_OPUS_FRAME_FILES               618
@@ -40,14 +58,30 @@ extern "C" {
 #define SAMPLE_HASH_TABLE_BUCKET_COUNT  50
 #define SAMPLE_HASH_TABLE_BUCKET_LENGTH 2
 
+#define SAMPLE_RTSP_USERNAME_LEN MAX_CHANNEL_NAME_LEN
+#define SAMPLE_RTSP_PASSWORD_LEN MAX_CHANNEL_NAME_LEN
+
 #define IOT_CORE_CREDENTIAL_ENDPOINT ((PCHAR) "AWS_IOT_CORE_CREDENTIAL_ENDPOINT")
 #define IOT_CORE_CERT                ((PCHAR) "AWS_IOT_CORE_CERT")
 #define IOT_CORE_PRIVATE_KEY         ((PCHAR) "AWS_IOT_CORE_PRIVATE_KEY")
 #define IOT_CORE_ROLE_ALIAS          ((PCHAR) "AWS_IOT_CORE_ROLE_ALIAS")
 #define IOT_CORE_THING_NAME          ((PCHAR) "AWS_IOT_CORE_THING_NAME")
 
+#define ECS_AUTH_TOKEN           ((PCHAR) "AWS_CONTAINER_AUTHORIZATION_TOKEN")
+#define ECS_CREDENTIALS_FULL_URI ((PCHAR) "AWS_CONTAINER_CREDENTIALS_FULL_URI")
+
+#define RTSP_CHANNEL  ((PCHAR) "AWS_RTSP_CHANNEL")
+#define RTSP_URI      ((PCHAR) "AWS_RTSP_URI")
+#define RTSP_USERNAME ((PCHAR) "AWS_RTSP_USERNAME")
+#define RTSP_PASSWORD ((PCHAR) "AWS_RTSP_PASSWORD")
+
+#define GST_ELEMENT_NAME_MAX_LEN 256
+
 /* Uncomment the following line in order to enable IoT credentials checks in the provided samples */
-//#define IOT_CORE_ENABLE_CREDENTIALS  1
+//#define IOT_CORE_ENABLE_CREDENTIALS 1
+#define ECS_ENABLE_CREDENTIALS 1
+
+typedef VOID (*StreamingSessionHook)(PSampleConfiguration, PSampleStreamingSession);
 
 typedef enum {
     SAMPLE_STREAMING_VIDEO_ONLY,
@@ -66,12 +100,35 @@ typedef struct {
     UINT64 prevTs;
 } RtcMetricsHistory, *PRtcMetricsHistory;
 
+#define GST_ENCODING_NAME_MAX_LEN 256
+typedef struct {
+    RTC_CODEC codec;
+    CHAR encodingName[GST_ENCODING_NAME_MAX_LEN];
+    UINT32 payloadType;
+    UINT32 clockRate;
+} CodecStreamConf, *PCodecStreamConf;
+
+typedef struct {
+    GMainLoop* mainLoop;  //!< the main runner for gstreamer.
+    GstElement* pipeline; //!< the pipeline for the rtsp url.
+    CodecStreamConf videoStream;
+    CodecStreamConf audioStream;
+} CodecConfiguration, *PCodecConfiguration;
+
+typedef struct {
+    CHAR uri[MAX_URI_CHAR_LEN];              //!< the rtsp url.
+    CHAR channel[MAX_CHANNEL_NAME_LEN];      //!< the signaling channgel for the rtsp url.
+    CHAR username[SAMPLE_RTSP_USERNAME_LEN]; //!< the username to login the rtsp url.
+    CHAR password[SAMPLE_RTSP_PASSWORD_LEN]; //!< the password to login the rtsp url.
+} RtspCameraConfiguration, *PRtspCameraConfiguration;
+
 typedef struct {
     volatile ATOMIC_BOOL appTerminateFlag;
     volatile ATOMIC_BOOL interrupted;
-    volatile ATOMIC_BOOL mediaThreadStarted;
+    volatile ATOMIC_BOOL mediaThreadStarted; //!< the flag to identify the status of the media thread.
     volatile ATOMIC_BOOL recreateSignalingClient;
     volatile ATOMIC_BOOL connected;
+
     BOOL useTestSrc;
     ChannelInfo channelInfo;
     PCHAR pCaCertPath;
@@ -102,16 +159,25 @@ typedef struct {
     UINT64 customData;
     PSampleStreamingSession sampleStreamingSessionList[DEFAULT_MAX_CONCURRENT_STREAMING_SESSION];
     UINT32 streamingSessionCount;
-    MUTEX streamingSessionListReadLock;
+    MUTEX streamingSessionListReadLock; //!< the lock of streaming session.
     UINT32 iceUriCount;
     SignalingClientCallbacks signalingClientCallbacks;
     SignalingClientInfo clientInfo;
     RtcStats rtcIceCandidatePairMetrics;
 
     MUTEX signalingSendMessageLock;
-
     UINT32 pregenerateCertTimerId;
     PStackQueue pregeneratedCertificates; // Max MAX_RTCCONFIGURATION_CERTIFICATES certificates
+
+    StreamingSessionHook createStreamingSessionPreHook;
+    StreamingSessionHook createStreamingSessionPostHook;
+    StreamingSessionHook freeStreamingSessionPreHook;
+    StreamingSessionHook freeStreamingSessionPostHook;
+    volatile ATOMIC_BOOL terminateCodecFlag;
+    volatile ATOMIC_BOOL codecConfigLatched;
+    MUTEX codecConfLock;
+    CodecConfiguration codecConfiguration;           //!< the configuration of gstreamer.
+    RtspCameraConfiguration rtspCameraConfiguration; //!< the configuration of rtsp camera.
 } SampleConfiguration, *PSampleConfiguration;
 
 typedef struct {
@@ -138,6 +204,7 @@ struct __SampleStreamingSession {
     TID receiveAudioVideoSenderTid;
     UINT64 offerReceiveTime;
     UINT64 startUpLatency;
+    BOOL firstKeyFrame; //!< the first key frame of this session is sent or not.
     BOOL firstFrame;
     RtcMetricsHistory rtcMetricsHistory;
     BOOL remoteCanTrickleIce;
