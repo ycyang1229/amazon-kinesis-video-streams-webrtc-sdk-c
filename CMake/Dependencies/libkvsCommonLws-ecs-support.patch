@@ -1,10 +1,10 @@
-From 37e89b8bdede4e5b622547d0469b6a323f844c01 Mon Sep 17 00:00:00 2001
-From: ycyang <yc.yang1229@gmail.com>
-Date: Tue, 29 Jun 2021 23:33:46 +0800
+From 6725290bf69ff797aebeecf3f99ae9dba89283e8 Mon Sep 17 00:00:00 2001
+From: yc yang <ycyang@amazon.com>
+Date: Thu, 8 Jul 2021 22:17:24 +0800
 Subject: [PATCH] ecs-support-patch
 
 ---
- .../amazonaws/kinesis/video/common/Include.h  |  53 +++-
+ .../amazonaws/kinesis/video/common/Include.h  |  54 +++-
  src/source/Common/EcsCredentialProvider.c     | 293 ++++++++++++++++++
  src/source/Common/EcsCredentialProvider.h     |  64 ++++
  src/source/Common/Include_i.h                 |   2 +
@@ -14,17 +14,17 @@ Subject: [PATCH] ecs-support-patch
  .../Common/Lws/LwsEcsCredentialProvider.c     |  16 +
  .../Common/Lws/LwsEcsCredentialProvider.h     |  16 +
  src/source/Common/RequestInfo.c               |   3 +-
- 10 files changed, 532 insertions(+), 4 deletions(-)
+ 10 files changed, 533 insertions(+), 4 deletions(-)
  create mode 100644 src/source/Common/EcsCredentialProvider.c
  create mode 100644 src/source/Common/EcsCredentialProvider.h
  create mode 100644 src/source/Common/Lws/LwsEcsCredentialProvider.c
  create mode 100644 src/source/Common/Lws/LwsEcsCredentialProvider.h
 
 diff --git a/src/include/com/amazonaws/kinesis/video/common/Include.h b/src/include/com/amazonaws/kinesis/video/common/Include.h
-index 17080ca..2bde023 100644
+index 17080ca..b34256e 100644
 --- a/src/include/com/amazonaws/kinesis/video/common/Include.h
 +++ b/src/include/com/amazonaws/kinesis/video/common/Include.h
-@@ -50,6 +50,10 @@ extern "C" {
+@@ -50,6 +50,11 @@ extern "C" {
  #define STATUS_FILE_CREDENTIAL_PROVIDER_OPEN_FILE_FAILED    STATUS_COMMON_PRODUCER_BASE + 0x00000022
  #define STATUS_FILE_CREDENTIAL_PROVIDER_INVALID_FILE_LENGTH STATUS_COMMON_PRODUCER_BASE + 0x00000023
  #define STATUS_FILE_CREDENTIAL_PROVIDER_INVALID_FILE_FORMAT STATUS_COMMON_PRODUCER_BASE + 0x00000024
@@ -32,10 +32,11 @@ index 17080ca..2bde023 100644
 +#define STATUS_ECS_AUTH_FAILED                              STATUS_COMMON_PRODUCER_BASE + 0x00000026
 +#define STATUS_ECS_AUTH_RSP_FAILED                          STATUS_COMMON_PRODUCER_BASE + 0x00000027
 +#define STATUS_MAX_ECS_TOKEN_LENGTH                         STATUS_COMMON_PRODUCER_BASE + 0x00000028
++#define STATUS_ECS_URI_LENGTH                               STATUS_COMMON_PRODUCER_BASE + 0x00000029
  /*!@} */
  
  /**
-@@ -137,6 +141,11 @@ extern "C" {
+@@ -137,6 +142,11 @@ extern "C" {
   */
  #define MAX_IOT_THING_NAME_LEN MAX_STREAM_NAME_LEN
  
@@ -47,7 +48,7 @@ index 17080ca..2bde023 100644
  /**
   * Maximum allowed request header length
   */
-@@ -259,6 +268,7 @@ extern "C" {
+@@ -259,6 +269,7 @@ extern "C" {
   * HTTPS Protocol scheme name
   */
  #define HTTPS_SCHEME_NAME "https"
@@ -55,7 +56,7 @@ index 17080ca..2bde023 100644
  
  /**
   * WSS Protocol scheme name
-@@ -283,6 +293,11 @@ extern "C" {
+@@ -283,6 +294,11 @@ extern "C" {
   */
  #define SCHEMA_DELIMITER_STRING (PCHAR) "://"
  
@@ -67,7 +68,7 @@ index 17080ca..2bde023 100644
  /**
   * Default canonical URI if we fail to get anything from the parsing
   */
-@@ -471,6 +486,7 @@ struct __RequestInfo {
+@@ -471,6 +487,7 @@ struct __RequestInfo {
                                                //!< NOTE: In streaming mode the body will be NULL
                                                //!< NOTE: The body will follow the main struct
      UINT32 bodySize;                          //!< Size of the body in bytes
@@ -75,7 +76,7 @@ index 17080ca..2bde023 100644
      CHAR url[MAX_URI_CHAR_LEN + 1];           //!< The URL for the request
      CHAR certPath[MAX_PATH_LEN + 1];          //!< CA Certificate path to use - optional
      CHAR sslCertPath[MAX_PATH_LEN + 1];       //!< SSL Certificate file path to use - optional
-@@ -669,6 +685,41 @@ PUBLIC_API STATUS createLwsIotCredentialProviderWithTime(PCHAR, PCHAR, PCHAR, PC
+@@ -669,6 +686,41 @@ PUBLIC_API STATUS createLwsIotCredentialProviderWithTime(PCHAR, PCHAR, PCHAR, PC
   */
  PUBLIC_API STATUS freeIotCredentialProvider(PAwsCredentialProvider*);
  
@@ -117,7 +118,7 @@ index 17080ca..2bde023 100644
  /**
   * @brief Creates a File based AWS credential provider object
   *
-@@ -720,7 +771,7 @@ PUBLIC_API STATUS freeFileCredentialProvider(PAwsCredentialProvider*);
+@@ -720,7 +772,7 @@ PUBLIC_API STATUS freeFileCredentialProvider(PAwsCredentialProvider*);
   *
   * @return STATUS code of the execution. STATUS_SUCCESS on success
   */
@@ -128,7 +129,7 @@ index 17080ca..2bde023 100644
  /**
 diff --git a/src/source/Common/EcsCredentialProvider.c b/src/source/Common/EcsCredentialProvider.c
 new file mode 100644
-index 0000000..48018c9
+index 0000000..7af931f
 --- /dev/null
 +++ b/src/source/Common/EcsCredentialProvider.c
 @@ -0,0 +1,293 @@
@@ -162,9 +163,9 @@ index 0000000..48018c9
 +
 +    fullUriLen = STRNLEN(ecsCredentialFullUri, MAX_URI_CHAR_LEN + 1);
 +
-+    CHK(fullUriLen <= MAX_URI_CHAR_LEN, MAX_URI_CHAR_LEN);
++    CHK(fullUriLen <= MAX_URI_CHAR_LEN, STATUS_ECS_URI_LENGTH);
 +    CHK_STATUS(getRequestHost(ecsCredentialFullUri, &pStart, &pEnd));
-+    len = (UINT32)(pEnd - ecsCredentialFullUri);
++    len = (UINT32) (pEnd - ecsCredentialFullUri);
 +    STRNCPY(pEcsCredentialProvider->ecsGetCredentialEndpoint, ecsCredentialFullUri, len);
 +    pEcsCredentialProvider->ecsGetCredentialEndpoint[len] = '\0';
 +
@@ -273,22 +274,22 @@ index 0000000..48018c9
 +
 +    for (i = 1; i < (UINT32) tokenCount; i++) {
 +        if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "AccessKeyId")) {
-+            accessKeyIdLen = (UINT32)(tokens[i + 1].end - tokens[i + 1].start);
++            accessKeyIdLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
 +            CHK(accessKeyIdLen <= MAX_ACCESS_KEY_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
 +            accessKeyId = pResponseStr + tokens[i + 1].start;
 +            i++;
 +        } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "SecretAccessKey")) {
-+            secretKeyLen = (UINT32)(tokens[i + 1].end - tokens[i + 1].start);
++            secretKeyLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
 +            CHK(secretKeyLen <= MAX_SECRET_KEY_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
 +            secretKey = pResponseStr + tokens[i + 1].start;
 +            i++;
 +        } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "Token")) {
-+            sessionTokenLen = (UINT32)(tokens[i + 1].end - tokens[i + 1].start);
++            sessionTokenLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
 +            CHK(sessionTokenLen <= MAX_SESSION_TOKEN_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
 +            sessionToken = pResponseStr + tokens[i + 1].start;
 +            i++;
-+        } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, "Expiration")) {
-+            expirationTimestampLen = (UINT32)(tokens[i + 1].end - tokens[i + 1].start);
++        } else if (compareJsonString(pResponseStr, &tokens[i], JSMN_STRING, (PCHAR) "Expiration")) {
++            expirationTimestampLen = (UINT32) (tokens[i + 1].end - tokens[i + 1].start);
 +            CHK(expirationTimestampLen <= MAX_EXPIRATION_LEN, STATUS_INVALID_API_CALL_RETURN_JSON);
 +            expirationTimestamp = pResponseStr + tokens[i + 1].start;
 +            MEMCPY(expirationTimestampStr, expirationTimestamp, expirationTimestampLen);
@@ -704,5 +705,5 @@ index adda706..f38e280 100644
      pRequestInfo->callAfter = pRequestInfo->currentTime;
      STRNCPY(pRequestInfo->region, region, MAX_REGION_NAME_LEN);
 -- 
-2.17.1
+2.20.1 (Apple Git-117)
 
