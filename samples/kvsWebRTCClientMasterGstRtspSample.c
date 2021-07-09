@@ -639,8 +639,11 @@ STATUS gstreamerRtspsrcInit(PSampleConfiguration pSampleConfiguration, GstElemen
     DLOGD("RTSP URL:%s", pRtspCameraConfiguration->uri);
     g_object_set(G_OBJECT(rtspSource), "location", pRtspCameraConfiguration->uri, "short-header", TRUE, NULL);
     g_object_set(G_OBJECT(rtspSource), "ntp-sync", TRUE, NULL);
-    g_object_set(G_OBJECT(rtspSource), "user-id", pRtspCameraConfiguration->username, NULL);
-    g_object_set(G_OBJECT(rtspSource), "user-pw", pRtspCameraConfiguration->password, NULL);
+
+    if (pRtspCameraConfiguration->username[0] != '\0' && pRtspCameraConfiguration->password[0] != '\0') {
+        g_object_set(G_OBJECT(rtspSource), "user-id", pRtspCameraConfiguration->username, NULL);
+        g_object_set(G_OBJECT(rtspSource), "user-pw", pRtspCameraConfiguration->password, NULL);
+    }
 
     // setup the callbacks.
     // g_signal_connect(rtspSource, "pad-added", G_CALLBACK(pad_added_cb), tee);

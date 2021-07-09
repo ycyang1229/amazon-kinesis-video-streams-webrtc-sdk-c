@@ -735,16 +735,25 @@ STATUS createSampleConfiguration(PCHAR channelName, SIGNALING_CHANNEL_ROLE_TYPE 
     pRtspCameraConfiguration = &pSampleConfiguration->rtspCameraConfiguration;
     CHK_ERR((pRtspChannel = getenv(RTSP_CHANNEL)) != NULL, STATUS_INVALID_OPERATION, "RTSP_CHANNEL must be set");
     CHK_ERR((pRtspUri = getenv(RTSP_URI)) != NULL, STATUS_INVALID_OPERATION, "RTSP_URI must be set");
-    CHK_ERR((pRtspUsername = getenv(RTSP_USERNAME)) != NULL, STATUS_INVALID_OPERATION, "RTSP_USERNAME must be set");
-    CHK_ERR((pRtspPassword = getenv(RTSP_PASSWORD)) != NULL, STATUS_INVALID_OPERATION, "RTSP_PASSWORD must be set");
-    CHK(STRNLEN(pRtspChannel, MAX_URI_CHAR_LEN + 1) <= MAX_URI_CHAR_LEN && STRNLEN(pRtspUri, MAX_CHANNEL_NAME_LEN + 1) <= MAX_CHANNEL_NAME_LEN &&
-            STRNLEN(pRtspUsername, SAMPLE_RTSP_USERNAME_LEN + 1) <= SAMPLE_RTSP_USERNAME_LEN &&
-            STRNLEN(pRtspPassword, SAMPLE_RTSP_PASSWORD_LEN + 1) <= SAMPLE_RTSP_PASSWORD_LEN,
+
+    CHK(STRNLEN(pRtspChannel, MAX_URI_CHAR_LEN + 1) <= MAX_URI_CHAR_LEN && STRNLEN(pRtspUri, MAX_CHANNEL_NAME_LEN + 1) <= MAX_CHANNEL_NAME_LEN,
         STATUS_INVALID_ARG);
     STRNCPY(pRtspCameraConfiguration->uri, pRtspUri, MAX_URI_CHAR_LEN);
     STRNCPY(pRtspCameraConfiguration->channel, pRtspChannel, MAX_CHANNEL_NAME_LEN);
-    STRNCPY(pRtspCameraConfiguration->username, pRtspUsername, SAMPLE_RTSP_USERNAME_LEN);
-    STRNCPY(pRtspCameraConfiguration->password, pRtspPassword, SAMPLE_RTSP_PASSWORD_LEN);
+
+    pRtspUsername = getenv(RTSP_USERNAME);
+    pRtspPassword = getenv(RTSP_PASSWORD);
+
+    if (pRtspUsername == NULL || pRtspPassword == NULL || pRtspUsername[0] == '\0' || pRtspPassword[0] == '\0') {
+        MEMSET(pRtspCameraConfiguration->username, 0, SAMPLE_RTSP_USERNAME_LEN);
+        MEMSET(pRtspCameraConfiguration->password, 0, SAMPLE_RTSP_PASSWORD_LEN);
+    } else {
+        CHK(STRNLEN(pRtspUsername, SAMPLE_RTSP_USERNAME_LEN + 1) <= SAMPLE_RTSP_USERNAME_LEN &&
+                STRNLEN(pRtspPassword, SAMPLE_RTSP_PASSWORD_LEN + 1) <= SAMPLE_RTSP_PASSWORD_LEN,
+            STATUS_INVALID_ARG);
+        STRNCPY(pRtspCameraConfiguration->username, pRtspUsername, SAMPLE_RTSP_USERNAME_LEN);
+        STRNCPY(pRtspCameraConfiguration->password, pRtspPassword, SAMPLE_RTSP_PASSWORD_LEN);
+    }
 
     pSessionToken = getenv(SESSION_TOKEN_ENV_VAR);
     pSampleConfiguration->enableFileLogging = FALSE;
