@@ -432,7 +432,7 @@ static void rtspsrcOnPadAddedProbe(GstElement* element, GstPad* pad, gpointer ud
                 } else if (STRCMP(encoding_name, GST_STRUCT_FIELD_ENCODING_OPUS) == 0) {
                     pCodecStreamConf->codec = RTC_CODEC_OPUS;
                 } else {
-                    DLOGW("unsupported video format");
+                    DLOGW("unsupported audio format");
                 }
             }
             DLOGD("codec:%d", pCodecStreamConf->codec);
@@ -714,7 +714,7 @@ CleanUp:
     g_main_loop_unref(pGstConfiguration->mainLoop);
     pGstConfiguration->mainLoop = NULL;
 
-    return (PVOID)(ULONG_PTR) retStatus;
+    return (PVOID) (ULONG_PTR) retStatus;
 }
 
 /**
@@ -779,7 +779,7 @@ CleanUp:
     g_main_loop_unref(pGstConfiguration->mainLoop);
     pGstConfiguration->mainLoop = NULL;
 
-    return (PVOID)(ULONG_PTR) retStatus;
+    return (PVOID) (ULONG_PTR) retStatus;
 }
 
 VOID createStreamingSesstionPreHookFunc(PSampleConfiguration pSampleConfiguration, PSampleStreamingSession pSampleStreamingSession)
